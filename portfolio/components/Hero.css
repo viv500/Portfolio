@@ -1,0 +1,26 @@
+
+.secondaryText {
+    font-family: 'Poppins', sans-serif; /* Same font */
+    font-size: 1.5rem; /* Slightly smaller */
+    color: #cc99ff; /* Light purple color */
+    position: relative; /* Relative positioning */
+    opacity: 0; /* Start hidden */
+    transform: translateY(20px); /* Start off-screen */
+    transition: transform 0.5s ease-out, opacity 0.5s ease-out; /* Smooth transition */
+    white-space: nowrap; /* Prevent text from wrapping */
+}
+
+/* Floating effect */
+.heroContainer .secondaryText.show {
+    opacity: 1; /* Fade in */
+    transform: translateY(0); /* Move into view */
+}
+
+
+/* Media query for mobile devices */
+@media (max-width: 600px) {
+    .secondaryText {
+        font-size: 1.25rem; /* Adjust font size if needed */
+        white-space: normal; /* Allow wrapping on smaller screens if needed */
+    }
+}
