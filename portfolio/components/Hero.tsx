@@ -5,7 +5,7 @@ import { Spotlight } from './ui/Spotlight'
 const Hero = () => {
     return (
         <div className="pb-25 pt-25">
-            <div className="relative bg-black h-screen">
+            <div className="relative h-screen">
                 <Spotlight className="-top-20 -left-10 md:-left-32 h-screen" fill="white" />
                 <Spotlight className="-top-1 -left-10 md:-left-32 h-screen" fill="purple" />
                 <Spotlight className="top-15 -left-10 md:-left-32 h-screen" fill="blue" />
