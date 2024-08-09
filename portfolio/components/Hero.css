@@ -24,3 +24,19 @@
         white-space: normal; /* Allow wrapping on smaller screens if needed */
     }
 }
+
+/* Floating effect for button */
+/* Floating effect for button */
+.buttonFloat {
+    opacity: 0 !important; /* Start hidden */
+    transform: translateY(40px) !important; /* Increased off-screen distance */
+    transition: transform 1s ease-out, opacity 1s ease-out !important; /* Slower transition */
+}
+
+/* When button should be visible */
+.buttonFloat.show {
+    opacity: 1 !important; /* Fade in */
+    transform: translateY(0) !important; /* Move into view */
+}
+
+

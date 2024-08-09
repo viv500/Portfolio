@@ -8,6 +8,7 @@ const Hero = () => {
     const [text, setText] = useState('');
     const fullText = "Hi, I'm Vivek.";
     const [showText, setShowText] = useState(false);
+    const [showButton, setShowButton] = useState(false);
 
     useEffect(() => {
         let index = 0;
@@ -23,6 +24,15 @@ const Hero = () => {
         return () => clearInterval(typingInterval); // Cleanup
     }, [fullText]);
 
+    useEffect(() => {
+        if (showText) {
+            const timer = setTimeout(() => {
+                setShowButton(true); // Show button after the secondary text is fully shown
+            }, 55); // Adjust delay as needed
+            return () => clearTimeout(timer); // Cleanup
+        }
+    }, [showText]);
+
     return (
         <div className="relative h-screen flex flex-col items-center justify-center text-center">
             <div className="relative h-full w-full">
@@ -32,10 +42,8 @@ const Hero = () => {
                 <Spotlight className="-top-1 -left-10 md:-left-32 h-screen" fill="purple" />
                 <Spotlight className="top-15 -left-10 md:-left-32 h-screen" fill="blue" />
 
-
                 {/* the shooting stars in the backdrop */}
                 <BackgroundBeams />
-
 
             </div>
 
@@ -48,14 +56,19 @@ const Hero = () => {
                         Software Engineer and Web Developer
                     </div>
 
-                    {/* butotn to scroll down to bento box */}
-
-                    <button onClick={scrollDownByFullHeight} className="absolute bottom-16 inline-flex h-12 overflow-hidden rounded-full p-[2px] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50">
-                        <span className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#393BB2_50%,#E2CBFF_100%)]" />
-                        <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-slate-950 px-3 py-1 text-sm font-medium text-white backdrop-blur-3xl">
-                            Explore My Work
-                        </span>
-                    </button>
+                    {/* Button to scroll down to bento box */}
+                    {/* Only showing button once secondary text has loaded */}
+                    {showButton && (
+                        <button 
+                            onClick={scrollDownByFullHeight} 
+                            className={`absolute bottom-16 inline-flex h-12 overflow-hidden rounded-full p-[2px] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50 buttonFloat ${showButton ? 'show' : ''}`}
+                        >
+                            <span className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#393BB2_50%,#E2CBFF_100%)]" />
+                            <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-slate-950 px-3 py-1 text-sm font-medium text-white backdrop-blur-3xl">
+                                Explore My Work
+                            </span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -63,7 +76,7 @@ const Hero = () => {
     );
 }
 
-// function to scroll dowm by the height of the webpage
+// Function to scroll down by the height of the webpage
 const scrollDownByFullHeight = () => {
     // Get the height of the entire document
     const documentHeight = document.documentElement.scrollHeight;
@@ -71,10 +84,8 @@ const scrollDownByFullHeight = () => {
     // Scroll down by the height of the document
     window.scrollBy({
         top: documentHeight,
-        behavior: 'smooth' // makes the scrolling smooth
-
+        behavior: 'smooth' // Makes the scrolling smooth
     });
 }
-
 
 export default Hero;
