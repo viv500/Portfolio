@@ -10,22 +10,6 @@ const Hero = () => {
     const [showText, setShowText] = useState(false);
     const [showButton, setShowButton] = useState(false);
 
-    // to conditionally display shooting stars only on computer screens
-    const [isWideScreen, setIsWideScreen] = useState(window.innerWidth > 600);
-
-    useEffect(() => {
-        const handleResize = () => {
-            setIsWideScreen(window.innerWidth > 600);
-        };
-
-        window.addEventListener('resize', handleResize);
-
-        // Clean up the event listener on component unmount
-        return () => {
-            window.removeEventListener('resize', handleResize);
-        };
-    }, []);
-
     useEffect(() => {
         let index = 0;
         const typingInterval = setInterval(() => {
@@ -58,9 +42,9 @@ const Hero = () => {
                 <Spotlight className="-top-1 -left-10 md:-left-32 h-screen" fill="purple" />
                 <Spotlight className="top-15 -left-10 md:-left-32 h-screen" fill="blue" />
 
-                {/* the shooting stars in the backdrop */}
-                {isWideScreen &&
-                    <BackgroundBeams />}
+                <div className="mobile">
+                    <BackgroundBeams />
+                </div>
 
             </div>
 

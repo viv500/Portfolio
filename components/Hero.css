@@ -33,9 +33,10 @@
     }
 }
 
-@media (min-width: 500) {
+@media (max-width: 601px) {
     .mobile {
-        
+        display: none; /* Hide .mobile class content */
+
     }
 
 }
