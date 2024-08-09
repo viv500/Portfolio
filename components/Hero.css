@@ -23,6 +23,14 @@
         font-size: 1.25rem; /* Adjust font size if needed */
         white-space: normal; /* Allow wrapping on smaller screens if needed */
     }
+
+    .buttonFloat {
+        position: relative; /* Position relative for mobile */
+        margin-top: 20px; /* Space between text and button */
+        bottom: auto; /* Override bottom positioning for mobile */
+        left: auto; /* Center the button horizontally */
+        transform: translateY(0); /* Remove vertical offset */
+    }
 }
 
 /* Floating effect for button */
