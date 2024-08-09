@@ -36,6 +36,13 @@
     }
 }
 
+@media (min-width: 500) {
+    .mobile {
+        
+    }
+
+}
+
 /* Floating effect for button */
 /* Floating effect for button */
 .buttonFloat {

@@ -10,6 +10,22 @@ const Hero = () => {
     const [showText, setShowText] = useState(false);
     const [showButton, setShowButton] = useState(false);
 
+    // to conditionally display shooting stars only on computer screens
+    const [isWideScreen, setIsWideScreen] = useState(window.innerWidth > 600);
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsWideScreen(window.innerWidth > 600);
+        };
+
+        window.addEventListener('resize', handleResize);
+
+        // Clean up the event listener on component unmount
+        return () => {
+            window.removeEventListener('resize', handleResize);
+        };
+    }, []);
+
     useEffect(() => {
         let index = 0;
         const typingInterval = setInterval(() => {
@@ -43,7 +59,8 @@ const Hero = () => {
                 <Spotlight className="top-15 -left-10 md:-left-32 h-screen" fill="blue" />
 
                 {/* the shooting stars in the backdrop */}
-                <BackgroundBeams />
+                {isWideScreen &&
+                    <BackgroundBeams />}
 
             </div>
 
@@ -59,8 +76,8 @@ const Hero = () => {
                     {/* Button to scroll down to bento box */}
                     {/* Only showing button once secondary text has loaded */}
                     {showButton && (
-                        <button 
-                            onClick={scrollDownByFullHeight} 
+                        <button
+                            onClick={scrollDownByFullHeight}
                             className={`absolute bottom-16 inline-flex h-12 overflow-hidden rounded-full p-[2px] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50 buttonFloat ${showButton ? 'show' : ''}`}
                         >
                             <span className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#393BB2_50%,#E2CBFF_100%)]" />
