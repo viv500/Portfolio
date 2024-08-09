@@ -24,7 +24,7 @@ const Hero = () => {
     }, [fullText]);
 
     return (
-        <div className="pb-25 pt-25 relative h-screen flex flex-col items-center justify-center text-center">
+        <div className="relative h-screen flex flex-col items-center justify-center text-center">
             <div className="relative h-full w-full">
                 <Spotlight className="-top-20 -left-10 md:-left-32 h-screen" fill="white" />
                 <Spotlight className="-top-1 -left-10 md:-left-32 h-screen" fill="purple" />
