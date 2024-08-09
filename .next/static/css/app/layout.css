@@ -901,6 +901,19 @@ video {
   --tw-contain-paint:  ;
   --tw-contain-style:  ;
 }
+.container {
+  width: 100%;
+  margin-right: auto;
+  margin-left: auto;
+  padding-right: 2rem;
+  padding-left: 2rem;
+}
+@media (min-width: 1400px) {
+
+  .container {
+    max-width: 1400px;
+  }
+}
 .pointer-events-none {
   pointer-events: none;
 }
@@ -940,6 +953,9 @@ video {
 }
 .mb-0\.5 {
   margin-bottom: 0.125rem;
+}
+.mb-4 {
+  margin-bottom: 1rem;
 }
 .flex {
   display: flex;
@@ -994,6 +1010,15 @@ video {
 }
 .animate-spotlight {
   animation: spotlight 2s ease .75s 1 forwards;
+}
+@keyframes spin {
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
 .cursor-pointer {
   cursor: pointer;

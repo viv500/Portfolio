@@ -10,6 +10,8 @@
     white-space: nowrap; /* Prevent text from wrapping */
 }
 
+
+
 /* Floating effect */
 .heroContainer .secondaryText.show {
     opacity: 1; /* Fade in */
@@ -25,21 +27,20 @@
     }
 
     .buttonFloat {
-        position: relative; /* Position relative for mobile */
-        margin-top: 20px; /* Space between text and button */
+        position: flexbox; /* Position relative for mobile */
+        margin-top: 400px; /* Space between text and button */
         bottom: auto; /* Override bottom positioning for mobile */
         left: auto; /* Center the button horizontally */
         transform: translateY(0); /* Remove vertical offset */
     }
-}
 
-@media (max-width: 601px) {
     .mobile {
         display: none; /* Hide .mobile class content */
 
     }
-
 }
+
+
 
 /* Floating effect for button */
 /* Floating effect for button */

@@ -28,7 +28,7 @@ const Hero = () => {
         if (showText) {
             const timer = setTimeout(() => {
                 setShowButton(true); // Show button after the secondary text is fully shown
-            }, 55); // Adjust delay as needed
+            }, 500); // Adjust delay as needed
             return () => clearTimeout(timer); // Cleanup
         }
     }, [showText]);
