@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Spotlight } from './ui/Spotlight';
 import './Hero.css'; // Import the CSS file for styling
+import { BackgroundBeams } from './ui/background-beams';
 
 const Hero = () => {
     const [text, setText] = useState('');
@@ -29,7 +30,7 @@ const Hero = () => {
                 <Spotlight className="-top-1 -left-10 md:-left-32 h-screen" fill="purple" />
                 <Spotlight className="top-15 -left-10 md:-left-32 h-screen" fill="blue" />
 
-                
+                <BackgroundBeams/>
             </div>
 
             <div className="heroContainer">
