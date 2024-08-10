@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Vivek's Portfolio",
-  description: "Vivek the Dev",
+  description:"",
 };
 
 export default function RootLayout({
@@ -18,7 +18,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* You can include additional head elements here */}
+        {/* favicon link here */}
+        <link rel="icon" href="/favicon.ico" />
       </head>
       <body className={inter.className}>
         <ThemeProvider
