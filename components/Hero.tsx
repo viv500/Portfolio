@@ -96,12 +96,12 @@ const Hero = () => {
 
 // Function to scroll down by the height of the webpage
 const scrollDownByFullHeight = () => {
-    // Get the height of the entire document
-    const documentHeight = document.documentElement.scrollHeight;
+    // Get the height of the viewport rather than scrolling all the way down
+    const viewportHeight = window.innerHeight;
 
     // Scroll down by the height of the document
     window.scrollBy({
-        top: documentHeight,
+        top: viewportHeight,
         behavior: 'smooth' // Makes the scrolling smooth
     });
 }
