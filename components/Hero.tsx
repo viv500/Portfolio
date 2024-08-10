@@ -3,12 +3,23 @@ import React, { useState, useEffect } from 'react';
 import { Spotlight } from './ui/Spotlight';
 import './Hero.css'; // Import the CSS file for styling
 import { BackgroundBeams } from './ui/background-beams';
+import { FloatingNav } from './ui/floating-navbar';
+import Bento from './Bento'
 
 const Hero = () => {
+    const showFooter = false;
     const [text, setText] = useState('');
     const fullText = "Hi, I'm Vivek.";
     const [showText, setShowText] = useState(false);
     const [showButton, setShowButton] = useState(false);
+
+    const navItems = [
+        { name: 'Home', link: '#home' },
+        { name: 'Projects', link: '#projects' },
+        { name: 'Experience', link: '#experience' },
+        { name: 'About', link: '#about' },
+    ];
+
 
     useEffect(() => {
         let index = 0;
@@ -33,8 +44,12 @@ const Hero = () => {
         }
     }, [showText]);
 
+
     return (
         <div className="relative h-screen flex flex-col items-center justify-center text-center">
+
+            <FloatingNav navItems={navItems}/>
+
             <div className="relative h-full w-full">
 
                 {/* the flashing lights from the top left */}
@@ -51,7 +66,7 @@ const Hero = () => {
             <div className="heroContainer">
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <div className="text-4xl text-white mb-0.5">
-                        {text}
+                        <strong>{text}</strong>
                     </div>
                     <div className={`secondaryText ${showText ? 'show' : ''}`}>
                         Software Engineer and Web Developer
@@ -68,11 +83,13 @@ const Hero = () => {
                             <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-slate-950 px-3 py-1 text-sm font-medium text-white backdrop-blur-3xl">
                                 Explore My Work
                             </span>
-                        </button>
+                        </button>   
+                        
                     )}
                 </div>
+                
             </div>
-
+            
         </div>
     );
 }
