@@ -48,11 +48,15 @@ const Hero = () => {
     return (
         <div className="relative h-screen flex flex-col items-center justify-center text-center">
 
-            <FloatingNav navItems={navItems}/>
+
+
+            <FloatingNav navItems={navItems} />
+
 
             <div className="relative h-full w-full">
 
                 {/* the flashing lights from the top left */}
+
                 <Spotlight className="-top-20 -left-10 md:-left-32 h-screen" fill="white" />
                 <Spotlight className="-top-1 -left-10 md:-left-32 h-screen" fill="purple" />
                 <Spotlight className="top-15 -left-10 md:-left-32 h-screen" fill="blue" />
@@ -83,13 +87,13 @@ const Hero = () => {
                             <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-slate-950 px-3 py-1 text-sm font-medium text-white backdrop-blur-3xl">
                                 Explore My Work
                             </span>
-                        </button>   
-                        
+                        </button>
+
                     )}
                 </div>
-                
+
             </div>
-            
+
         </div>
     );
 }
