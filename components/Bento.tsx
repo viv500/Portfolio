@@ -13,6 +13,7 @@ const Bento = () => {
             title={item.title}
             description={item.description}
             img={item.img}
+            // conditional rendering based on screen size
             className={`sm:block md:hidden lg:hidden ${item.className}`}
           />
         ))}
@@ -23,6 +24,7 @@ const Bento = () => {
             title={item.title}
             description={item.description}
             img={item.img}
+            // conditional rendering based on screen size
             className={`sm:hidden md:block lg:hidden ${item.className}`}
           />
         ))}
@@ -33,6 +35,7 @@ const Bento = () => {
             title={item.title}
             description={item.description}
             img={item.img}
+            // conditional rendering based on screen size
             className={`sm:hidden md:hidden lg:block ${item.className}`}
           />
         ))}
