@@ -14,7 +14,7 @@ const Bento = () => {
             description={item.description}
             img={item.img}
             // conditional rendering based on screen size
-            className={`sm:block md:hidden lg:hidden ${item.className}`}
+            className={`sm:block md:hidden lg:hidden block ${item.className}`}
           />
         ))}
         {BentoItemsMedium.map((item, index) => (
@@ -25,7 +25,7 @@ const Bento = () => {
             description={item.description}
             img={item.img}
             // conditional rendering based on screen size
-            className={`sm:hidden md:block lg:hidden ${item.className}`}
+            className={`sm:hidden md:block lg:hidden hidden ${item.className}`}
           />
         ))}
         {BentoItemsLarge.map((item, index) => (
@@ -36,7 +36,7 @@ const Bento = () => {
             description={item.description}
             img={item.img}
             // conditional rendering based on screen size
-            className={`sm:hidden md:hidden lg:block ${item.className}`}
+            className={`sm:hidden md:hidden lg:block hidden ${item.className}`}
           />
         ))}
       </BentoGrid>
