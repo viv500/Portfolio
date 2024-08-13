@@ -25,6 +25,7 @@ const Bento = () => {
             title={item.title}
             description={item.description}
             img={item.img}
+            imgClass={item.imgClass}
             // conditional rendering based on screen size
             className={`sm:hidden md:block lg:hidden hidden ${item.className}`}
           />
@@ -36,6 +37,8 @@ const Bento = () => {
             title={item.title}
             description={item.description}
             img={item.img}
+            // applying image class to image
+            imgClass={item.imgClass}
             // conditional rendering based on screen size
             className={`sm:hidden md:hidden lg:block hidden ${item.className}`}
           />
