@@ -34,10 +34,6 @@
         transform: translateY(0); /* Remove vertical offset */
     }
 
-    .mobile {
-        display: none; /* Hide .mobile class content */
-
-    }
 }
 
 
