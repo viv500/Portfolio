@@ -5,6 +5,7 @@ import './Hero.css'; // Import the CSS file for styling
 import { BackgroundBeams } from './ui/background-beams';
 import { FloatingNav } from './ui/floating-navbar';
 import Bento from './Bento'
+import { GridSmallBackgroundDemo } from './ui/background-grid';
 
 const Hero = () => {
     const showFooter = false;
@@ -51,6 +52,7 @@ const Hero = () => {
 
 
             <FloatingNav navItems={navItems} />
+            
 
 
             <div className="relative h-full w-full">
@@ -66,6 +68,10 @@ const Hero = () => {
                     <BackgroundBeams />
                 </div>
                 */}
+
+                <GridSmallBackgroundDemo/>
+
+                
 
 
             </div>
