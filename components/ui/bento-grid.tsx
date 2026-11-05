@@ -1,69 +1,56 @@
-import { cn } from "@/lib/utils";
-import Link from "next/link"
+"use client";
 
-export const BentoGrid = ({
-  className,
-  children,
-}: {
-  className?: string;
-  children?: React.ReactNode;
-}) => {
-  return (
-    <div
-      className={cn(
-        "grid md:auto-rows-[18rem] grid-cols-1 md:grid-cols-3 gap-4 max-w-7xl mx-auto ",
-        className
-      )}
-    >
-      {children}
-    </div>
-  );
-};
+import React from "react";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+
+export const CARD_BACKGROUND = "rgb(2,0,36)";
+
+export const BentoGrid = ({ className, children }: { className?: string; children?: React.ReactNode }) => (
+  <div className={cn("mx-auto grid max-w-7xl grid-cols-1 gap-4 px-4 md:grid-cols-3", className)}>{children}</div>
+);
 
 export const BentoGridItem = ({
+  id,
+  index,
   className,
   title,
   description,
-  header,
-  icon,
-  id,
-  img,
-  imgClass
+  children,
 }: {
+  id: string;
+  index: number;
   className?: string;
-  title?: string | React.ReactNode;
-  description?: string | React.ReactNode;
-  header?: React.ReactNode;
-  icon?: React.ReactNode;
-  id: number
-  img: string;
-  imgClass?: string
-
+  title: string;
+  description: string;
+  children?: React.ReactNode;
 }) => {
   return (
-    <div
-      className={cn(
-        "overflow-hidden row-span-1 relative rounded-3xl group/bento hover:shadow-xl transition duration-200 shadow-input dark:shadow-none p-4 dark:bg-black dark:border-white/[0.2] bg-white border border-transparent justify-between flex flex-col space-y-4 border-red-500",
-        className
-      )}
+    <motion.div
+      initial={{ opacity: 0, y: 28 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.15 }}
+      transition={{ duration: 0.5, delay: index * 0.05, ease: "easeOut" }}
+      className={className}
     >
-      <Link href={"/"} passHref>
-        {header}
-        <div className="group-hover/bento:translate-x-2 transition duration-200">
-          {icon}
-          <div className="font-sans font-bold text-neutral-600 dark:text-neutral-200 mb-2 mt-2">
-            {title}
+      <motion.a
+        layoutId={`card-${id}`}
+        href={`#${id}`}
+        aria-label={`${title}: ${description} Open details.`}
+        style={{ background: CARD_BACKGROUND, borderRadius: 24 }}
+        className="group/bento relative flex h-full flex-col overflow-hidden border border-white/[0.14] transition-colors duration-200 hover:border-white/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple"
+      >
+        <div className="relative z-10 p-5 pb-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-neutral-100">{title}</h3>
+            <span aria-hidden="true" className="text-white/30 transition-colors duration-200 group-hover/bento:text-white/80">
+              ↗
+            </span>
           </div>
-          <div className="font-sans font-normal text-neutral-600 text-xs dark:text-neutral-300">
-            {description}
-          </div>
-          <div className="relative">
-            <img src={img} className={imgClass} />
-            <img/>
-          </div>
-          
+          <p className="mt-1 text-xs text-neutral-300">{description}</p>
         </div>
-      </Link>
-    </div>
+        <div className="relative z-10 flex flex-1 flex-col justify-center">{children}</div>
+      </motion.a>
+    </motion.div>
   );
 };

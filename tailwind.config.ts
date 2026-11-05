@@ -26,6 +26,9 @@ const config = {
       },
     },
     extend: {
+      fontFamily: {
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
+      },
       colors: {
         black: {
           DEFAULT: "#000",

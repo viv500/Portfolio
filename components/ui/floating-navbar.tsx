@@ -6,7 +6,6 @@ import {
   useMotionValueEvent,
 } from "framer-motion";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
 
 export const FloatingNav = ({
   navItems,
@@ -46,16 +45,15 @@ export const FloatingNav = ({
           )}
         >
           {navItems.map((navItem, idx) => (
-            <Link
+            <a
               key={`link=${idx}`}
               href={navItem.link}
               className={cn(
                 "relative dark:text-neutral-50 flex items-center space-x-1 text-neutral-600 dark:hover:text-neutral-300 hover:text-neutral-500"
               )}
             >
-              <span className="block sm:hidden">{navItem.icon}</span>
-              <span className="hidden sm:block text-sm">{navItem.name}</span>
-            </Link>
+              <span className="text-xs sm:text-sm">{navItem.name}</span>
+            </a>
           ))}
         </motion.div>
       </AnimatePresence>

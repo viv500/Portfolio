@@ -1,2 +1,7 @@
 node_modules
 .next
+.DS_Store
+tsconfig.tsbuildinfo
+
+# Contains internal Arctic Wolf details; replace with a clean recording before removing this line
+public/media/arctic-wolf/allocator-demo.mp4
