@@ -143,15 +143,30 @@ export const MediaFrame = ({ item }: { item: Media }) => {
   return <StillImage item={item} onMissing={() => setMissing(true)} />;
 };
 
+const ROW_COLS: Record<number, string> = { 1: "mx-auto max-w-md", 2: "grid-cols-2", 3: "grid-cols-3" };
+
+/** Wide media spans the full width. Consecutive `half` items share a row, up to three per row. */
 export const MediaGrid = ({ items }: { items: Media[] }) => {
   if (!items.length) return null;
+  const rows: Media[][] = [];
+  for (const item of items) {
+    const last = rows[rows.length - 1];
+    if (item.half && last && last[0].half && last.length < 3) last.push(item);
+    else rows.push([item]);
+  }
   return (
-    <div className={items.length > 1 ? "grid gap-4 sm:grid-cols-2" : "grid gap-4"}>
-      {items.map((item) => (
-        <div key={item.src} className={item.kind === "image" ? undefined : "sm:col-span-2"}>
-          <MediaFrame item={item} />
-        </div>
-      ))}
+    <div className="space-y-4">
+      {rows.map((row) =>
+        row[0].half ? (
+          <div key={row[0].src} className={`grid items-center gap-3 sm:gap-4 ${ROW_COLS[row.length]}`}>
+            {row.map((item) => (
+              <MediaFrame key={item.src} item={item} />
+            ))}
+          </div>
+        ) : (
+          <MediaFrame key={row[0].src} item={row[0]} />
+        )
+      )}
     </div>
   );
 };

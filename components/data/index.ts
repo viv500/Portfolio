@@ -11,6 +11,8 @@ export type Media = {
   src: string;
   alt: string;
   spec?: string;
+  /** Square or tall media: sits side by side with its neighbours instead of spanning the full width. */
+  half?: boolean;
 };
 
 export type Stat = { value: number; prefix?: string; suffix?: string; label: string; detail: string; route: string };
@@ -284,8 +286,8 @@ export const projects: Project[] = [
     links: [repo("viv500/SWE_Internship_Telegram_Bot")],
     diagram: "bot",
     media: [
-      { kind: "image", src: "/media/internship-bot/telegram-alert.jpg", alt: "New postings arriving as Telegram notifications" },
-      { kind: "image", src: "/media/internship-bot/telegram-chat.jpg", alt: "A posting from the bot, with location, age and an apply link" },
+      { kind: "image", src: "/media/internship-bot/telegram-alert.jpg", alt: "New postings arriving as Telegram notifications", half: true },
+      { kind: "image", src: "/media/internship-bot/telegram-chat.jpg", alt: "A posting from the bot, with location, age and an apply link", half: true },
       { kind: "image", src: "/media/internship-bot/actions-runs.png", alt: "Over 2,000 scheduled GitHub Actions runs, all passing" },
     ],
     sections: [
@@ -364,8 +366,8 @@ export const projects: Project[] = [
     links: [{ label: "GitLab (UW login required)", href: "https://git.uwaterloo.ca/ajawkar/wat2eat", platform: "gitlab" }],
     media: [
       { kind: "video", src: "/media/wat2eat/demo.mp4", alt: "Wat2Eat demo: signing in, swiping on restaurants and matching" },
-      { kind: "image", src: "/media/wat2eat/explore.png", alt: "Searching restaurants near campus and saving favourites" },
-      { kind: "image", src: "/media/wat2eat/match.png", alt: "Swiping on a restaurant to find people who like it too" },
+      { kind: "image", src: "/media/wat2eat/explore.png", alt: "Searching restaurants near campus and saving favourites", half: true },
+      { kind: "image", src: "/media/wat2eat/match.png", alt: "Swiping on a restaurant to find people who like it too", half: true },
     ],
     sections: [
       {
@@ -399,7 +401,7 @@ export const hackathons: Project[] = [
     ],
     media: [
       { kind: "youtube", src: "ZpbdxFQrABQ", alt: "Canify demo video" },
-      { kind: "image", src: "/media/canify/extension.jpg", alt: "The Canify extension scoring items in an Amazon cart and awarding NEAR coins" },
+      { kind: "image", src: "/media/canify/extension.jpg", alt: "The Canify extension scoring items in an Amazon cart and awarding NEAR coins", half: true },
       { kind: "image", src: "/media/moments/presenting.jpg", alt: "Demoing Canify on stage at Hack Canada 2025" },
       { kind: "image", src: "/media/moments/team.jpg", alt: "The Canify team: Mahad Amer, Sebastian Balderrama, Lucas Chow and me" },
       { kind: "image", src: "/media/canify/team-stage.jpg", alt: "On stage for the NEAR sponsor prize" },
@@ -465,10 +467,9 @@ export const hackathons: Project[] = [
     stack: ["React", "Tailwind", "Framer Motion", "Flask", "OpenAI API", "NLP"],
     links: [repo("viv500/WatchDog")],
     media: [
-      { kind: "image", src: "/media/watchdog/WatchDog-Landing.png", alt: "WatchDog landing page" },
-      { kind: "image", src: "/media/watchdog/call.png", alt: "WatchDog phone call scam detection" },
-      { kind: "image", src: "/media/watchdog/text.png", alt: "WatchDog message scam detection" },
-      { kind: "video", src: "/media/watchdog/demo.mp4", alt: "WatchDog detecting a scam on a live call", spec: "MP4 under 10 MB, if you have a recording of it running." },
+      { kind: "video", src: "/media/watchdog/demo.mp4", alt: "WatchDog detecting a scam on a live call" },
+      { kind: "image", src: "/media/watchdog/landing.jpg", alt: "WatchDog landing page" },
+      { kind: "image", src: "/media/moments/starterhacks-presenting.jpg", alt: "Presenting WatchDog at StarterHacks 2024" },
     ],
     sections: [
       {
@@ -509,13 +510,12 @@ export const hackathons: Project[] = [
       { label: "Live site", href: "https://finance-cats.vercel.app", platform: "web" },
     ],
     media: [
-      {
-        kind: "video",
-        src: "/media/finance-cats/demo.mp4",
-        alt: "The Finance Cats advisors talking through a budget, with voices",
-        spec: "Your demo with the cats speaking, MP4 under 10 MB. Keep the audio: there's an Unmute button.",
-      },
-      { kind: "image", src: "/media/finance-cats/home.png", alt: "Finance Cats home page" },
+      { kind: "video", src: "/media/finance-cats/demo.mp4", alt: "The Finance Cats advisors talking through a budget, with voices" },
+      { kind: "image", src: "/media/finance-cats/advisor-1.jpg", alt: "Dr. Bartholomeow", half: true },
+      { kind: "image", src: "/media/finance-cats/advisor-2.jpg", alt: "Sir Pounce", half: true },
+      { kind: "image", src: "/media/finance-cats/advisor-3.jpg", alt: "One of the cat advisors", half: true },
+      { kind: "image", src: "/media/finance-cats/credit-cards.jpg", alt: "Credit card recommendations based on spending habits" },
+      { kind: "image", src: "/media/finance-cats/investing.jpg", alt: "A recommended portfolio with projected returns" },
     ],
     sections: [
       {
@@ -548,8 +548,8 @@ export const hackathons: Project[] = [
     links: [repo("viv500/LeaseLinker")],
     media: [
       { kind: "image", src: "/media/leaselinker/home.jpg", alt: "LeaseLinker home page" },
-      { kind: "image", src: "/media/leaselinker/form.jpg", alt: "Entering your current and future city to find a swap" },
-      { kind: "image", src: "/media/leaselinker/listings.jpg", alt: "Browsing homes to swap with" },
+      { kind: "image", src: "/media/leaselinker/form.jpg", alt: "Entering your current and future city to find a swap", half: true },
+      { kind: "image", src: "/media/leaselinker/listings.jpg", alt: "Browsing homes to swap with", half: true },
     ],
     sections: [
       {
@@ -627,9 +627,10 @@ export const education = {
 // Moments box hides itself on the live site until at least one photo exists.
 export const moments: Media[] = [
   { kind: "image", src: "/media/moments/presenting.jpg", alt: "Hack Canada 2025: demoing Canify on stage" },
+  { kind: "image", src: "/media/moments/starterhacks-presenting.jpg", alt: "StarterHacks 2024: presenting WatchDog" },
   { kind: "image", src: "/media/canify/team-stage.jpg", alt: "Hack Canada 2025: on stage for the NEAR sponsor prize" },
   { kind: "image", src: "/media/moments/team.jpg", alt: "Hack Canada 2025: the Canify team" },
-  { kind: "image", src: "/media/moments/starterhacks-2024.jpg", alt: "StarterHacks 2024, where WatchDog won Most Promising Hack" },
+  { kind: "image", src: "/media/moments/starterhacks-2024.jpg", alt: "StarterHacks 2024: WatchDog won Most Promising Hack" },
   { kind: "image", src: "/media/moments/datafest-2026.jpg", alt: "ASA DataFest 2026: Best Use of External Data", spec: "JPG, landscape, 1600px wide." },
 ]
 
