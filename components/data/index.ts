@@ -323,12 +323,7 @@ export const projects: Project[] = [
     ],
     diagram: "ecg",
     media: [
-      {
-        kind: "image",
-        src: "/media/ecg/capacity-vs-interpretability.png",
-        alt: "Capacity vs. interpretability across the three models",
-        spec: "PNG, 1600px wide. Figure 11 from the report, exported from the repo's figures.",
-      },
+      { kind: "image", src: "/media/ecg/capacity-vs-interpretability.png", alt: "Capacity vs. interpretability: macro-F1 rises as explanation plausibility and faithfulness fall" },
     ],
     sections: [
       {
@@ -369,8 +364,8 @@ export const projects: Project[] = [
     links: [{ label: "GitLab (UW login required)", href: "https://git.uwaterloo.ca/ajawkar/wat2eat", platform: "gitlab" }],
     media: [
       { kind: "video", src: "/media/wat2eat/demo.mp4", alt: "Wat2Eat demo: signing in, swiping on restaurants and matching" },
-      { kind: "image", src: "/media/wat2eat/explore.png", alt: "Wat2Eat explore page", spec: "PNG, the Explore Page screenshot from the repo's images/ folder." },
-      { kind: "image", src: "/media/wat2eat/match.png", alt: "Wat2Eat match page", spec: "PNG, the Match Page screenshot from the repo's images/ folder." },
+      { kind: "image", src: "/media/wat2eat/explore.png", alt: "Searching restaurants near campus and saving favourites" },
+      { kind: "image", src: "/media/wat2eat/match.png", alt: "Swiping on a restaurant to find people who like it too" },
     ],
     sections: [
       {
@@ -473,7 +468,6 @@ export const hackathons: Project[] = [
       { kind: "image", src: "/media/watchdog/WatchDog-Landing.png", alt: "WatchDog landing page" },
       { kind: "image", src: "/media/watchdog/call.png", alt: "WatchDog phone call scam detection" },
       { kind: "image", src: "/media/watchdog/text.png", alt: "WatchDog message scam detection" },
-      { kind: "image", src: "/media/watchdog/logo.png", alt: "WatchDog logo", spec: "PNG, the red WatchDog badge from Devpost, the original file with no WINNER ribbon." },
       { kind: "video", src: "/media/watchdog/demo.mp4", alt: "WatchDog detecting a scam on a live call", spec: "MP4 under 10 MB, if you have a recording of it running." },
     ],
     sections: [
@@ -495,7 +489,7 @@ export const hackathons: Project[] = [
     stack: ["FastAPI", "Next.js", "PostgreSQL", "LangChain", "Pinecone"],
     links: [repo("viv500/GenesisAI")],
     media: [
-      { kind: "image", src: "/media/sofia/dashboard.png", alt: "Sofia business plan dashboard", spec: "PNG, 1600px wide. Devpost only has the default image, so this needs a screenshot if you have one." },
+      { kind: "image", src: "/media/sofia/dashboard.jpg", alt: "Sofia's planning canvas with notes by business area and AI insights" },
     ],
     sections: [
       {
@@ -537,7 +531,7 @@ export const hackathons: Project[] = [
     context: "NewHacks 2023",
     stack: ["Python", "OpenCV", "dlib", "Streamlit", "AWS EC2"],
     links: [repo("viv500/PixelPerfectAI")],
-    media: [{ kind: "image", src: "/media/pixelperfect/ui.png", alt: "PixelPerfect ranking uploaded photos", spec: "PNG, 1600px wide. Devpost only has the default image, so this needs a screenshot if you have one." }],
+    media: [],
     sections: [
       {
         heading: "How it works",
@@ -552,7 +546,11 @@ export const hackathons: Project[] = [
     context: "NSBEHacks 2024",
     stack: ["React", "TypeScript", "Vite", "Tailwind CSS"],
     links: [repo("viv500/LeaseLinker")],
-    media: [{ kind: "image", src: "/media/leaselinker/home.png", alt: "LeaseLinker home page", spec: "PNG, 1600px wide, the original 'Sublease Apartments with Ease!' screenshot from Devpost." }],
+    media: [
+      { kind: "image", src: "/media/leaselinker/home.jpg", alt: "LeaseLinker home page" },
+      { kind: "image", src: "/media/leaselinker/form.jpg", alt: "Entering your current and future city to find a swap" },
+      { kind: "image", src: "/media/leaselinker/listings.jpg", alt: "Browsing homes to swap with" },
+    ],
     sections: [
       {
         heading: "What it does",
