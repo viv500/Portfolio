@@ -10,6 +10,18 @@ import { useAvailableImages } from "@/lib/useAvailableMedia";
 import { PlatformIcon } from "./ui/PlatformIcon";
 import { clearRoute, useHashRoute } from "@/lib/useHashRoute";
 
+// Panels can overlap while one animates out and the next animates in (e.g. a link from
+// Impact into Experience), so count open panels instead of saving/restoring the old value.
+let scrollLocks = 0;
+const lockScroll = () => {
+  scrollLocks += 1;
+  document.body.style.overflow = "hidden";
+};
+const unlockScroll = () => {
+  scrollLocks = Math.max(0, scrollLocks - 1);
+  if (scrollLocks === 0) document.body.style.overflow = "";
+};
+
 const SPRING = { type: "spring", stiffness: 260, damping: 32 } as const;
 
 const EXTRA_TITLES: Record<ExtraPanelId, string> = { resume: "Resume" };
@@ -21,8 +33,7 @@ const Panel = ({ id, sub, route }: { id: BoxId | ExtraPanelId; sub?: string; rou
 
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    lockScroll();
     closeRef.current?.focus({ preventScroll: true });
 
     const onKey = (e: KeyboardEvent) => {
@@ -45,7 +56,7 @@ const Panel = ({ id, sub, route }: { id: BoxId | ExtraPanelId; sub?: string; rou
     window.addEventListener("keydown", onKey);
     return () => {
       window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = previousOverflow;
+      unlockScroll();
       opener?.focus?.({ preventScroll: true });
     };
   }, []);
@@ -139,7 +150,16 @@ const Bento = () => {
         <span>Vivek Jude Manoj</span>
       </footer>
 
-      <AnimatePresence>{openId && <Panel key={openId} id={openId} sub={sub} route={route} />}</AnimatePresence>
+      <AnimatePresence
+        onExitComplete={() => {
+          // Safety net: once nothing is open, the page must scroll.
+          if (!document.querySelector('[role="dialog"]')) {
+            scrollLocks = 0;
+            document.body.style.overflow = "";
+          }
+        }}
+      >
+        {openId && <Panel key={openId} id={openId} sub={sub} route={route} />}</AnimatePresence>
     </MotionConfig>
   );
 };
