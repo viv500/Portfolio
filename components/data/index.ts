@@ -62,9 +62,9 @@ export type Role = {
 export const profile = {
   name: "Vivek Jude Manoj",
   photo: "/media/about/portrait-web.jpg",
-  hero: "I build infrastructure that makes engineers faster.",
+  hero: "I build systems that help engineers ship faster.",
   chips: ["Incoming @ Shopify", "Ex-Arctic Wolf, Rocket", "CS + AI @ UWaterloo"],
-  summary: "Hey! I'm Vivek, a Computer Science + AI student at Waterloo. I like building tools and infrastructure that make other engineers faster, and I'm joining Shopify next.",
+  summary: "Hey! I'm Vivek, a software engineer studying CS + AI at the University of Waterloo. I work on CI and build infrastructure, developer and AI tooling, and backend systems.",
   about: [
     "I'm Vivek. I'm studying for a Bachelor of Computer Science with an Artificial Intelligence Specialization at the University of Waterloo, graduating in December 2027. In Winter 2027 I'm joining Shopify to work on backend and infrastructure.",
     "My earlier projects were mostly web apps and hackathon builds. These days I'm most interested in infrastructure, developer tooling, cloud automation and DevOps.",
