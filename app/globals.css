@@ -139,3 +139,15 @@
   html { scroll-behavior: auto !important; }
   * { scroll-behavior: auto !important; }
 }
+
+/* Bento tile previews: muted at rest, full colour and a slight zoom on the hovered tile only.
+   Touch screens have no hover, so the tile scrolled to the middle of the screen lights up instead. */
+.tile-preview > * { filter: grayscale(0.85) brightness(0.6); transition: filter 0.4s ease, transform 0.6s ease; }
+.tile-preview > [data-dark] { filter: invert(0.9) hue-rotate(180deg) grayscale(0.85) brightness(0.6); }
+.tile:hover .tile-preview > * { filter: none; transform: scale(1.05); }
+.tile:hover .tile-preview > [data-dark] { filter: invert(0.9) hue-rotate(180deg); }
+@media (hover: none) {
+  .tile-preview[data-centred="true"] > * { filter: none; }
+  .tile-preview[data-centred="true"] > [data-dark] { filter: invert(0.9) hue-rotate(180deg); }
+}
+@media (prefers-reduced-motion: reduce) { .tile-preview > * { transition: none; } .tile:hover .tile-preview > * { transform: none; } }
