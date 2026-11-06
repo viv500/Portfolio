@@ -19,9 +19,18 @@ export const CountUp = ({ value, prefix = "", suffix = "" }: { value: number; pr
   </span>
 );
 
+// The first sentence stays bright; the rest is softer so the card doesn't read as one heavy block.
+const [INTRO_LEAD, INTRO_REST] = (() => {
+  const cut = profile.summary.indexOf(". ") + 1;
+  return cut > 0 ? [profile.summary.slice(0, cut), profile.summary.slice(cut)] : [profile.summary, ""];
+})();
+
 const About = () => (
     <div className="flex items-center gap-5 px-5 pb-5">
-      <p className="min-w-0 flex-1 text-base font-semibold leading-snug text-white sm:text-lg md:text-[1.6rem] md:leading-snug">{profile.summary}</p>
+      <p className="min-w-0 flex-1 text-base leading-snug text-white/65 sm:text-lg md:text-[1.35rem] md:leading-relaxed">
+        <span className="font-medium text-white">{INTRO_LEAD}</span>
+        {INTRO_REST}
+      </p>
       <div className="relative aspect-[3/4] w-[38%] shrink-0 overflow-hidden rounded-2xl border border-white/10 md:w-[24%]">
         <Image
           src={profile.photo}
