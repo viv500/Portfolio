@@ -582,7 +582,7 @@ export const techGroups: { name: string; note: string; items: string[] }[] = [
 
 export const education = {
   school: "University of Waterloo",
-  logo: "/logos/uwaterloo.png",
+  logo: "/logos/uwaterloo.svg",
   degree: "Bachelor of Computer Science, Artificial Intelligence Specialization",
   dates: "Expected graduation: December 2027",
   courseGroups: [
