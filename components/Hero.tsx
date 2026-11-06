@@ -64,9 +64,14 @@ const Hero = () => {
       </div>
 
       <div className="heroContainer relative z-10 flex w-full max-w-3xl flex-col items-center px-5">
-        <h1 className="mb-2 min-h-[2.75rem] text-4xl font-bold text-white md:text-6xl md:min-h-[4.5rem]">
-          {text}
-          {!showText && <span className="caret text-purple">▍</span>}
+        {/* The invisible copy reserves the full width, so the centred line doesn't drift while typing. */}
+        <h1 className="relative mb-2 min-h-[2.75rem] whitespace-nowrap text-4xl font-bold text-white md:text-6xl md:min-h-[4.5rem]">
+          <span className="sr-only">{fullText}</span>
+          <span aria-hidden="true" className="invisible">{fullText}</span>
+          <span aria-hidden="true" className="absolute left-0 top-0 text-left">
+            {text}
+            {!showText && <span className="caret absolute text-purple">▍</span>}
+          </span>
         </h1>
         <p className={`secondaryText ${showText ? "show" : ""}`}>{profile.hero}</p>
 
