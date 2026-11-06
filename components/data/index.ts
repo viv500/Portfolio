@@ -70,7 +70,7 @@ export const profile = {
     "My earlier projects were mostly web apps and hackathon builds. These days I'm most interested in infrastructure, developer tooling, cloud automation and DevOps.",
     "At Arctic Wolf I was blocked for three days because AWS had no Mac hosts available and no way to queue for one, so I built a tool that keeps retrying in the background. 3+ teams ended up using it.",
   ],
-  outside: ["Intramural soccer", "Badminton Club", "Poker Club", "1,337 commits of LeetCode"],
+  outside: ["Intramural soccer", "Badminton Club", "Poker Club"],
 };
 
 export const contactLinks: LinkItem[] = [

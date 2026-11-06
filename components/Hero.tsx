@@ -15,6 +15,7 @@ const navItems = [
   { name: "Experience", link: "#experience" },
   { name: "Projects", link: "#projects" },
   { name: "Contact", link: "#contact" },
+  { name: "Resume", link: "#resume" },
 ];
 
 const fullText = "Hi, I'm Vivek.";
@@ -22,7 +23,6 @@ const fullText = "Hi, I'm Vivek.";
 const Hero = () => {
   const reduced = useReducedMotion();
   const resume = useResumeAvailable(resumePath);
-  const links = resume ? [...contactLinks, { label: "Resume", href: "#resume", platform: "resume" as const }] : contactLinks;
   const [text, setText] = useState("");
   const [showText, setShowText] = useState(false);
   const [showRest, setShowRest] = useState(false);
@@ -84,20 +84,31 @@ const Hero = () => {
             ))}
           </ul>
 
-          <a href="#work" className="relative inline-flex h-12 overflow-hidden rounded-full p-[2px] focus:outline-none focus-visible:ring-2 focus-visible:ring-purple focus-visible:ring-offset-2 focus-visible:ring-offset-black">
-            <span className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#393BB2_50%,#E2CBFF_100%)] motion-reduce:animate-none" />
-            <span className="relative inline-flex h-full w-full items-center justify-center rounded-full bg-slate-950 px-6 py-1 text-sm font-medium text-white backdrop-blur-3xl">
-              Explore My Work
-            </span>
-          </a>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <a href="#work" className="relative inline-flex h-12 overflow-hidden rounded-full p-[2px] focus:outline-none focus-visible:ring-2 focus-visible:ring-purple focus-visible:ring-offset-2 focus-visible:ring-offset-black">
+              <span className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#393BB2_50%,#E2CBFF_100%)] motion-reduce:animate-none" />
+              <span className="relative inline-flex h-full w-full items-center justify-center rounded-full bg-slate-950 px-6 py-1 text-sm font-medium text-white backdrop-blur-3xl">
+                Explore My Work
+              </span>
+            </a>
+            {resume && (
+              <a
+                href="#resume"
+                className="inline-flex h-12 items-center gap-2 rounded-full border border-white/20 bg-white/[0.04] px-6 text-sm font-medium text-white transition hover:border-purple/70 hover:text-purple focus:outline-none focus-visible:ring-2 focus-visible:ring-purple focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+              >
+                <PlatformIcon platform="resume" className="h-4 w-4" />
+                Resume
+              </a>
+            )}
+          </div>
 
           <div className="mt-6 flex gap-5 text-white/70">
-            {links.map((link) => (
+            {contactLinks.map((link) => (
               <a
                 key={link.platform}
                 href={link.href}
-                target={link.platform === "email" || link.platform === "resume" ? undefined : "_blank"}
-                rel={link.platform === "email" || link.platform === "resume" ? undefined : "noopener noreferrer"}
+                target={link.platform === "email" ? undefined : "_blank"}
+                rel={link.platform === "email" ? undefined : "noopener noreferrer"}
                 aria-label={link.platform === "email" ? "Email" : link.label}
                 className="transition hover:text-purple"
               >
