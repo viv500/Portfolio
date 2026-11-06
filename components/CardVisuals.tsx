@@ -29,7 +29,7 @@ const About = () => (
           fill
           priority
           sizes="(min-width: 768px) 260px, 40vw"
-          className="object-cover object-center"
+          className="origin-[0%_55%] scale-[1.35] object-cover object-center"
         />
       </div>
     </div>
