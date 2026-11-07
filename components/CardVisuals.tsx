@@ -55,7 +55,7 @@ const Experience = () => (
             <span className="truncate text-sm font-semibold text-white">{role.company}</span>
             <span className="shrink-0 text-xs text-white/50">{role.dates}</span>
           </div>
-          <div className="truncate text-xs text-white/60">{role.title}</div>
+          <div className="truncate text-xs text-white/60">{role.shortTitle ?? role.title}</div>
         </div>
       </li>
     ))}

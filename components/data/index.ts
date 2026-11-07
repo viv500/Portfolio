@@ -48,6 +48,8 @@ export type Role = {
   slug: string;
   company: string;
   title: string;
+  /** Shorter title for the front-page card, where the full one would be cut off. */
+  shortTitle?: string;
   dates: string;
   location: string;
   summary: string;
@@ -101,7 +103,8 @@ export const roles: Role[] = [
     slug: "arctic-wolf",
     logo: "/logos/arcticwolf.png",
     company: "Arctic Wolf",
-    title: "Infrastructure Engineer Intern, Endpoint Security",
+    title: "Software Engineer Intern, Infrastructure & Developer Productivity",
+    shortTitle: "Software Engineer Intern, Infrastructure",
     dates: "Winter 2026",
     location: "Waterloo, ON",
     summary:
@@ -187,18 +190,18 @@ export const roles: Role[] = [
   {
     slug: "rocket",
     logo: "/logos/rocket.png",
-    company: "Rocket",
+    company: "Rocket Mortgage",
     title: "Software Engineer Intern, Platform Systems",
     dates: "Summer 2025",
-    location: "Rocket Mortgage · Rocket Homes",
+    location: "Detroit, MI",
     summary:
       "Built developer automation that brought engineering signals into one place, and shipped production features on Rocket Homes.",
-    stack: ["MCP", "TypeScript", "React", "GraphQL", "Redis", "OpenTelemetry", "Azure"],
+    stack: ["Go", "MCP", "TypeScript", "React", "GraphQL", "Redis", "OpenTelemetry", "Azure"],
     stories: [
       {
-        title: "MCP DevOps automation bot",
+        title: "MCP DevOps agent",
         stat: "~20 hrs/week of context switching saved (estimate)",
-        body: "Engineers were checking three different tools just to see where their work stood. I built an MCP-based automation bot integrating GitHub, Azure DevOps and Slack APIs to surface PR metrics and sprint insights where people already were.",
+        body: "Engineers were checking three different tools just to see where their work stood. I built an MCP-based AI DevOps agent in Go that uses goroutines to query the GitHub, Azure DevOps and Slack APIs concurrently, surfacing PR metrics and sprint insights where people already were.",
         diagram: "mcp",
       },
       {
@@ -206,9 +209,9 @@ export const roles: Role[] = [
         body: "Instrumented CI/CD with OpenTelemetry and Azure Monitor so the team could see how long pipelines and stages took, how often they failed and why. OpenTelemetry keeps it vendor-neutral: instrument once and the backend can change later.",
       },
       {
-        title: "API performance on Rocket Homes",
+        title: "API performance and Rocket Homes features",
         stat: "35% lower API latency · 1.5M+ monthly users",
-        body: "Added Redis caching and tuned GraphQL resolvers to cut API latency by 35% under production load, and built React and TypeScript components for property discovery and recommendations.",
+        body: "Optimized cross-service data fetching with Redis caching and tuned GraphQL resolvers, cutting API latency by 35% under production load for a platform serving 1.5M+ monthly users. Also shipped React and TypeScript features for Rocket Homes.",
       },
     ],
   },
@@ -235,26 +238,25 @@ export const roles: Role[] = [
     slug: "assistnow",
     logo: "/logos/assistnow.jpg",
     company: "AssistNow",
-    title: "Software Engineer Intern",
+    title: "Software Engineer Intern, Backend",
     dates: "Summer 2024",
     location: "Remote",
-    summary: "Containers, Kubernetes and CI/CD, plus modernizing a legacy C++ codebase.",
-    stack: ["Kubernetes (EKS)", "Docker", "GitHub Actions", "C++17", "AWS"],
+    summary: "Backend work during the team's migration off a legacy monolith: Java microservices on AWS, Kubernetes and a C++ gRPC service.",
+    stack: ["Java", "AWS (ECS, Lambda, SQS)", "Kubernetes (EKS)", "Docker", "C++", "gRPC/Protobuf"],
     stories: [
+      {
+        title: "Java microservices on AWS",
+        body: "Built Java microservices on AWS (ECS, Lambda, SQS) as part of the team's migration off a legacy monolith.",
+      },
       {
         title: "Kubernetes deployments",
         stat: "12+ services · 2 hrs → 10 min",
-        body: "Containerized 12+ services with Docker and deployed them on Amazon EKS, cutting environment provisioning from about two hours to ten minutes.",
+        body: "Helped containerize 12+ services with Docker and deploy them on Kubernetes (EKS), cutting environment provisioning from 2 hours to 10 minutes.",
       },
       {
-        title: "CI/CD pipelines",
-        stat: "45% fewer rollback incidents",
-        body: "Built CI/CD pipelines with automated integration tests so breaking changes were caught before deploy.",
-      },
-      {
-        title: "C++ modernization",
-        stat: "90% fewer leak reports",
-        body: "Moved a C++14 codebase to modern C++, using RAII and smart pointers so resources free themselves, which removed most production memory leak reports.",
+        title: "C++ gRPC service",
+        stat: "35% less serialization overhead",
+        body: "Built a C++ gRPC service with Protocol Buffers, cutting cross-service serialization overhead by 35%.",
       },
     ],
   },
@@ -455,7 +457,7 @@ export const hackathons: Project[] = [
     tagline: "Listens to phone calls and warns vulnerable people when a call sounds like a scam.",
     context: "StarterHacks 2024",
     badge: "Most Promising Hack",
-    stack: ["React", "Tailwind", "Framer Motion", "Flask", "OpenAI API", "NLP"],
+    stack: ["Python", "BERT", "LLMs", "AWS", "Flask", "React"],
     links: [repo("viv500/WatchDog"), { label: "Demo", href: "https://www.youtube.com/watch?v=bkyVus8Rypc", platform: "youtube" }],
     media: [
       { kind: "video", src: "/media/watchdog/demo.mp4", alt: "WatchDog detecting a scam on a live call" },
@@ -465,7 +467,14 @@ export const hackathons: Project[] = [
     sections: [
       {
         heading: "What it does",
-        body: "Open the site, choose phone or email detection and press play. WatchDog transcribes the conversation, matches sentences in context against common scam phrases, and shows a live probability that you're being scammed.",
+        body: "Open the site, choose phone or email detection and press play. WatchDog transcribes the conversation live and warns vulnerable users mid-call when the caller shows scam patterns, reaching 93% precision.",
+      },
+      {
+        heading: "How it works",
+        bullets: [
+          "A tiered detection pipeline (phrase matching → BERT classifier → LLM) over an ordered SQS queue, escalating only ambiguous segments to the costlier models.",
+          "Trained the BERT model on AWS SageMaker (40% lower inference latency) and served scoring through event-driven Flask microservices handling 2,000+ requests/min.",
+        ],
       },
       {
         heading: "What I did",
@@ -559,17 +568,17 @@ export const impact: Stat[] = [
   { value: 5, prefix: "~", suffix: " hrs", label: "saved per allocation", detail: "Manual retrying replaced by a background tool that waits for Mac host capacity.", route: "experience/arctic-wolf" },
   { value: 20, suffix: "+", label: "pipelines migrated", detail: "Bitbucket to GitHub with zero downtime, using mirror clones.", route: "experience/arctic-wolf" },
   { value: 3, suffix: "+", label: "teams adopted my tool", detail: "Teams using the Dedicated Host Allocator.", route: "experience/arctic-wolf" },
-  { value: 20, prefix: "~", suffix: " hrs/wk", label: "less context switching", detail: "Estimated across the team, from an MCP bot connecting GitHub, Azure DevOps and Slack.", route: "experience/rocket" },
-  { value: 35, suffix: "%", label: "lower API latency", detail: "Redis caching and tuned GraphQL resolvers under production load on Rocket Homes.", route: "experience/rocket" },
+  { value: 20, prefix: "~", suffix: " hrs/wk", label: "less context switching", detail: "Estimated across the team, from an MCP DevOps agent in Go connecting GitHub, Azure DevOps and Slack.", route: "experience/rocket" },
+  { value: 35, suffix: "%", label: "lower API latency", detail: "Redis caching and tuned GraphQL resolvers, under production load for 1.5M+ monthly users.", route: "experience/rocket" },
 ];
 
 // Kept to the tools that matter for infra and developer tooling, plus the main extras I've used.
 export const techGroups: { name: string; note: string; items: string[] }[] = [
   { name: "Cloud & infrastructure", note: "EC2 Dedicated Hosts, AMIs, EKS, SSO", items: ["AWS", "Azure", "Docker", "Kubernetes", "Terraform", "Linux"] },
-  { name: "CI/CD & observability", note: "Pipelines, build caches, CI metrics", items: ["GitHub Actions", "Jenkins", "Bazel", "OpenTelemetry"] },
-  { name: "Languages", note: "Go and Python for tooling", items: ["Go", "Python", "TypeScript", "C++", "Rust", "Java"] },
-  { name: "Web & APIs", note: "Frontend and API work", items: ["React", "Next.js", "Node.js", "Flask", "GraphQL"] },
-  { name: "Data & ML", note: "Caching, databases and ML research", items: ["PostgreSQL", "Redis", "PyTorch", "Pandas"] },
+  { name: "CI/CD & observability", note: "Pipelines, build caches, CI metrics", items: ["GitHub Actions", "Jenkins", "Bazel", "OpenTelemetry", "Prometheus"] },
+  { name: "Languages", note: "Go and Python for tooling", items: ["Go", "Python", "Java", "C/C++", "TypeScript", "Rust", "SQL"] },
+  { name: "Web & APIs", note: "Frontend and API work", items: ["gRPC/Protobuf", "GraphQL", "React", "Next.js", "Flask"] },
+  { name: "Data & ML", note: "Databases, caching, ML and LLM agents", items: ["PostgreSQL", "Redis", "PyTorch", "scikit-learn", "LLM agents (MCP)"] },
 ];
 
 export const education = {
