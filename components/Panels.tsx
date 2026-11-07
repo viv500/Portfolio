@@ -211,16 +211,23 @@ const RoleDetail = ({ role }: { role: Role }) => (
   </>
 );
 
-const ProjectTile = ({ project, base, index }: { project: Project; base: string; index: number }) => (
+const ProjectTile = ({ project, base, index, win }: { project: Project; base: string; index: number; win?: boolean }) => (
   <motion.a
     custom={index}
     variants={reveal}
     initial="hidden"
     animate="show"
     href={`#${base}/${project.slug}`}
-    className="group flex flex-col rounded-2xl border border-white/10 bg-white/[0.02] p-5 transition hover:-translate-y-0.5 hover:border-purple/50 hover:bg-white/[0.04]"
+    className={`group relative flex flex-col rounded-2xl border p-5 transition hover:-translate-y-0.5 ${
+      win ? "border-[1.5px] border-amber-300/50 bg-amber-300/[0.03] hover:border-amber-300/80" : "border-white/10 bg-white/[0.02] hover:border-purple/50 hover:bg-white/[0.04]"
+    }`}
   >
-    <div className="mb-2 flex flex-wrap items-center gap-2">
+    {win && (
+      <svg viewBox="0 0 24 24" role="img" aria-label="Winner" className="absolute right-2.5 top-2.5 h-4 w-4 fill-amber-300">
+        <path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z" />
+      </svg>
+    )}
+    <div className={`mb-2 flex flex-wrap items-center gap-2 ${win ? "pr-6" : ""}`}>
       <span className="font-mono text-[11px] text-white/50">{project.context}</span>
       {project.badge && <span className="rounded-full bg-purple/15 px-2 py-0.5 text-[11px] text-purple">{project.badge}</span>}
     </div>
@@ -287,7 +294,7 @@ const HackathonsList = () => {
       <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-purple">Wins</h3>
       <div className="mb-8 grid gap-4 md:grid-cols-3">
         {winners.map((project, i) => (
-          <ProjectTile key={project.slug} project={project} base="hackathons" index={i} />
+          <ProjectTile key={project.slug} project={project} base="hackathons" index={i} win />
         ))}
       </div>
       <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-purple">Also built</h3>

@@ -354,7 +354,7 @@ export const projects: Project[] = [
     tagline: "Swipe on restaurants near campus and match with students who like the same ones.",
     context: "Team Android app · CS 346",
     stack: ["Kotlin", "Android", "Supabase", "Google Places API"],
-    links: [{ label: "GitLab (UW login required)", href: "https://git.uwaterloo.ca/ajawkar/wat2eat", platform: "gitlab" }],
+    links: [{ label: "GitLab (UW login required)", href: "https://git.uwaterloo.ca/ajawkar/wat2eat", platform: "gitlab" }, { label: "Demo", href: "https://www.youtube.com/shorts/Lr_8A6sFyeQ", platform: "youtube" }],
     media: [
       { kind: "video", src: "/media/wat2eat/demo.mp4", alt: "Wat2Eat demo: signing in, swiping on restaurants and matching" },
       { kind: "image", src: "/media/wat2eat/explore.png", alt: "Searching restaurants near campus and saving favourites", half: true },
@@ -383,7 +383,7 @@ export const hackathons: Project[] = [
     title: "Canify",
     tagline: "A Chrome extension that rewards you with crypto for buying Canadian-made.",
     context: "Hack Canada 2025",
-    badge: "Top 5 Overall · $1.5k",
+    badge: "Top 5 Overall · $1,500",
     stack: ["Rust", "NEAR Protocol", "Flask", "Redis", "Gemini API", "JavaScript"],
     links: [
       repo("lsnchow/hackcan2025"),
@@ -456,7 +456,7 @@ export const hackathons: Project[] = [
     context: "StarterHacks 2024",
     badge: "Most Promising Hack",
     stack: ["React", "Tailwind", "Framer Motion", "Flask", "OpenAI API", "NLP"],
-    links: [repo("viv500/WatchDog")],
+    links: [repo("viv500/WatchDog"), { label: "Demo", href: "https://www.youtube.com/watch?v=bkyVus8Rypc", platform: "youtube" }],
     media: [
       { kind: "video", src: "/media/watchdog/demo.mp4", alt: "WatchDog detecting a scam on a live call" },
       { kind: "image", src: "/media/watchdog/landing.jpg", alt: "WatchDog landing page" },
@@ -499,6 +499,7 @@ export const hackathons: Project[] = [
     links: [
       repo("viv500/finance-cats"),
       { label: "Live site", href: "https://finance-cats.vercel.app", platform: "web" },
+      { label: "Demo", href: "https://www.youtube.com/watch?v=u4QVsVL2rEw", platform: "youtube" },
     ],
     media: [
       { kind: "video", src: "/media/finance-cats/demo.mp4", alt: "The Finance Cats advisors talking through a budget, with voices" },
@@ -536,8 +537,9 @@ export const hackathons: Project[] = [
     tagline: "Matches co-op students in different cities for temporary housing swaps.",
     context: "NSBEHacks 2024",
     stack: ["React", "TypeScript", "Vite", "Tailwind CSS"],
-    links: [repo("viv500/LeaseLinker")],
+    links: [repo("viv500/LeaseLinker"), { label: "Demo", href: "https://www.youtube.com/watch?v=GxW6F5L6QCY", platform: "youtube" }],
     media: [
+      { kind: "youtube", src: "GxW6F5L6QCY", alt: "LeaseLinker demo video" },
       { kind: "image", src: "/media/leaselinker/home.jpg", alt: "LeaseLinker home page" },
       { kind: "image", src: "/media/leaselinker/form.jpg", alt: "Entering your current and future city to find a swap", half: true },
       { kind: "image", src: "/media/leaselinker/listings.jpg", alt: "Browsing homes to swap with", half: true },
