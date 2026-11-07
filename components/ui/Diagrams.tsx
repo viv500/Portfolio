@@ -109,7 +109,7 @@ const Allocator = () => {
             </li>
           ))}
         </ol>
-        <div className="min-h-[19rem] overflow-hidden rounded-xl border border-white/10 bg-[rgb(2,0,36)] p-4 font-mono text-[11px] leading-relaxed sm:text-xs">
+        <div className="keep-dark min-h-[19rem] overflow-hidden rounded-xl border border-white/10 bg-[rgb(2,0,36)] p-4 font-mono text-[11px] leading-relaxed sm:text-xs">
           {shown.map((frame, i) => (
             <motion.div key={i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} className={cn("break-words", TONES[frame.line?.tone ?? "dim"])}>
               {frame.line?.text}

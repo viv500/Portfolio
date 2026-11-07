@@ -4,7 +4,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-export const CARD_BACKGROUND = "rgb(2,0,36)";
+export const CARD_BACKGROUND = "var(--card-bg)";
 
 export const BentoGrid = ({ className, children }: { className?: string; children?: React.ReactNode }) => (
   <div className={cn("mx-auto grid max-w-7xl grid-cols-1 gap-4 px-4 md:grid-cols-3", className)}>{children}</div>

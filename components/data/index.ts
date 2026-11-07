@@ -539,7 +539,6 @@ export const hackathons: Project[] = [
     stack: ["React", "TypeScript", "Vite", "Tailwind CSS"],
     links: [repo("viv500/LeaseLinker"), { label: "Demo", href: "https://www.youtube.com/watch?v=GxW6F5L6QCY", platform: "youtube" }],
     media: [
-      { kind: "youtube", src: "GxW6F5L6QCY", alt: "LeaseLinker demo video" },
       { kind: "image", src: "/media/leaselinker/home.jpg", alt: "LeaseLinker home page" },
       { kind: "image", src: "/media/leaselinker/form.jpg", alt: "Entering your current and future city to find a swap", half: true },
       { kind: "image", src: "/media/leaselinker/listings.jpg", alt: "Browsing homes to swap with", half: true },

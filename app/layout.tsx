@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
-import { ThemeProvider } from "./provider"; // Ensure this path is correct
+import { ThemeProvider } from "./provider";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const inter = Inter({ subsets: ["latin"] });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
@@ -28,10 +29,11 @@ export default function RootLayout({
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
-          forcedTheme="dark"
+          enableSystem={false}
           disableTransitionOnChange
         >
           {children}
+          <ThemeToggle />
         </ThemeProvider>
         <Analytics />
       </body>

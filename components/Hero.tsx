@@ -57,9 +57,12 @@ const Hero = () => {
       <FloatingNav navItems={navItems} />
 
       <div className="absolute inset-0">
-        <Spotlight className="-top-20 -left-10 md:-left-32 h-screen" fill="white" />
-        <Spotlight className="-top-1 -left-10 md:-left-32 h-screen" fill="purple" />
-        <Spotlight className="top-15 -left-10 md:-left-32 h-screen" fill="blue" />
+        {/* The glow suits the dark theme; on a light page it reads as a smudge, so it's dark-only. */}
+        <div className="hidden dark:block">
+          <Spotlight className="-top-20 -left-10 md:-left-32 h-screen" fill="white" />
+          <Spotlight className="-top-1 -left-10 md:-left-32 h-screen" fill="purple" />
+          <Spotlight className="top-15 -left-10 md:-left-32 h-screen" fill="blue" />
+        </div>
         <GridSmallBackgroundDemo />
       </div>
 
@@ -87,7 +90,7 @@ const Hero = () => {
           <div className="flex flex-wrap items-center justify-center gap-3">
             <a href="#work" className="relative inline-flex h-12 overflow-hidden rounded-full p-[2px] focus:outline-none focus-visible:ring-2 focus-visible:ring-purple focus-visible:ring-offset-2 focus-visible:ring-offset-black">
               <span className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#393BB2_50%,#E2CBFF_100%)] motion-reduce:animate-none" />
-              <span className="relative inline-flex h-full w-full items-center justify-center rounded-full bg-slate-950 px-6 py-1 text-sm font-medium text-white backdrop-blur-3xl">
+              <span className="keep-dark relative inline-flex h-full w-full items-center justify-center rounded-full bg-slate-950 px-6 py-1 text-sm font-medium text-white backdrop-blur-3xl">
                 Explore My Work
               </span>
             </a>

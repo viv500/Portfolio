@@ -49,7 +49,7 @@ const Experience = () => (
     <span aria-hidden="true" className="flow-line-y absolute bottom-4 left-[15px] top-4 w-0.5 opacity-60" />
     {roles.map((role) => (
       <li key={role.slug} className="relative flex items-center gap-3">
-        <OrgLogo name={role.company} src={role.logo} className={role.incoming ? "ring-2 ring-purple ring-offset-2 ring-offset-[rgb(2,0,36)]" : undefined} />
+        <OrgLogo name={role.company} src={role.logo} className={role.incoming ? "ring-2 ring-purple ring-offset-2 ring-offset-[var(--card-bg)]" : undefined} />
         <div className="min-w-0">
           <div className="flex items-baseline gap-2">
             <span className="truncate text-sm font-semibold text-white">{role.company}</span>
@@ -110,7 +110,7 @@ const Preview = ({ src, position = "center", dark }: { src: string; position?: s
 );
 
 const AllocatorPreview = () => (
-  <div className="flex h-full flex-col justify-center gap-1 bg-[rgb(2,0,36)] px-3 font-mono text-[10px] leading-snug sm:text-[11px]">
+  <div className="keep-dark flex h-full flex-col justify-center gap-1 bg-[rgb(2,0,36)] px-3 font-mono text-[10px] leading-snug sm:text-[11px]">
     <div className="text-purple">$ alloc run --type mac2.metal</div>
     <div className="text-white/45">AllocateHosts zone-a, zone-b, zone-c</div>
     <div className="text-amber-200/90">✗ insufficient capacity, retrying</div>
@@ -127,7 +127,7 @@ const ECG_PATH = [0, 1, 2, 3, 4]
 
 /** The model's attention lands on the QRS spikes, which is what a cardiologist looks at too. */
 const EcgPreview = () => (
-  <svg viewBox="0 0 330 100" preserveAspectRatio="xMidYMid slice" className="h-full w-full bg-[rgb(2,0,36)]" aria-hidden="true">
+  <svg viewBox="0 0 330 100" preserveAspectRatio="xMidYMid slice" className="keep-dark h-full w-full bg-[rgb(2,0,36)]" aria-hidden="true">
     <defs>
       <pattern id="ecg-grid" width="10" height="10" patternUnits="userSpaceOnUse">
         <path d="M10 0H0V10" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.6" />
@@ -244,7 +244,7 @@ const Moments = () => {
           className="absolute inset-0 h-full w-full object-cover"
         />
       </AnimatePresence>
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-3 pb-2 pt-8">
+      <div className="keep-dark absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-3 pb-2 pt-8">
         <p className="truncate text-xs font-medium text-white">{caption}</p>
       </div>
     </div>

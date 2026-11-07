@@ -151,3 +151,59 @@
   .tile-preview[data-centred="true"] > [data-dark] { filter: invert(0.9) hue-rotate(180deg); }
 }
 @media (prefers-reduced-motion: reduce) { .tile-preview > * { transition: none; } .tile:hover .tile-preview > * { transform: none; } }
+
+/* Light theme. The site is designed dark-first; this layer remaps its colours when the toggle
+   switches to light. Anything inside .keep-dark (terminal previews, video controls) stays dark. */
+:root { --card-bg: rgb(2, 0, 36); }
+html.light { --card-bg: #ffffff; color-scheme: light; }
+html.light body, html.light main { background-color: #f4f2f9; }
+html.light .secondaryText { color: rgb(109 40 217); }
+html.light .card-glow { background: radial-gradient(420px circle at var(--glow-x, 50%) var(--glow-y, 50%), rgba(124, 58, 237, 0.08), transparent 65%); }
+html.light .group\/bento:hover .group-hover\/bento\:text-white\/80 { color: rgb(21 18 36 / 0.8); }
+html.light .tile-preview > *:not(.keep-dark) { filter: grayscale(0.85) opacity(0.7); }
+html.light .tile-preview > [data-dark] { filter: grayscale(0.85) opacity(0.7); }
+html.light .tile:hover .tile-preview > *, html.light .tile:hover .tile-preview > [data-dark] { filter: none; }
+@media (hover: none) {
+  html.light .tile-preview[data-centred="true"] > * { filter: none; }
+}
+html.light .text-white:not(.keep-dark, .keep-dark *) { color: rgb(21 18 36) }
+html.light .text-white-100:not(.keep-dark, .keep-dark *) { color: rgb(74 69 99) }
+html.light .text-white\/30:not(.keep-dark, .keep-dark *) { color: rgb(21 18 36 / 0.42) }
+html.light .text-white\/45:not(.keep-dark, .keep-dark *) { color: rgb(21 18 36 / 0.57) }
+html.light .text-white\/50:not(.keep-dark, .keep-dark *) { color: rgb(21 18 36 / 0.62) }
+html.light .text-white\/55:not(.keep-dark, .keep-dark *) { color: rgb(21 18 36 / 0.67) }
+html.light .text-white\/60:not(.keep-dark, .keep-dark *) { color: rgb(21 18 36 / 0.72) }
+html.light .text-white\/65:not(.keep-dark, .keep-dark *) { color: rgb(21 18 36 / 0.77) }
+html.light .text-white\/70:not(.keep-dark, .keep-dark *) { color: rgb(21 18 36 / 0.82) }
+html.light .text-purple:not(.keep-dark, .keep-dark *) { color: rgb(109 40 217) }
+html.light .text-purple\/80:not(.keep-dark, .keep-dark *) { color: rgb(109 40 217 / 0.85) }
+html.light .hover\:text-purple:hover:not(.keep-dark, .keep-dark *) { color: rgb(109 40 217) }
+html.light .hover\:text-white:hover:not(.keep-dark, .keep-dark *) { color: rgb(21 18 36) }
+html.light .border-white\/10:not(.keep-dark, .keep-dark *) { border-color: rgb(21 18 36 / 0.1) }
+html.light .border-white\/15:not(.keep-dark, .keep-dark *) { border-color: rgb(21 18 36 / 0.12) }
+html.light .border-white\/20:not(.keep-dark, .keep-dark *) { border-color: rgb(21 18 36 / 0.15) }
+html.light .border-white\/\[0\.14\]:not(.keep-dark, .keep-dark *) { border-color: rgb(21 18 36 / 0.1) }
+html.light .hover\:border-white\/35:hover:not(.keep-dark, .keep-dark *) { border-color: rgb(21 18 36 / 0.3) }
+html.light .border-purple\/40:not(.keep-dark, .keep-dark *) { border-color: rgb(109 40 217 / 0.35) }
+html.light .border-purple:not(.keep-dark, .keep-dark *) { border-color: rgb(109 40 217 / 0.9) }
+html.light .hover\:border-purple\/50:hover:not(.keep-dark, .keep-dark *) { border-color: rgb(109 40 217 / 0.5) }
+html.light .hover\:border-purple\/60:hover:not(.keep-dark, .keep-dark *) { border-color: rgb(109 40 217 / 0.55) }
+html.light .hover\:border-purple\/70:hover:not(.keep-dark, .keep-dark *) { border-color: rgb(109 40 217 / 0.6) }
+html.light .hover\:border-purple:hover:not(.keep-dark, .keep-dark *) { border-color: rgb(109 40 217 / 0.9) }
+html.light .bg-white\/\[0\.02\]:not(.keep-dark, .keep-dark *) { background-color: rgb(21 18 36 / 0.025) }
+html.light .bg-white\/\[0\.03\]:not(.keep-dark, .keep-dark *) { background-color: rgb(21 18 36 / 0.03) }
+html.light .bg-white\/\[0\.04\]:not(.keep-dark, .keep-dark *) { background-color: rgb(21 18 36 / 0.04) }
+html.light .bg-white\/\[0\.05\]:not(.keep-dark, .keep-dark *) { background-color: rgb(21 18 36 / 0.05) }
+html.light .bg-white\/\[0\.06\]:not(.keep-dark, .keep-dark *) { background-color: rgb(21 18 36 / 0.06) }
+html.light .bg-white\/25:not(.keep-dark, .keep-dark *) { background-color: rgb(21 18 36 / 0.18) }
+html.light .hover\:bg-white\/\[0\.04\]:hover:not(.keep-dark, .keep-dark *) { background-color: rgb(21 18 36 / 0.045) }
+html.light .bg-purple\/15:not(.keep-dark, .keep-dark *) { background-color: rgb(109 40 217 / 0.1) }
+html.light .bg-black\/50:not(.keep-dark, .keep-dark *) { background-color: rgb(255 255 255 / 0.7) }
+html.light .bg-black\/40:not(.keep-dark, .keep-dark *) { background-color: rgb(255 255 255 / 0.85) }
+html.light .bg-black\/75:not(.keep-dark, .keep-dark *) { background-color: rgb(236 233 245 / 0.75) }
+html.light .text-neutral-100:not(.keep-dark, .keep-dark *) { color: rgb(21 18 36) }
+html.light .text-neutral-300:not(.keep-dark, .keep-dark *) { color: rgb(21 18 36 / 0.6) }
+
+/* Theme switch: the toggle drives a circular reveal, so turn off the default cross-fade. */
+::view-transition-old(root),
+::view-transition-new(root) { animation: none; mix-blend-mode: normal; }

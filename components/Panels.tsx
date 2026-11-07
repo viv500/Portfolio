@@ -79,18 +79,18 @@ const reveal = {
 
 // Soft tints for the interest chips, ordered so neighbours never share a colour.
 const PASTELS = [
-  "border-rose-300/30 bg-rose-300/10 text-rose-200",
-  "border-sky-300/30 bg-sky-300/10 text-sky-200",
-  "border-amber-300/30 bg-amber-300/10 text-amber-200",
-  "border-violet-300/30 bg-violet-300/10 text-violet-200",
-  "border-emerald-300/30 bg-emerald-300/10 text-emerald-200",
-  "border-pink-300/30 bg-pink-300/10 text-pink-200",
-  "border-teal-300/30 bg-teal-300/10 text-teal-200",
-  "border-orange-300/30 bg-orange-300/10 text-orange-200",
-  "border-indigo-300/30 bg-indigo-300/10 text-indigo-200",
-  "border-lime-300/30 bg-lime-300/10 text-lime-200",
-  "border-fuchsia-300/30 bg-fuchsia-300/10 text-fuchsia-200",
-  "border-cyan-300/30 bg-cyan-300/10 text-cyan-200",
+  "border-rose-500/25 bg-rose-500/10 text-rose-700 dark:border-rose-300/30 dark:bg-rose-300/10 dark:text-rose-200",
+  "border-sky-500/25 bg-sky-500/10 text-sky-700 dark:border-sky-300/30 dark:bg-sky-300/10 dark:text-sky-200",
+  "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-200",
+  "border-violet-500/25 bg-violet-500/10 text-violet-700 dark:border-violet-300/30 dark:bg-violet-300/10 dark:text-violet-200",
+  "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:border-emerald-300/30 dark:bg-emerald-300/10 dark:text-emerald-200",
+  "border-pink-500/25 bg-pink-500/10 text-pink-700 dark:border-pink-300/30 dark:bg-pink-300/10 dark:text-pink-200",
+  "border-teal-500/25 bg-teal-500/10 text-teal-700 dark:border-teal-300/30 dark:bg-teal-300/10 dark:text-teal-200",
+  "border-orange-500/25 bg-orange-500/10 text-orange-700 dark:border-orange-300/30 dark:bg-orange-300/10 dark:text-orange-200",
+  "border-indigo-500/25 bg-indigo-500/10 text-indigo-700 dark:border-indigo-300/30 dark:bg-indigo-300/10 dark:text-indigo-200",
+  "border-lime-500/25 bg-lime-500/10 text-lime-700 dark:border-lime-300/30 dark:bg-lime-300/10 dark:text-lime-200",
+  "border-fuchsia-500/25 bg-fuchsia-500/10 text-fuchsia-700 dark:border-fuchsia-300/30 dark:bg-fuchsia-300/10 dark:text-fuchsia-200",
+  "border-cyan-500/25 bg-cyan-500/10 text-cyan-700 dark:border-cyan-300/30 dark:bg-cyan-300/10 dark:text-cyan-200",
 ];
 
 const AboutPanel = () => (
@@ -219,11 +219,11 @@ const ProjectTile = ({ project, base, index, win }: { project: Project; base: st
     animate="show"
     href={`#${base}/${project.slug}`}
     className={`group relative flex flex-col rounded-2xl border p-5 transition hover:-translate-y-0.5 ${
-      win ? "border-[1.5px] border-amber-300/50 bg-amber-300/[0.03] hover:border-amber-300/80" : "border-white/10 bg-white/[0.02] hover:border-purple/50 hover:bg-white/[0.04]"
+      win ? "border-[1.5px] border-amber-400/70 bg-amber-300/[0.06] hover:border-amber-500 dark:border-amber-300/50 dark:bg-amber-300/[0.03] dark:hover:border-amber-300/80" : "border-white/10 bg-white/[0.02] hover:border-purple/50 hover:bg-white/[0.04]"
     }`}
   >
     {win && (
-      <svg viewBox="0 0 24 24" role="img" aria-label="Winner" className="absolute right-2.5 top-2.5 h-4 w-4 fill-amber-300">
+      <svg viewBox="0 0 24 24" role="img" aria-label="Winner" className="absolute right-2.5 top-2.5 h-4 w-4 fill-amber-400 dark:fill-amber-300">
         <path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z" />
       </svg>
     )}
