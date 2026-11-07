@@ -16,7 +16,6 @@ import {
   impact,
   profile,
   projects,
-  recommendation,
   resumePath,
   roles,
   techGroups,
@@ -78,25 +77,41 @@ const reveal = {
   show: (i: number) => ({ opacity: 1, y: 0, transition: { delay: 0.05 * i, duration: 0.35 } }),
 };
 
+// Soft tints for the interest chips, ordered so neighbours never share a colour.
+const PASTELS = [
+  "border-rose-300/30 bg-rose-300/10 text-rose-200",
+  "border-sky-300/30 bg-sky-300/10 text-sky-200",
+  "border-amber-300/30 bg-amber-300/10 text-amber-200",
+  "border-violet-300/30 bg-violet-300/10 text-violet-200",
+  "border-emerald-300/30 bg-emerald-300/10 text-emerald-200",
+  "border-pink-300/30 bg-pink-300/10 text-pink-200",
+  "border-teal-300/30 bg-teal-300/10 text-teal-200",
+  "border-orange-300/30 bg-orange-300/10 text-orange-200",
+  "border-indigo-300/30 bg-indigo-300/10 text-indigo-200",
+  "border-lime-300/30 bg-lime-300/10 text-lime-200",
+  "border-fuchsia-300/30 bg-fuchsia-300/10 text-fuchsia-200",
+  "border-cyan-300/30 bg-cyan-300/10 text-cyan-200",
+];
+
 const AboutPanel = () => (
   <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_260px]">
     <div>
       <Heading title={profile.name} />
+      <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-purple">What I do</h3>
       <div className="space-y-4 text-base leading-relaxed text-white-100">
         {profile.about.map((paragraph) => (
           <p key={paragraph}>{paragraph}</p>
         ))}
       </div>
-      {recommendation.enabled && (
-        <blockquote className="mt-8 border-l-2 border-purple pl-4 text-white-100">
-          <p className="italic">&ldquo;{recommendation.quote}&rdquo;</p>
-          <footer className="mt-2 text-sm text-white/60">
-            {recommendation.author}, {recommendation.role}
-          </footer>
-        </blockquote>
-      )}
-      <h3 className="mb-2 mt-8 text-sm font-semibold uppercase tracking-wider text-purple">Outside of work</h3>
-      <Tags items={profile.outside} />
+      <h3 className="mb-3 mt-10 text-sm font-semibold uppercase tracking-wider text-purple">Beyond the code</h3>
+      <p className="mb-4 text-base leading-relaxed text-white-100">{profile.origin}</p>
+      <ul className="flex flex-wrap gap-1.5">
+        {profile.interests.map((interest, i) => (
+          <li key={interest} className={`rounded-full border px-2.5 py-0.5 text-xs ${PASTELS[i % PASTELS.length]}`}>
+            {interest}
+          </li>
+        ))}
+      </ul>
       <div className="mt-8 flex flex-wrap gap-2">
         {contactLinks.map((link) => (
           <PlatformLink key={link.platform} link={link} />

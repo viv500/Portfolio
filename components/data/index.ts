@@ -66,11 +66,11 @@ export const profile = {
   chips: ["Incoming @ Shopify", "Ex-Arctic Wolf, Rocket", "CS + AI @ UWaterloo"],
   summary: "Hey! I'm Vivek, a software engineer studying CS + AI at the University of Waterloo. I work across backend systems, CI & build infrastructure, and AI & developer tooling.",
   about: [
-    "I'm Vivek. I'm studying for a Bachelor of Computer Science with an Artificial Intelligence Specialization at the University of Waterloo, graduating in December 2027. In Winter 2027 I'm joining Shopify to work on backend and infrastructure.",
-    "My earlier projects were mostly web apps and hackathon builds. These days I'm most interested in infrastructure, developer tooling, cloud automation and DevOps.",
-    "At Arctic Wolf I was blocked for three days because AWS had no Mac hosts available and no way to queue for one, so I built a tool that keeps retrying in the background. 3+ teams ended up using it.",
+    "I'm studying Computer Science with an AI specialization at the University of Waterloo, graduating in December 2027. In Winter 2027 I'm joining Shopify to work on backend and infrastructure, after internships at Arctic Wolf, Rocket and AssistNow.",
+    "I started out building web apps at hackathons. Across every internship since, the work I've enjoyed most has had the same goal: making other engineers faster. That's meant CI pipelines, build systems, cloud automation and, more recently, AI tooling that takes repetitive work off people's plates. It's where I want to keep building.",
   ],
-  outside: ["Intramural soccer", "Badminton Club", "Poker Club"],
+  origin: "I grew up in Dubai and moved to Canada for Waterloo.",
+  interests: ["Foodie", "Guitar", "Catan", "Photography", "Cooking", "Football", "Cats", "Concerts", "Baking", "Lifting", "Poker", "Aviation", "Travelling", "Badminton"],
 };
 
 export const contactLinks: LinkItem[] = [
@@ -83,15 +83,6 @@ export const contactLinks: LinkItem[] = [
 ];
 
 export const resumePath = "/resume.pdf";
-
-// From Jake's public LinkedIn recommendation.
-export const recommendation = {
-  enabled: true,
-  quote:
-    "He embraced an AI-first mindset in his daily work and took on the challenge of building an MCP hub that provides Rocket users with AI capabilities through a user-friendly interface.",
-  author: "Jake Finch",
-  role: "Software Engineer, mentor at Rocket",
-};
 
 export const roles: Role[] = [
   {
