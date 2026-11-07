@@ -70,7 +70,7 @@ export const profile = {
     "I started out building web apps at hackathons. Across every internship since, the work I've enjoyed most has had the same goal: making other engineers faster. That's meant CI pipelines, build systems, cloud automation and, more recently, AI tooling that takes repetitive work off people's plates. It's where I want to keep building.",
   ],
   origin: "I grew up in Dubai and moved to Canada for Waterloo.",
-  interests: ["Foodie", "Guitar", "Catan", "Photography", "Cooking", "Football", "Cats", "Concerts", "Baking", "Lifting", "Poker", "Aviation", "Travelling", "Badminton"],
+  interests: ["Foodie", "Guitar", "Catan", "Photography", "Cooking", "Football", "Cats", "Concerts", "Baking", "Lifting", "Finance", "Poker", "Aviation", "Travelling", "Badminton"],
 };
 
 export const contactLinks: LinkItem[] = [
