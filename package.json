@@ -21,6 +21,7 @@
     "mini-svg-data-uri": "^1.4.4",
     "next": "14.2.5",
     "next-themes": "^0.3.0",
+    "posthog-js": "^1.447.6",
     "react": "^18",
     "react-dom": "^18",
     "react-element-to-jsx-string": "^15.0.0",

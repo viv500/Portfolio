@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { PostHogAnalytics } from "./posthog";
 import "./globals.css";
 import { ThemeProvider } from "./provider";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
@@ -36,6 +37,7 @@ export default function RootLayout({
           <ThemeToggle />
         </ThemeProvider>
         <Analytics />
+        <PostHogAnalytics />
       </body>
     </html>
   );
