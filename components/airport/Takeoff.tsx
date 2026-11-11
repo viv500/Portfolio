@@ -934,11 +934,17 @@ export const Takeoff = ({ uncapped = false }: { uncapped?: boolean }) => {
               <p className="text-xs font-semibold text-[#2a1d0a] md:text-sm">Backend &amp; Infrastructure Engineer</p>
             </div>
           </div>
-          <div className="flex shrink-0 gap-2 pb-1">
-            <a href={resumePath} target="_blank" rel="noopener noreferrer" className="btn-gold whitespace-nowrap rounded-[4px] px-3 py-1.5 font-mono text-[11px] font-bold">
+          {/* Résumé is the primary action (filled gold); Skip is secondary (gold outline). ~1.25x on desktop. */}
+          <div className="flex shrink-0 items-start gap-2 pb-1 md:gap-2.5">
+            <a href={resumePath} target="_blank" rel="noopener noreferrer" className="btn-gold whitespace-nowrap rounded-[4px] px-3 py-1.5 font-mono text-[11px] font-bold md:px-4 md:py-2 md:text-[14px]">
               Résumé ↗
             </a>
-            <a href="#top" className="btn-gold whitespace-nowrap rounded-[4px] px-3 py-1.5 font-mono text-[11px] font-bold">
+            {/* Skip: 2px gold border, gold text (Résumé's fill colour) on a ~60% dark fill so it reads
+                over anything; turns solid gold on hover. Same height as Résumé. */}
+            <a
+              href="#top"
+              className="device inline-flex h-[31px] items-center whitespace-nowrap rounded-[4px] border-2 border-sign bg-black/60 px-3 font-mono text-[11px] font-semibold text-[rgb(var(--sign))] shadow-[0_4px_12px_-6px_rgba(0,0,0,0.8)] transition-colors hover:bg-sign hover:text-[#1a1206] focus-visible:bg-sign focus-visible:text-[#1a1206] focus-visible:outline-none md:h-[39px] md:px-4 md:text-[14px]"
+            >
               Skip →
             </a>
           </div>

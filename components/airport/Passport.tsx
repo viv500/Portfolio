@@ -241,6 +241,22 @@ const SPREADS: [React.ReactNode, React.ReactNode][] = [
 ];
 const PAGES = SPREADS.flat();
 
+/**
+ * Keeps the passport one size on every page: all pages sit invisibly in the same grid cell as
+ * the visible one, so the book is always as tall as its tallest page and never resizes as you
+ * turn. The copies are hidden from screen readers and the keyboard.
+ */
+const Sized = ({ children }: { children: React.ReactNode }) => (
+  <div className="grid h-full">
+    {PAGES.map((pg, i) => (
+      <div key={i} aria-hidden="true" className="pointer-events-none invisible [grid-area:1/1]">
+        {pg}
+      </div>
+    ))}
+    <div className="[grid-area:1/1]">{children}</div>
+  </div>
+);
+
 // ── Cover and endpaper ───────────────────────────────────────────────────
 const CoverFace = () => (
   <div className="passport-cover flex h-full w-full flex-col items-center justify-between rounded-r-xl px-6 py-10 text-center shadow-[inset_6px_0_10px_-6px_rgba(0,0,0,0.6)]">
@@ -418,7 +434,7 @@ export const Passport = () => {
                 style={{ transformPerspective: 1800, rotateY: 4, originX: 1 }}
               >
                 <div className={`${pageWrap} ${open ? "cursor-pointer" : ""}`} style={{ visibility: settled ? "visible" : "hidden" }} onClick={onPage(-1)} title={open ? (spread === 0 ? "Close passport" : "Previous page") : undefined}>
-                  {left}
+                  <Sized>{left}</Sized>
                 </div>
               </motion.div>
               <motion.div
@@ -430,7 +446,7 @@ export const Passport = () => {
                 style={{ transformPerspective: 1800, originX: 0 }}
               >
                 <div className={`${pageWrap} ${lastSpread && open ? "" : "cursor-pointer"}`} onClick={onPage(1)} title={!open ? "Open passport" : lastSpread ? undefined : "Next page"}>
-                  {right}
+                  <Sized>{right}</Sized>
                 </div>
               </motion.div>
               {open && <div aria-hidden="true" className="pointer-events-none absolute inset-y-2 left-1/2 z-[5] w-16 -translate-x-1/2 bg-[linear-gradient(90deg,transparent,rgba(0,0,0,0.14)_42%,rgba(0,0,0,0.32)_50%,rgba(0,0,0,0.14)_58%,transparent)]" />}
@@ -506,7 +522,7 @@ export const Passport = () => {
                 style={{ transformOrigin: "left center" }}
                 className="group/page relative rounded-lg bg-cover p-1.5"
               >
-                {PAGES[page]}
+                <Sized>{PAGES[page]}</Sized>
               </motion.div>
             </AnimatePresence>
             {!settled && (
