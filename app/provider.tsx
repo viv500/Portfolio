@@ -6,10 +6,10 @@ import { ThemeProvider as NextThemesProvider } from "next-themes"
 import { type ThemeProviderProps } from "next-themes/dist/types"
 
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
-  // /aviation has its own day/golden-hour palettes, so the main site's light theme stays off there.
+  // The airport site has its own day/golden-hour palettes; the light/dark theme is only for /classic.
   const pathname = usePathname()
   return (
-    <NextThemesProvider {...props} forcedTheme={pathname?.startsWith("/aviation") ? "dark" : undefined}>
+    <NextThemesProvider {...props} forcedTheme={pathname?.startsWith("/classic") ? undefined : "dark"}>
       {children}
     </NextThemesProvider>
   )

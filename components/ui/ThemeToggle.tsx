@@ -27,7 +27,7 @@ export const ThemeToggle = () => {
   const button = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
   useEffect(() => setMounted(true), []);
-  if (!mounted || pathname?.startsWith("/aviation")) return null;
+  if (!mounted || !pathname?.startsWith("/classic")) return null;
 
   const light = resolvedTheme === "light";
 
