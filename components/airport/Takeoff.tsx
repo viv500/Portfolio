@@ -560,7 +560,10 @@ const Layer = React.forwardRef<HTMLDivElement, { children: React.ReactNode; labe
   );
 });
 
-/** `uncapped` (used only by /nolimit): scrolling drives the take-off directly, at whatever speed you scroll. */
+/**
+ * `uncapped` (used only by /nolimit): scrolling drives the take-off directly, at whatever speed
+ * you scroll, and it coasts on a little after you stop, like momentum scrolling.
+ */
 export const Takeoff = ({ uncapped = false }: { uncapped?: boolean }) => {
   const ref = useRef<HTMLDivElement>(null);
   const outsideRef = useRef<HTMLDivElement>(null);
@@ -632,6 +635,12 @@ export const Takeoff = ({ uncapped = false }: { uncapped?: boolean }) => {
       if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: "smooth" });
     };
     let target = 0;
+    // Uncapped momentum: each scroll also adds a coasting velocity (progress/s) that fades with
+    // FRICTION, so the plane carries on about COAST × the scroll's own distance after you stop.
+    const FRICTION = 3; // 1/s: a coast dies out over about a second
+    const COAST = 0.5;
+    const MAX_VEL = 1.5; // a burst of spam coasts at most ~half the take-off
+    let vel = 0;
     let raf = 0;
     let lastInput = 0; // time of the last wheel/touch/key input we let the browser scroll with
     let last = 0;
@@ -644,6 +653,12 @@ export const Takeoff = ({ uncapped = false }: { uncapped?: boolean }) => {
       last = now;
       const cur = progress.get();
       if (auto) target = Math.min(1, cur + LEAD);
+      if (uncapped && vel) {
+        target += vel * dt;
+        vel *= Math.exp(-FRICTION * dt);
+        if (target <= 0 || target >= 1 || Math.abs(vel) < 0.01) vel = 0;
+        target = Math.min(1, Math.max(0, target));
+      }
       const gap = target - cur;
       const maxStep = dt / (MIN_MS / 1000);
       // Uncapped: follow the scroll almost at once (~50 ms of smoothing so wheel notches don't
@@ -655,7 +670,7 @@ export const Takeoff = ({ uncapped = false }: { uncapped?: boolean }) => {
       const next = Math.abs(gap) < 0.0005 ? target : cur + step;
       progress.set(next);
       if (!touchMode) window.scrollTo({ top: next * range(), behavior: "instant" as ScrollBehavior });
-      if (next !== target || (auto && next < 1)) raf = requestAnimationFrame(tick);
+      if (next !== target || (auto && next < 1) || vel) raf = requestAnimationFrame(tick);
       else {
         raf = 0;
         last = 0;
@@ -684,6 +699,10 @@ export const Takeoff = ({ uncapped = false }: { uncapped?: boolean }) => {
       e.preventDefault();
       const d = Math.max(-MAX_EVENT_PX, Math.min(MAX_EVENT_PX, px));
       target = Math.min(1, Math.max(0, Math.min(cur + LEAD, Math.max(cur - LEAD, target + d / PX_PER_RUN))));
+      if (uncapped) {
+        if (vel * d < 0) vel = 0; // reversing kills the coast rather than fighting it
+        vel = Math.max(-MAX_VEL, Math.min(MAX_VEL, vel + (d / PX_PER_RUN) * COAST * FRICTION));
+      }
       if (!raf) raf = requestAnimationFrame(tick);
     };
     const onWheel = (e: WheelEvent) => {
@@ -725,6 +744,7 @@ export const Takeoff = ({ uncapped = false }: { uncapped?: boolean }) => {
         if (!raf) raf = requestAnimationFrame(tick);
       } else {
         // Links, Skip and scrollbar drags: follow the page, no cap.
+        vel = 0;
         target = t;
         progress.set(t);
       }
@@ -734,6 +754,7 @@ export const Takeoff = ({ uncapped = false }: { uncapped?: boolean }) => {
       if ((e.target as HTMLElement)?.closest?.("a, button, nav, input, label")) return;
       if (!ref.current?.contains(e.target as Node) || progress.get() >= 1) return;
       auto = true;
+      vel = 0;
       lastInput = performance.now();
       if (!raf) raf = requestAnimationFrame(tick);
     };
