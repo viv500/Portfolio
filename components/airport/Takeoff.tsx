@@ -560,7 +560,8 @@ const Layer = React.forwardRef<HTMLDivElement, { children: React.ReactNode; labe
   );
 });
 
-export const Takeoff = () => {
+/** `uncapped` (used only by /nolimit): scrolling drives the take-off directly, at whatever speed you scroll. */
+export const Takeoff = ({ uncapped = false }: { uncapped?: boolean }) => {
   const ref = useRef<HTMLDivElement>(null);
   const outsideRef = useRef<HTMLDivElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
@@ -607,8 +608,8 @@ export const Takeoff = () => {
     // page by script (that fights native scrolling and stutters on iOS and Android). Once the
     // take-off is done, the next swipe scrolls the page normally.
     const touchMode = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
-    const MIN_MS = 3000;
-    const LEAD = 0.3;
+    const MIN_MS = 3000; // also the pace of click-to-play when uncapped
+    const LEAD = uncapped ? 1 : 0.3;
     const PX_PER_RUN = 340; // normalised scroll distance for the whole take-off (~3–4 notches)
     const MAX_EVENT_PX = 100; // per-event clamp, so one big flick event counts like a notch
     const GLIDE = 6; // 1/s: how quickly progress closes the gap to the target
@@ -645,7 +646,12 @@ export const Takeoff = () => {
       if (auto) target = Math.min(1, cur + LEAD);
       const gap = target - cur;
       const maxStep = dt / (MIN_MS / 1000);
-      const step = Math.max(-maxStep, Math.min(maxStep, gap * Math.min(1, GLIDE * dt) + Math.sign(gap) * Math.min(Math.abs(gap), maxStep * 0.15)));
+      // Uncapped: follow the scroll almost at once (~50 ms of smoothing so wheel notches don't
+      // jump), with no speed limit. Otherwise: the capped glide.
+      const step =
+        uncapped && !auto
+          ? gap * Math.min(1, 20 * dt)
+          : Math.max(-maxStep, Math.min(maxStep, gap * Math.min(1, GLIDE * dt) + Math.sign(gap) * Math.min(Math.abs(gap), maxStep * 0.15)));
       const next = Math.abs(gap) < 0.0005 ? target : cur + step;
       progress.set(next);
       if (!touchMode) window.scrollTo({ top: next * range(), behavior: "instant" as ScrollBehavior });
@@ -747,7 +753,7 @@ export const Takeoff = () => {
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("scroll", onScroll);
     };
-  }, [progress]);
+  }, [progress, uncapped]);
   useMotionValueEvent(progress, "change", (t) => ref.current?.setAttribute("data-progress", t.toFixed(3)));
 
   const [s, setS] = useState({ t: 0, d: 0, h: 1, kt: 0, alt: 0, call: CALLOUTS[0][1], thrust: 0, pitch: 0, horizon: 0 });
