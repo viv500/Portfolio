@@ -226,15 +226,15 @@ export const Cockpit = () => (
   <section id="ops" className="amb-cockpit scroll-mt-14 px-4 pb-16 pt-10 md:px-6 md:pb-24">
     <div className="mx-auto max-w-6xl">
       <GateHeader letter="B" en="Flight Deck" label="Impact · Stack" intro="Results from my internships, on the instruments. Select any instrument or waypoint for the details." />
-      {/* On phones the instruments come first and the long switch panel moves to the end. */}
+      {/* The instruments come first; the overhead (stack) panel follows. */}
       <div className="flex flex-col">
-      <div className="order-3 mt-6 md:order-none md:mt-0">
+      <div className="order-3 mt-6">
         <Overhead />
       </div>
-      <div className="order-1 md:order-none">
+      <div className="order-1">
         <GlareshieldLip />
       </div>
-      <div className="device metal relative order-2 -mt-3 rounded-b-[22px] px-4 pb-8 pt-10 md:order-none md:px-8">
+      <div className="device metal relative order-2 -mt-3 rounded-b-[22px] px-4 pb-8 pt-10 md:px-8">
         <Screws />
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
           <div>

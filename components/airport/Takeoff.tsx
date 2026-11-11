@@ -569,6 +569,7 @@ export const Takeoff = () => {
   // Reduced motion: a still frame of the climb, no parallax, no shake.
   const [reduced, setReduced] = useState(false);
   const [compact, setCompact] = useState(false);
+  const [touch, setTouch] = useState(false);
   const reducedRef = useRef(false);
   useEffect(() => {
     reducedRef.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -578,6 +579,7 @@ export const Takeoff = () => {
       setCompact(mq.matches);
       compactRef.current = mq.matches;
     };
+    setTouch(window.matchMedia("(hover: none) and (pointer: coarse)").matches);
     update();
     mq.addEventListener("change", update);
     return () => mq.removeEventListener("change", update);
@@ -600,8 +602,10 @@ export const Takeoff = () => {
   // The page scroll follows the progress, so the hero stays pinned until the take-off is done.
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    // Phones and tablets: never fight native scrolling (it makes iOS and Android stutter). The
-    // page scrolls with its own momentum and the take-off simply follows the scroll position.
+    // Phones and tablets: the hero is a single screen. While the page is at the very top, swipes
+    // drive the take-off through the same capped glide as on desktop, without ever moving the
+    // page by script (that fights native scrolling and stutters on iOS and Android). Once the
+    // take-off is done, the next swipe scrolls the page normally.
     const touchMode = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
     const MIN_MS = 3500;
     const LEAD = 0.15;
@@ -633,34 +637,23 @@ export const Takeoff = () => {
     // Measured against the pinned hero rather than the window: mobile browser toolbars change
     // innerHeight mid-scroll, which would make progress jump.
     const range = () => Math.max(1, (ref.current?.offsetHeight ?? 0) - (stickyRef.current?.offsetHeight ?? window.innerHeight));
-    const inZone = () => window.scrollY <= range() + 2;
+    const inZone = () => (touchMode ? window.scrollY <= 2 : window.scrollY <= range() + 2);
     const tick = (now: number) => {
       const dt = last ? Math.min(0.05, (now - last) / 1000) : 1 / 60;
       last = now;
       const cur = progress.get();
-      if (touchMode) {
-        // Follow the scroll position with a light glide; no cap, no forced scrolling.
-        const next = Math.abs(target - cur) < 0.001 ? target : cur + (target - cur) * Math.min(1, 10 * dt);
-        progress.set(next);
-        if (next !== target) raf = requestAnimationFrame(tick);
-        else {
-          raf = 0;
-          last = 0;
-        }
-        return;
-      }
       if (auto) target = Math.min(1, cur + LEAD);
       const gap = target - cur;
       const maxStep = dt / (MIN_MS / 1000);
       const step = Math.max(-maxStep, Math.min(maxStep, gap * Math.min(1, GLIDE * dt) + Math.sign(gap) * Math.min(Math.abs(gap), maxStep * 0.15)));
       const next = Math.abs(gap) < 0.0005 ? target : cur + step;
       progress.set(next);
-      window.scrollTo({ top: next * range(), behavior: "instant" as ScrollBehavior });
+      if (!touchMode) window.scrollTo({ top: next * range(), behavior: "instant" as ScrollBehavior });
       if (next !== target || (auto && next < 1)) raf = requestAnimationFrame(tick);
       else {
         raf = 0;
         last = 0;
-        if (next >= 1 && (auto || cur < 1)) {
+        if (next >= 1 && (auto || (cur < 1 && !touchMode))) {
           auto = false;
           handoff();
         }
@@ -707,11 +700,7 @@ export const Takeoff = () => {
     };
     // Scrolling that bypasses the handlers (scrollbar drag, links) re-syncs the take-off.
     const onScroll = () => {
-      if (touchMode) {
-        target = Math.min(1, Math.max(0, window.scrollY / range()));
-        if (!raf) raf = requestAnimationFrame(tick);
-        return;
-      }
+      if (touchMode) return; // on touch, progress comes only from swipes at the top of the page
       if (guard) return; // the hand-off glide is in charge
       if (raf || !inZone()) {
         if (!raf && !inZone() && progress.get() < 1) {
@@ -738,23 +727,16 @@ export const Takeoff = () => {
     const onClick = (e: MouseEvent) => {
       if ((e.target as HTMLElement)?.closest?.("a, button, nav, input, label")) return;
       if (!ref.current?.contains(e.target as Node) || progress.get() >= 1) return;
-      if (touchMode) {
-        // Let the browser scroll there natively; the take-off follows.
-        window.scrollTo({ top: range(), behavior: "smooth" });
-        return;
-      }
       auto = true;
       lastInput = performance.now();
       if (!raf) raf = requestAnimationFrame(tick);
     };
     ref.current?.addEventListener("click", onClick);
     const host = ref.current;
-    if (!touchMode) {
-      window.addEventListener("wheel", onWheel, { passive: false });
-      window.addEventListener("touchstart", onTouchStart, { passive: true });
-      window.addEventListener("touchmove", onTouchMove, { passive: false });
-      window.addEventListener("keydown", onKey);
-    }
+    window.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("keydown", onKey);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       cancelAnimationFrame(raf);
@@ -888,7 +870,7 @@ export const Takeoff = () => {
   const jitter = s.t < 0.5 && !reduced ? Math.sin(s.t * 1300) * 0.8 * (s.t / 0.5) : 0;
 
   return (
-    <div ref={ref} className={reduced ? "relative h-screen" : "relative h-[180vh] cursor-pointer md:h-[140vh]"}>
+    <div ref={ref} className={reduced || touch ? "relative h-screen cursor-pointer" : "relative h-[140vh] cursor-pointer"}>
       <div ref={stickyRef} className="sticky top-0 h-screen overflow-hidden bg-floor">
         {/* The scene. Only this part shakes. */}
         <motion.div className="absolute inset-0" style={{ y: shake }}>
