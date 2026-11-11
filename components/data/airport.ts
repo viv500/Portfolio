@@ -9,6 +9,8 @@ export type Flight = {
   flight: string;
   /** VIA column: the role's two main technologies, in split-flap characters. */
   via: string;
+  /** Logbook REMARKS: the same, in plain text. */
+  remarks: string;
   /** Short destination for the split-flap board (max ~15 characters). */
   dest: string;
   /** Airport code of the city the role was in. */
@@ -17,11 +19,11 @@ export type Flight = {
 };
 
 export const flights: Record<string, Flight> = {
-  shopify: { time: "JAN '27", via: "INFRA", flight: "VJ 127", dest: "SHOPIFY", gate: "YYZ", status: "BOARDING" },
-  "arctic-wolf": { time: "JAN '26", via: "GO·AWS", flight: "VJ 126", dest: "ARCTIC WOLF", gate: "YKF", status: "LANDED" },
-  rocket: { time: "MAY '25", via: "GO·MCP", flight: "VJ 525", dest: "ROCKET MORTGAGE", gate: "DTW", status: "LANDED" },
-  csc: { time: "SEP '24", via: "NEXT·PG", flight: "VJ 924", dest: "UW CS CLUB", gate: "YKF", status: "LANDED" },
-  assistnow: { time: "MAY '24", via: "JAVA·K8S", flight: "VJ 524", dest: "ASSISTNOW", gate: "RMT", status: "LANDED" },
+  shopify: { time: "JAN '27", via: "INFRA", remarks: "Backend · Infra", flight: "VJ 127", dest: "SHOPIFY", gate: "YYZ", status: "BOARDING" },
+  "arctic-wolf": { time: "JAN '26", via: "GO·AWS", remarks: "Go · AWS", flight: "VJ 126", dest: "ARCTIC WOLF", gate: "YKF", status: "LANDED" },
+  rocket: { time: "MAY '25", via: "GO·MCP", remarks: "Go · MCP", flight: "VJ 525", dest: "ROCKET MORTGAGE", gate: "DTW", status: "LANDED" },
+  csc: { time: "SEP '24", via: "NEXT·PG", remarks: "Next.js · Postgres", flight: "VJ 924", dest: "UW CS CLUB", gate: "YKF", status: "LANDED" },
+  assistnow: { time: "MAY '24", via: "JAVA·K8S", remarks: "Java · Kubernetes", flight: "VJ 524", dest: "ASSISTNOW", gate: "RMT", status: "LANDED" },
 };
 
 /** Ink colour and placement for each hackathon stamp. */

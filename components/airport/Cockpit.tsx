@@ -41,7 +41,7 @@ const Overhead = () => (
   <div className="overhead-panel metal relative rounded-t-[22px] px-4 pb-3.5 pt-5 md:px-6">
     <Screws />
     <div className="mb-2.5 flex items-center justify-between">
-      <PanelLabel>Overhead panel · Stack</PanelLabel>
+      <PanelLabel>Stack · Overhead panel</PanelLabel>
       <PanelLabel className="hidden text-ink/70 sm:inline">Systems</PanelLabel>
     </div>
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -181,7 +181,7 @@ const NavDisplay = () => {
         </svg>
       </div>
       <div className="mt-2 flex justify-between px-1">
-        <PanelLabel>ND · Flight plan</PanelLabel>
+        <PanelLabel>Career route · Nav display</PanelLabel>
         <PanelLabel className="text-ink/70">Select a waypoint</PanelLabel>
       </div>
     </div>
@@ -201,7 +201,7 @@ const Eicas = () => (
     <Screws />
     <div className="device glass recessed relative rounded-md bg-screen px-4 py-3 text-[14px] leading-snug md:text-[15px]">
       <div className="mb-2 flex justify-between border-b border-white/10 pb-1.5 font-mono text-[10px]">
-        <span className="text-ink/80">EICAS · SHIPPED</span>
+        <span className="text-ink/80">SHIPPED · EICAS</span>
         <span className="text-ops">NORMAL</span>
       </div>
       <ol className="grid gap-y-1 lg:grid-cols-2 lg:gap-x-8">
@@ -216,7 +216,7 @@ const Eicas = () => (
       </ol>
     </div>
     <div className="mt-2 px-1">
-      <PanelLabel>Lower EICAS</PanelLabel>
+      <PanelLabel>Shipped · Lower EICAS</PanelLabel>
     </div>
   </div>
 );
@@ -224,7 +224,7 @@ const Eicas = () => (
 export const Cockpit = () => (
   <section id="ops" className="amb-cockpit scroll-mt-14 px-4 pb-16 pt-10 md:px-6 md:pb-24">
     <div className="mx-auto max-w-6xl">
-      <GateHeader letter="B" en="Flight Deck" label="Impact & stack" intro="Results from my internships, on the instruments. Select any instrument or waypoint for the details." />
+      <GateHeader letter="B" en="Flight deck" label="Impact" intro="Results from my internships, on the instruments. Select any instrument or waypoint for the details." />
       {/* The instruments come first; the overhead (stack) panel follows. */}
       <div className="flex flex-col">
       <div className="order-3 mt-4">
@@ -237,7 +237,7 @@ export const Cockpit = () => (
         <Screws />
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
           <div>
-            <PanelLabel className="mb-4 block">Primary flight instruments</PanelLabel>
+            <PanelLabel className="mb-4 block">Impact · Primary flight instruments</PanelLabel>
             <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3">
               {SIX.map((it, i) => (
                 <Instrument key={it.kind} stat={it.stat} kind={it.kind} index={i} />

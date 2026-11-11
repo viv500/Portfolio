@@ -3,12 +3,12 @@
 import React, { useEffect, useState } from "react";
 
 export const GATES = [
-  { id: "experience", letter: "A", label: "Departures", hint: "Experience" },
-  { id: "ops", letter: "B", label: "Flight Deck", hint: "Impact" },
-  { id: "projects", letter: "C", label: "Gates", hint: "Projects" },
+  { id: "experience", letter: "A", label: "Logbook", hint: "Experience" },
+  { id: "ops", letter: "B", label: "Flight deck", hint: "Impact" },
+  { id: "projects", letter: "C", label: "Connecting flights", hint: "Projects" },
   { id: "hackathons", letter: "D", label: "Passport Control", hint: "Hackathons" },
   { id: "about", letter: "E", label: "Passport", hint: "About" },
-  { id: "contact", letter: "F", label: "Arrivals", hint: "Contact" },
+  { id: "contact", letter: "F", label: "Baggage claim", hint: "Contact" },
 ] as const;
 
 /** Sticky black-on-yellow airport sign that doubles as the page navigation. */

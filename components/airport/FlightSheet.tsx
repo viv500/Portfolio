@@ -31,7 +31,7 @@ const label = (top: string, sub?: string) => {
     const f = sub ? flights[sub] : undefined;
     return { kicker: "Flight details", title: f ? `${f.flight} · ${f.dest} · ${f.gate}` : role?.company ?? "" };
   }
-  if (top === "projects") return { kicker: "Gate C · Project", title: projects.find((p) => p.slug === sub)?.title ?? "" };
+  if (top === "projects") return { kicker: "Connecting flight · Project", title: projects.find((p) => p.slug === sub)?.title ?? "" };
   if (top === "hackathons") return { kicker: "Passport control · Hackathon", title: hackathons.find((p) => p.slug === sub)?.title ?? "" };
   return { kicker: "Boarding pass", title: "Resume" };
 };

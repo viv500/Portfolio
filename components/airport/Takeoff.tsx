@@ -850,7 +850,8 @@ export const Takeoff = ({ uncapped = false }: { uncapped?: boolean }) => {
   const worldOrigin = `${unit.ox} ${unit.oy}`;
   const pitchRot = useTransform(p, [0.5, 0.66, 1], [0, -1.2, -0.4]);
   const shake = useTransform(p, (t) => (t < 0.5 && !reducedRef.current ? Math.sin(t * 900) * 1.6 * (t / 0.5) : 0));
-  const cue = useTransform(p, [0, 0.1], [1, 0]);
+  // The take-off prompt fades out as soon as the take-off starts.
+  const cue = useTransform(progress, [0, 0.03], [1, 0]);
 
   // Mouse parallax: a few pixels between layers, only on desktop and while the scene is on screen.
   useEffect(() => {
@@ -921,8 +922,12 @@ export const Takeoff = ({ uncapped = false }: { uncapped?: boolean }) => {
           </Layer>
         </motion.div>
 
-        {/* Name card and actions: pinned, readable before anything animates. */}
-        <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4 md:p-6">
+        {/* Name card and actions: pinned at a fixed safe inset on their own layer, outside every
+            transformed (shaking, climbing, parallax) layer, so nothing can shift or clip them. */}
+        <div
+          className="absolute top-0 z-10 flex items-start justify-between gap-3 pt-4 [--inset:1rem] md:pt-6 md:[--inset:1.5rem]"
+          style={{ left: "max(var(--inset), env(safe-area-inset-left))", right: "max(var(--inset), env(safe-area-inset-right))" }}
+        >
           <div className="sign-housing inline-flex">
             <div className="lightbox rounded-[3px] px-4 py-2.5 font-sign text-[#1a1206]">
               <p className="text-lg font-extrabold leading-tight md:text-2xl">Vivek Jude Manoj</p>
@@ -938,8 +943,16 @@ export const Takeoff = ({ uncapped = false }: { uncapped?: boolean }) => {
             </a>
           </div>
         </div>
-        <motion.div style={{ opacity: cue }} className="pointer-events-none absolute inset-x-0 bottom-[23%] flex justify-center">
-          <span className="bob rounded-full bg-black/55 px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.3em] text-white shadow-lg">Scroll to take off ↓</span>
+        {/* Take-off prompt: a translucent dark pill (pre-baked, no backdrop blur), a gold border
+            with a highlight travelling round it, a softly pulsing glow and a bobbing arrow. */}
+        <motion.div style={{ opacity: cue }} className="pointer-events-none absolute inset-x-0 bottom-[23%] z-10 flex flex-col items-center gap-1.5">
+          <span className="font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-white/55 [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]">Ready for departure</span>
+          <span className="relative inline-flex items-center gap-2 rounded-full bg-[linear-gradient(180deg,rgba(28,22,12,0.62),rgba(8,6,3,0.72))] px-4 py-1.5 font-mono text-[12px] font-medium uppercase tracking-[0.15em] text-white shadow-[0_8px_24px_-10px_rgba(0,0,0,0.8)] md:text-[13px]">
+            <span aria-hidden="true" className="cue-glow" />
+            <span aria-hidden="true" className="cue-ring" />
+            <span className="relative">Scroll or tap to take off</span>
+            <span aria-hidden="true" className="bob relative text-sign">↓</span>
+          </span>
         </motion.div>
       </div>
     </div>

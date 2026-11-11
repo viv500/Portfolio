@@ -508,6 +508,21 @@ html.light .text-neutral-300:not(.keep-dark, .keep-dark *) { color: rgb(21 18 36
 .foil { color: #d8b65e; background: linear-gradient(180deg, #f3dc8e 0%, #c9a24a 55%, #a07a2c 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 1px 0 rgba(0,0,0,0.45)); }
 svg.foil { -webkit-text-fill-color: initial; background: none; color: #d8b65e; }
 
+/* Pilot's logbook: plain ruled stock (no guilloche) in a dark navy binding. */
+.logbook-paper {
+  background-color: rgb(var(--paper));
+  background-image:
+    radial-gradient(90% 70% at 50% 35%, rgba(255,255,255,0.4), transparent 70%),
+    radial-gradient(140% 120% at 50% 50%, transparent 62%, rgb(var(--paper-shade) / 0.6) 100%);
+  color: #23262b;
+}
+.logbook-cover {
+  background:
+    radial-gradient(120% 90% at 30% 20%, rgba(255,255,255,0.08), transparent 60%),
+    repeating-linear-gradient(45deg, rgba(0,0,0,0.1) 0 2px, transparent 2px 5px),
+    #1c2636;
+}
+
 /* Boarding pass card stock: a light sheen and a soft edge falloff. */
 .pass-stock {
   background:
@@ -552,8 +567,65 @@ svg.foil { -webkit-text-fill-color: initial; background: none; color: #d8b65e; }
   box-shadow: inset 0 -1px 0 rgba(0,0,0,0.12), 0 2px 6px -2px rgba(70,48,24,0.35);
 }
 
+/* ACARS panel (captain's announcement), dark palette only, so it doesn't sink into the dark page:
+   a thicker, lighter bronze bezel with a lit top edge, screws and a thin gold rim; a green-black
+   screen with an inner glow, vignette and a faint glass reflection; a soft green spill onto the
+   bezel. The day palette keeps the standard board styling (and hides the screws). */
+:root:not([data-palette="day"]) .acars-bezel {
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #8d7d68 0%, #6f6150 16%, #5a4e41 55%, #40372e 100%);
+  box-shadow:
+    0 0 0 1px rgba(214, 176, 92, 0.42),
+    inset 0 1px 0 rgba(255, 240, 210, 0.5),
+    inset 0 -2px 0 rgba(20, 14, 8, 0.65),
+    0 26px 50px -20px rgba(0, 0, 0, 0.9),
+    0 8px 18px -8px rgba(0, 0, 0, 0.6);
+}
+/* Bezel thickness is the same in both palettes. */
+.acars-bezel.acars-bezel { padding: 16px; }
+@media (min-width: 768px) { .acars-bezel.acars-bezel { padding: 20px; } }
+:root:not([data-palette="day"]) .acars-bezel .screw {
+  background: radial-gradient(circle at 35% 30%, #d9d0c2 0%, #8f8576 60%, #4a4239 100%);
+}
+:root:not([data-palette="day"]) .acars-screen {
+  background-color: #0b1410;
+  background-image:
+    linear-gradient(178deg, rgba(255,255,255,0.065) 0%, rgba(255,255,255,0.02) 30%, transparent 31%),
+    radial-gradient(110% 130% at 50% 45%, rgba(70, 160, 105, 0.09) 0%, transparent 60%),
+    radial-gradient(140% 170% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.85),
+    inset 0 2px 10px rgba(0, 0, 0, 0.7),
+    0 0 16px 1px rgba(80, 200, 130, 0.14);
+}
+:root[data-palette="day"] .acars-screw { display: none; }
+
+/* Captain's greeting: "Good evening" at golden hour, "Good afternoon" in daylight. */
+.greet-afternoon { display: none; }
+:root[data-palette="day"] .greet-afternoon { display: inline; }
+:root[data-palette="day"] .greet-evening { display: none; }
+
+/* Take-off prompt: a gold highlight runs round the pill's border, and its glow pulses. */
+@property --cue-spin { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+@keyframes cue-spin { to { --cue-spin: 360deg; } }
+@keyframes cue-pulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.65; } }
+.cue-ring {
+  position: absolute; inset: 0; border-radius: 9999px; padding: 1.5px;
+  background: conic-gradient(from var(--cue-spin), rgb(var(--sign) / 0.4) 0deg, rgb(var(--sign) / 0.4) 240deg, rgb(var(--sign)) 290deg, #fff6d2 320deg, rgb(var(--sign)) 340deg, rgb(var(--sign) / 0.4) 360deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: cue-spin 2.8s linear infinite;
+}
+.cue-glow { position: absolute; inset: 0; border-radius: 9999px; box-shadow: 0 0 14px 0 rgb(var(--sign) / 0.4); animation: cue-pulse 2.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .cue-ring { animation: none; background: rgb(var(--sign)); }
+  .cue-glow { animation: none; opacity: 0.4; }
+}
+
 /* Gentle bob on the "scroll to take off" cue. */
-@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 .bob { animation: bob 2.2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .bob { animation: none; } }
 

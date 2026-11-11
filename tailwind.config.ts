@@ -29,6 +29,7 @@ const config = {
       fontFamily: {
         mono: ["var(--font-mono)", "ui-monospace", "monospace"],
         sign: ["var(--font-sign)", "Helvetica Neue", "Arial", "sans-serif"],
+        hand: ["var(--font-hand)", "cursive"],
       },
       colors: {
         black: {

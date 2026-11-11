@@ -11,10 +11,15 @@ export const FlightProgress = () => {
   const [readout, setReadout] = React.useState({ alt: 0, eta: "13:55" });
 
   useMotionValueEvent(scrollYProgress, "change", (p) => {
-    // Climb for the first fifth, cruise, then descend over the last fifth.
-    const alt = p < 0.2 ? (p / 0.2) * 37000 : p > 0.8 ? ((1 - p) / 0.2) * 37000 : 37000;
-    const minutes = Math.round((1 - p) * 835); // DXB to YYZ is about 13 h 55 min.
-    const next = { alt: Math.round(alt / 500) * 500, eta: `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, "0")}` };
+    // The flight lands at the landing strip: climb over the first tenth, cruise, descend into
+    // the strip, then stay on the ground through the airport sections.
+    const el = document.getElementById("landing");
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    const land = el && max > 0 ? Math.min(1, (el.offsetTop + el.offsetHeight / 2 - window.innerHeight / 2) / max) : 0.8;
+    const descent = Math.max(0.05, land * 0.25);
+    const alt = p < 0.1 ? (p / 0.1) * 37000 : p >= land ? 0 : p > land - descent ? ((land - p) / descent) * 37000 : 37000;
+    const minutes = Math.max(0, Math.round((1 - Math.min(1, p / land)) * 835)); // DXB to YYZ is about 13 h 55 min.
+    const next = { alt: Math.round(alt / 500) * 500, eta: p >= land ? "LANDED" : `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, "0")}` };
     setReadout((prev) => (prev.alt === next.alt && prev.eta === next.eta ? prev : next));
   });
 
@@ -30,8 +35,8 @@ export const FlightProgress = () => {
           </motion.div>
         </div>
         <span className="text-flap">YKF</span>
-        <span className="hidden w-28 sm:inline">ALT {readout.alt.toLocaleString("en-CA")} FT</span>
-        <span className="hidden w-20 md:inline">ETA {readout.eta}</span>
+        <span className="hidden w-28 sm:inline">{readout.alt > 0 ? `ALT ${readout.alt.toLocaleString("en-CA")} FT` : "ON GROUND"}</span>
+        <span className="hidden w-24 md:inline">{readout.eta === "LANDED" ? "LANDED · YKF" : `ETA ${readout.eta}`}</span>
       </div>
     </div>
   );

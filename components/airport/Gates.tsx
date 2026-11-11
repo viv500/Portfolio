@@ -144,7 +144,7 @@ const BoardingPass = ({ pass, index }: { pass: Pass; index: number }) => {
 export const Gates = () => (
   <section id="projects" className="amb-hall scroll-mt-14 px-4 py-16 md:px-6 md:py-24">
     <div className="mx-auto max-w-6xl">
-      <GateHeader letter="C" en="Gates C1–C4" label="Projects" intro="Tools and research. Each pass opens the full write-up." />
+      <GateHeader letter="C" en="Connecting flights" label="Projects" intro="Tools and research. Each boarding pass opens the full write-up." />
       <div className="grid gap-6 md:grid-cols-2">
         {PASSES.map((pass, i) => (
           <BoardingPass key={pass.slug} pass={pass} index={i} />

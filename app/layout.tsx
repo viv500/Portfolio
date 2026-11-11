@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Inter_Tight, JetBrains_Mono } from "next/font/google";
+import { Caveat, Inter, Inter_Tight, JetBrains_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { PostHogAnalytics } from "./posthog";
 import "./globals.css";
@@ -8,6 +8,8 @@ import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const inter = Inter({ subsets: ["latin"] });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
+// Handwriting, used only for the logbook signature.
+const hand = Caveat({ subsets: ["latin"], weight: ["600"], variable: "--font-hand" });
 const sign = Inter_Tight({ subsets: ["latin"], weight: ["500", "600", "700", "800"], variable: "--font-sign" });
 
 export const metadata: Metadata = {
@@ -41,11 +43,13 @@ export default function RootLayout({
         {/* Apply the saved theme before first paint, so there's no flash. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var p=localStorage.getItem("palette");document.documentElement.dataset.palette=p==="day"?"day":"golden"}catch(e){document.documentElement.dataset.palette="golden"}`,
+            // A saved choice wins; otherwise pick by the visitor's local time (daytime 6:00–17:00,
+            // golden hour otherwise). The automatic pick isn't saved, so it follows the clock.
+            __html: `(function(){var d=document.documentElement,p=null;try{p=localStorage.getItem("palette")}catch(e){}if(p!=="day"&&p!=="golden"){var h=new Date().getHours();p=h>=6&&h<17?"day":"golden"}d.dataset.palette=p})()`,
           }}
         />
       </head>
-      <body className={`${inter.className} ${mono.variable} ${sign.variable}`}>
+      <body className={`${inter.className} ${mono.variable} ${sign.variable} ${hand.variable}`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

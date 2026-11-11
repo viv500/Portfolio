@@ -1,6 +1,7 @@
 import { CheckIn } from "./CheckIn";
 import { Wayfinding } from "./Wayfinding";
-import { Departures } from "./Departures";
+import { FlightLog } from "./FlightLog";
+import { Landing } from "./Landing";
 import { Cockpit } from "./Cockpit";
 import { Takeoff } from "./Takeoff";
 import { PaletteSwitch } from "./PaletteSwitch";
@@ -12,14 +13,21 @@ import { FlightProgress } from "./FlightProgress";
 import { FlightSheet } from "./FlightSheet";
 import { Runway } from "./GateHeader";
 
-/** The airport site. `uncapped` turns off the take-off's speed limit (the /nolimit preview). */
+/**
+ * The airport site, as one journey: take-off → in flight (captain's PA, pilot's logbook, flight deck)
+ * → landing → arrivals (connecting flights, passport control, passport, baggage claim).
+ * `uncapped` turns off the take-off's speed limit (the /nolimit preview).
+ */
 export const AirportSite = ({ uncapped = false }: { uncapped?: boolean }) => (
   <main className="aviation relative w-full overflow-x-clip bg-wall text-ink">
     <Takeoff uncapped={uncapped} />
     <CheckIn />
     <Wayfinding />
-    <Departures />
+    {/* In flight */}
+    <FlightLog />
     <Cockpit />
+    <Landing />
+    {/* On the ground */}
     <Gates />
     <Runway />
     <PassportControl />

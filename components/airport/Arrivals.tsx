@@ -42,7 +42,7 @@ export const Arrivals = () => {
   return (
     <section id="contact" className="scroll-mt-14 amb-arrivals border-t border-black pb-24 pt-16 md:pt-24">
       <div className="mx-auto max-w-6xl px-4 md:px-6">
-        <GateHeader letter="F" en="Arrivals" label="Contact & resume" />
+        <GateHeader letter="F" en="Baggage claim" label="Contact & résumé" />
 
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:items-center">
           {/* Resume as a boarding pass with a tear-off stub. */}
@@ -50,7 +50,7 @@ export const Arrivals = () => {
             <a href="#resume" className="group flex min-w-0 flex-1 flex-col rounded-l-lg pass-stock text-[#1a1a1a] elev-3">
               <div className="flex items-center justify-between rounded-tl-lg lightbox px-4 py-2 font-sign text-[11px] font-bold uppercase tracking-wider">
                 <span className="flex items-center gap-1.5">
-                  <PlaneIcon className="h-3.5 w-3.5 rotate-45" /> Boarding pass · Resume
+                  <PlaneIcon className="h-3.5 w-3.5 rotate-45" /> Résumé · Boarding pass
                 </span>
                 <span className="font-semibold opacity-60">PDF</span>
               </div>
@@ -133,7 +133,7 @@ export const Arrivals = () => {
       {/* Baggage carousel. */}
       <div className="relative mt-16">
         <div className="mx-auto mb-3 flex max-w-6xl items-center gap-2 px-4 font-mono text-[10px] uppercase tracking-[0.25em] text-flap/70 md:px-6">
-          <span className="sign-letter h-5 w-5 rounded-[2px] text-[11px]">⧉</span> Baggage claim · Carousel 3
+          <span className="sign-letter h-5 w-5 rounded-[2px] text-[11px]">⧉</span> Links · Baggage claim
         </div>
         <Carousel count={contactLinks.length} renderBag={(i) => <Bag link={contactLinks[i]} i={i} />} />
       </div>

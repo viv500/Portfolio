@@ -109,16 +109,22 @@ const WhatIDoPage = () => (
 const VisaPage = () => (
   <PageFrame n={3} side="left">
     <PageTitle en="Visas" />
-    <div className="relative overflow-hidden rounded-[4px] border border-[#3f6b56]/40 bg-[#dbe8dc] p-4 shadow-sm">
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[repeating-radial-gradient(circle_at_80%_20%,rgba(63,107,86,0.12)_0_1px,transparent_1px_6px)]" />
-      <div className="relative">
-        <div className="flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#2f5a46]">
-          <span>Visa</span>
-          <span>CS + AI</span>
+    {/* University of Waterloo visa, in the university's black and gold, with its crest. */}
+    <div className="relative overflow-hidden rounded-[4px] border border-[#c9a227] bg-[#fbf1cf] shadow-sm">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[repeating-radial-gradient(circle_at_85%_30%,rgba(201,162,39,0.16)_0_1px,transparent_1px_6px)]" />
+      <div className="relative flex items-center justify-between bg-black px-4 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#fed34c]">
+        <span>Visa · Student</span>
+        <span>CS + AI</span>
+      </div>
+      <div className="relative p-4">
+        <div className="flex items-start gap-3">
+          <Image src="/logos/uwaterloo.svg" alt="University of Waterloo crest" width={48} height={48} className="h-12 w-12 shrink-0" />
+          <div className="min-w-0">
+            <div className="font-sign text-lg font-extrabold leading-tight text-black">{education.school}</div>
+            <div className="mt-1 text-[13px] leading-snug text-black/75">{education.degree}</div>
+          </div>
         </div>
-        <div className="mt-3 font-sign text-lg font-extrabold leading-tight text-[#14261d]">{education.school}</div>
-        <div className="mt-1 text-[13px] leading-snug text-[#14261d]/80">{education.degree}</div>
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[#c9a227]/60 pt-3">
           <IdField en="Valid until" v="Dec 2027" />
           <IdField en="Clubs" v={education.activities.map((a) => a.replace(" Club", "")).join(" · ")} />
         </div>
