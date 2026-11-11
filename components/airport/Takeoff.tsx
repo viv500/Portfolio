@@ -607,10 +607,10 @@ export const Takeoff = () => {
     // page by script (that fights native scrolling and stutters on iOS and Android). Once the
     // take-off is done, the next swipe scrolls the page normally.
     const touchMode = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
-    const MIN_MS = 3500;
-    const LEAD = 0.15;
-    const PX_PER_RUN = 720; // normalised scroll distance for the whole take-off
-    const MAX_EVENT_PX = 60; // per-event clamp, so one big flick event counts like a notch
+    const MIN_MS = 3000;
+    const LEAD = 0.3;
+    const PX_PER_RUN = 340; // normalised scroll distance for the whole take-off (~3–4 notches)
+    const MAX_EVENT_PX = 100; // per-event clamp, so one big flick event counts like a notch
     const GLIDE = 6; // 1/s: how quickly progress closes the gap to the target
     let auto = false; // set by a click: keep the target just ahead until the take-off is done
     // Hand-off: when the take-off completes, glide to the next section and swallow the burst of
