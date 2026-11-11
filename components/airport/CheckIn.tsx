@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { profile } from "@/components/data";
+import { CrewBadge } from "./CrewBadge";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -71,20 +72,25 @@ export const CheckIn = () => {
           <p className="mt-3 text-[13px] leading-relaxed text-ink md:text-[15px] [text-shadow:0_0_8px_rgb(var(--ink)/0.25)]">
             {/* The greeting follows the active palette (CSS, so it changes live with the toggle). */}
             <span className="greet-evening">Good evening</span>
-            <span className="greet-afternoon">Good afternoon</span>, this is your captain, <span className="text-live">Vivek Jude Manoj</span>. We&apos;ve reached cruising
-            altitude, so sit back while I tell you a little about what I do.
+            <span className="greet-afternoon">Good afternoon</span>, this is Captain <span className="text-live">Vivek Jude Manoj</span> speaking. We&apos;ve
+            reached our cruising altitude, so sit back and relax while I tell you a bit about what I do.
             <span aria-hidden="true" className="board-blink ml-1 inline-block h-[1em] w-[0.55em] translate-y-[0.15em] bg-ink/80" />
           </p>
           </div>
         </div>
 
-        <div className="mt-8 grid gap-8 md:mt-10 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-          <div>
+        {/* Desktop: headline, bio, strip and buttons on the left; the crew badge alone on the right,
+            its top level with the headline. Phones: badge above the headline. */}
+        {/* The text column is the headline's width (42rem); the badge is centred in the space between
+            it and the right edge of the ACARS panel (no column gap, so the centre is exact). */}
+        <div className="mt-14 grid gap-8 md:mt-12 md:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] md:gap-x-0">
+          <CrewBadge className="md:col-start-2 md:row-start-1 md:self-start md:justify-self-center" />
+          <div className="md:col-start-1 md:row-start-1">
             <h1 className="max-w-2xl font-sign text-[28px] font-bold leading-tight text-flap md:text-[44px]">{profile.hero}</h1>
             <p className="mt-3 max-w-2xl text-base leading-relaxed text-flap/65">
               Infrastructure and developer tooling engineer. CS + AI at the <span className="font-medium text-flap/90">University of Waterloo</span>. Grew up in Dubai.
             </p>
-            <dl className="mt-6 grid max-w-xs grid-cols-2 gap-px overflow-hidden rounded-[3px] border border-white/10 bg-white/10 font-mono text-[9px] uppercase sm:text-[10px]">
+            <dl className="mt-5 grid max-w-xs grid-cols-2 gap-px overflow-hidden rounded-[3px] border border-white/10 bg-white/10 font-mono text-[9px] uppercase sm:text-[10px]">
               {[
                 ["Next", "Shopify · W27"],
                 ["Base", "UWaterloo"],
@@ -98,16 +104,21 @@ export const CheckIn = () => {
                 </div>
               ))}
             </dl>
-          </div>
-          <div className="flex flex-wrap gap-3 md:flex-col md:items-stretch">
-            <a href="#resume" className="btn-gold group inline-flex items-stretch overflow-hidden rounded-[4px] font-sign font-bold">
-              <span className="sign-letter px-3 text-lg">→</span>
-              <span className="px-4 py-3">Résumé</span>
-            </a>
-            <a href="#contact" className="group inline-flex items-stretch overflow-hidden rounded-[3px] border border-sign-deep/70 font-sign font-bold text-sign-deep transition hover:bg-sign/10">
-              <span className="flex items-center border-r border-sign-deep/40 px-3">✉</span>
-              <span className="px-4 py-3">Contact</span>
-            </a>
+            {/* Actions: identical size, icon cell and raised lip; Résumé filled gold, Contact outlined.
+                Side by side on desktop, full-width and stacked on phones. */}
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <a href="#resume" className="btn-gold group flex h-12 w-full items-stretch overflow-hidden rounded-[4px] font-sign font-bold sm:w-44">
+                <span className="sign-letter flex w-11 shrink-0 items-center justify-center text-lg">→</span>
+                <span className="flex flex-1 items-center px-4">Résumé</span>
+              </a>
+              <a
+                href="#contact"
+                className="group flex h-12 w-full items-stretch overflow-hidden rounded-[4px] border border-sign-deep/80 font-sign font-bold text-sign-deep shadow-[0_4px_0_rgb(128_72_10/0.8),0_9px_16px_-6px_rgba(0,0,0,0.6)] transition hover:bg-sign/10 active:translate-y-[3px] sm:w-44"
+              >
+                <span className="flex w-11 shrink-0 items-center justify-center border-r border-sign-deep/50 text-lg">✉</span>
+                <span className="flex flex-1 items-center px-4">Contact</span>
+              </a>
+            </div>
           </div>
         </div>
       </div>

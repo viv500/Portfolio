@@ -601,6 +601,13 @@ svg.foil { -webkit-text-fill-color: initial; background: none; color: #d8b65e; }
 }
 :root[data-palette="day"] .acars-screw { display: none; }
 
+/* Crew badge: hangs from its clip at a slight tilt and sways gently on hover. */
+@keyframes badge-sway { 0%, 100% { transform: rotate(3deg); } 30% { transform: rotate(0.5deg); } 65% { transform: rotate(4.5deg); } }
+/* It pivots at the lanyard's mount, --hang px above the card. */
+.badge-sway { transform: rotate(3deg); transform-origin: 50% calc(-1 * var(--hang, 0px)); }
+.badge-sway:hover { animation: badge-sway 1.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .badge-sway:hover { animation: none; } }
+
 /* Captain's greeting: "Good evening" at golden hour, "Good afternoon" in daylight. */
 .greet-afternoon { display: none; }
 :root[data-palette="day"] .greet-afternoon { display: inline; }
