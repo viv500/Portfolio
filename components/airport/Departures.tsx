@@ -9,7 +9,7 @@ import { OrgLogo } from "@/components/ui/OrgLogo";
 
 // Fixed column widths spread evenly across the board, so there are no big gaps.
 // Phones: AIRLINE · DESTINATION · STATUS. Desktop: TIME · AIRLINE · FLIGHT · DESTINATION · GATE · STATUS.
-const COLS = "grid-cols-[2.5rem_minmax(0,1fr)_5.4rem] md:grid-cols-[7.6rem_3.5rem_6.4rem_minmax(0,1fr)_3.6rem_9.4rem] md:gap-x-6";
+const COLS = "grid-cols-[2.5rem_minmax(0,1fr)_5.4rem] md:grid-cols-[7.6rem_3.5rem_8.8rem_minmax(0,1fr)_3.6rem_9.4rem] md:gap-x-6";
 
 /** Experience as a departures board. Each row opens that role's flight details. */
 export const Departures = () => (
@@ -25,7 +25,7 @@ export const Departures = () => (
           <span>
             <span className="hidden md:inline">Airline</span>
           </span>
-          <span className="hidden md:block">Flight</span>
+          <span className="hidden md:block">Via</span>
           <span>Destination</span>
           <span className="hidden md:block">Gate</span>
           <span className="text-right md:text-left">Status</span>
@@ -47,7 +47,7 @@ export const Departures = () => (
                   <span className="sr-only">{role.company}</span>
                 </span>
                 <span className="flap-sm hidden md:row-span-2 md:block md:self-center">
-                  <SplitFlap text={f.flight} length={6} delay={i * 120 + 80} />
+                  <SplitFlap text={f.via} length={8} delay={i * 120 + 80} />
                 </span>
                 <span className="flap-sm min-w-0 overflow-hidden">
                   <SplitFlap text={f.dest} length={15} delay={i * 120 + 160} />

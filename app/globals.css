@@ -267,6 +267,7 @@ html.light .text-neutral-300:not(.keep-dark, .keep-dark *) { color: rgb(21 18 36
   --haze: 255 150 96;
   --glass-band: 44 58 70;
   --apron: 46 36 30;
+  --taxiway: 62 56 54;
   --jet: 120 110 112;
   --jet-tail: 70 60 80;
   --sunlight: 0.45;
@@ -329,6 +330,7 @@ html.light .text-neutral-300:not(.keep-dark, .keep-dark *) { color: rgb(21 18 36
   --haze: 236 228 210;
   --glass-band: 54 132 146;
   --apron: 200 196 186;
+  --taxiway: 150 148 144;
   --jet: 244 246 248;
   --jet-tail: 56 80 120;
   --sunlight: 1;

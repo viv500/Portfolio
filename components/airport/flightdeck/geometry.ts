@@ -74,11 +74,12 @@ export const mx = (pts: V2[]): V2[] => pts.map(([x, y]) => [1000 - x, y]);
 // either side of a thin vertical post, thick A-pillars raked in at the top, and side windows
 // whose tops line up with the front panes while their bottoms drop away towards the outside.
 // Every window ends at the sill, so nothing outside shows below the glareshield.
-export const WS_FRONT_L: V2[] = [[492, 128], [380, 129], [264, 133], [244, 236], [492, 250]];
+export const WS_FRONT_L: V2[] = [[492, 128], [380, 129], [264, 133], [244, 236], [496, 250]];
 export const WS_SIDE1_L: V2[] = [[232, 134], [58, 141], [40, 312], [222, 242]];
 export const WS_SIDE2_L: V2[] = [[34, 142], [-150, 150], [-166, 336], [16, 318]];
 export const WS_APILLAR_L: V2[] = [[264, 133], [232, 134], [222, 242], [244, 236]];
 export const WS_MIDPILLAR_L: V2[] = [[58, 141], [34, 142], [16, 318], [40, 312]];
-export const WS_POST: V2[] = [[492, 128], [508, 128], [508, 250], [492, 250]];
+// The post tapers towards its base, so the near centreline dashes peek out either side.
+export const WS_POST: V2[] = [[492, 128], [508, 128], [504, 250], [496, 250]];
 /** The sill: the bottom edge of every window, left to right, which the glareshield sits on. */
-export const SILL: V2[] = [[-220, 338], [-166, 336], [16, 318], [40, 312], [222, 242], [244, 236], [492, 250], [508, 250], [756, 236], [778, 242], [960, 312], [984, 318], [1166, 336], [1220, 338]];
+export const SILL: V2[] = [[-220, 338], [-166, 336], [16, 318], [40, 312], [222, 242], [244, 236], [496, 250], [504, 250], [756, 236], [778, 242], [960, 312], [984, 318], [1166, 336], [1220, 338]];

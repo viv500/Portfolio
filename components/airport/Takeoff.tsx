@@ -1,7 +1,7 @@
 "use client";
 
 import React, { memo, useEffect, useRef, useState } from "react";
-import { motion, useMotionValueEvent, useScroll, useTransform } from "framer-motion";
+import { motion, useMotionValue, useMotionValueEvent, useTransform } from "framer-motion";
 import { HZ, P, VIEW_H, VIEW_W, VP, col, r1 } from "./flightdeck/geometry";
 import { Shell } from "./flightdeck/Shell";
 import { Panel } from "./flightdeck/Panel";
@@ -12,7 +12,6 @@ import { resumePath } from "@/components/data";
 //   1. the world outside, 2. the cockpit shell and HUD, 3. the glareshield and panel.
 // Shake and parallax move only those layers; the name card and buttons stay still.
 
-const RUNWAY_END = 200;
 const ground = (X: number, z: number, h: number) => P(X, -h, z);
 const quadBase = (X1: number, X2: number, z1: number, z2: number, h: number) =>
   `M${[ground(X1, z1, h), ground(X2, z1, h), ground(X2, z2, h), ground(X1, z2, h)].map((p) => p.join(" ")).join(" L")} Z`;
@@ -20,46 +19,144 @@ const quad = quadBase;
 const face = (pts: [number, number, number][], h: number) => `M${pts.map(([X, Y, z]) => P(X, Y - h, z).join(" ")).join(" L")} Z`;
 
 // ── Outside ─────────────────────────────────────────────────────────────
-const Runway = ({ d, h, off = 0, w = 1 }: { d: number; h: number; off?: number; w?: number }) => {
-  // `off` shifts the runway sideways and `w` scales its width, for the parallel runway.
-  const quad = (X1: number, X2: number, z1: number, z2: number, hh: number) => quadBase(X1 * w + off, X2 * w + off, z1, z2, hh);
-  const zFar = RUNWAY_END - d;
-  if (zFar < 0.95) return null;
-  const zNear = Math.max(0.9, -10 - d);
-  const dashes: string[] = [];
-  for (let s = 0; s < RUNWAY_END - 6; s += 3) {
-    const z1 = s - d;
-    const z2 = z1 + 1.4;
-    if (z2 < 0.9 || z1 > 300) continue;
-    dashes.push(quad(-0.07, 0.07, Math.max(z1, 0.9), z2, h));
-  }
-  const lights: [number, number, number][] = [];
-  for (let s = 0; s < RUNWAY_END; s += 1.6) {
-    const z = s - d;
-    if (z < 0.9 || z > 140) continue;
-    for (const X of [-1.25, 1.25]) {
-      const [x, y] = ground(X * w + off, z, h);
-      lights.push([x, y, Math.max(0.6, 6 / z)]);
+// ── Runways and taxiways ────────────────────────────────────────────────
+// Explicit one-point perspective: every line parallel to our heading is a ground line at a
+// fixed lateral offset X, so on screen it runs from the vanishing point (behind the centre
+// post, on the horizon) at a slope of eyeHeight / X. Offsets are in eye heights:
+//   main runway edges ±8   → about 7° below the horizon, meeting the sill near the outer
+//                            edges of the two front panes
+//   parallel taxiway ~14   → about 4°, much shallower
+//   parallel runway 24–31  → about 2°, a thin sliver to the right
+// The surfaces are static; only markings and lights move, sliding out from the vanishing
+// point as distance travelled (d) increases.
+const RWY = 8;
+const TWY_L = 12.6;
+const TWY_R = 15.4;
+const TWY_C = (TWY_L + TWY_R) / 2;
+const PRW_L = 24;
+const PRW_R = 31;
+const FAR = 900; // effectively the horizon
+const EXITS = [70, 150, 240]; // rapid-exit taxiways, by distance along the runway
+const EXIT_RUN = (TWY_L - RWY) / Math.tan((30 * Math.PI) / 180); // 30° in plan
+
+/** Static surfaces and edge lines. Depends only on height, so it doesn't re-render during the roll. */
+const GroundSurfaces = memo(function GroundSurfaces({ h }: { h: number }) {
+  const strip = (X1: number, X2: number) => quad(X1, X2, 0.9, FAR, h);
+  const line = (X: number, wdt: number) => quad(X - wdt, X + wdt, 0.9, FAR, h);
+  return (
+    <g>
+      <path d={strip(PRW_L, PRW_R)} style={{ fill: col("runway") }} />
+      <path d={strip(TWY_L, TWY_R)} style={{ fill: col("taxiway") }} />
+      <path d={strip(-RWY, RWY)} style={{ fill: col("runway") }} />
+      {/* Edge lines: main runway, taxiway (yellow) and parallel runway. */}
+      <path d={`${line(-RWY + 0.25, 0.12)} ${line(RWY - 0.25, 0.12)} ${line(PRW_L + 0.2, 0.1)} ${line(PRW_R - 0.2, 0.1)}`} fill="rgba(240,240,235,0.6)" />
+      <path d={`${line(TWY_L + 0.15, 0.06)} ${line(TWY_R - 0.15, 0.06)}`} fill="rgba(255,205,60,0.45)" />
+    </g>
+  );
+});
+
+/** Rapid-exit taxiways: strips leaving the runway's right edge at 30°, narrowing with distance. */
+const RapidExits = ({ d, h }: { d: number; h: number }) => {
+  const parts: string[] = [];
+  const dots: [number, number, number][] = [];
+  for (const s0 of EXITS) {
+    const z0 = s0 - d;
+    const z1 = z0 + EXIT_RUN;
+    if (z1 < 1.2 || z0 > FAR) continue;
+    const w = 0.9;
+    const pts: [number, number][] = [
+      [RWY, Math.max(1.2, z0 - w)],
+      [RWY, Math.max(1.2, z0 + w * 2.2)],
+      [TWY_L, Math.max(1.2, z1 + w)],
+      [TWY_L, Math.max(1.2, z1 - w * 2.2)],
+    ];
+    parts.push(`M${pts.map(([X, z]) => ground(X, z, h).join(" ")).join(" L")} Z`);
+    for (let k = 1; k < 6; k++) {
+      const f = k / 6;
+      const X = RWY + (TWY_L - RWY) * f;
+      const z = z0 + EXIT_RUN * f;
+      if (z < 1.5) continue;
+      const [x, y] = ground(X, z, h);
+      dots.push([x, y, Math.max(0.5, 4 / z)]);
     }
   }
-  const stripes = [-0.9, -0.66, -0.42, 0.42, 0.66, 0.9];
-  const keys = stripes.map((X) => quad(X - 0.08, X + 0.08, Math.max(0.9, zFar - 4), zFar, h)).join(" ");
-  const nearKeys = -d + 5 > 0.95 ? stripes.map((X) => quad(X - 0.08, X + 0.08, Math.max(0.95, 1 - d), 5 - d, h)).join(" ") : "";
   return (
-    <>
-      <path d={quad(-1.15, 1.15, zNear, zFar, h)} style={{ fill: col("runway") }} />
-      <path d={`${quad(-1.08, -1.02, zNear, zFar, h)} ${quad(1.02, 1.08, zNear, zFar, h)}`} fill="rgba(240,240,235,0.55)" />
-      <path d={dashes.join(" ")} fill="rgba(245,245,240,0.9)" />
-      <path d={keys} fill="rgba(245,245,240,0.8)" />
-      {nearKeys && <path d={nearKeys} fill="rgba(245,245,240,0.85)" />}
-      <g style={{ opacity: "var(--lights)" }}>
-        {lights.map(([x, y, r], i) => (
-          <circle key={i} cx={x} cy={y} r={r1(r)} fill={i % 2 ? "#ffe9b0" : "#fff3d6"} />
+    <g>
+      <path d={parts.join(" ")} style={{ fill: col("taxiway") }} />
+      <g style={{ opacity: "calc(var(--lights) * 0.6 + 0.4)" }}>
+        {dots.map(([x, y, rr], i) => (
+          <circle key={i} cx={r1(x)} cy={r1(y)} r={r1(rr)} fill="#3dff8c" />
         ))}
       </g>
-    </>
+    </g>
   );
 };
+
+/** Markings and lights that move: dashes and dots slide along their perspective lines. */
+const GroundMarkings = ({ d, h }: { d: number; h: number }) => {
+  const dash = (X: number, half: number, len: number, period: number, near = 1.2, far = 420) => {
+    const out: string[] = [];
+    const first = Math.floor(d / period) * period;
+    for (let s0 = first; s0 - d < far; s0 += period) {
+      const z1 = s0 - d;
+      const z2 = z1 + len;
+      if (z2 < near) continue;
+      out.push(quad(X - half, X + half, Math.max(near, z1), z2, h));
+    }
+    return out.join(" ");
+  };
+  const dots = (Xs: number[], period: number, size: number, far = 260) => {
+    const out: [number, number, number][] = [];
+    const first = Math.floor(d / period) * period;
+    for (let s0 = first; s0 - d < far; s0 += period) {
+      const z = s0 - d;
+      if (z < 1.2) continue;
+      for (const X of Xs) {
+        const [x, y] = ground(X, z, h);
+        out.push([x, y, Math.max(0.45, size / z)]);
+      }
+    }
+    return out;
+  };
+  // Threshold piano keys at the start of the roll; they scroll away under us.
+  const keys = [-6.6, -5.4, -4.2, -3, -1.8, 1.8, 3, 4.2, 5.4, 6.6].map((X) => quad(X - 0.4, X + 0.4, Math.max(1.2, 12 - d), 18 - d, h));
+  const edgeLights = dots([-RWY, RWY], 4, 9);
+  const twyGreen = dots([TWY_C], 3, 5, 200);
+  const twyBlue = dots([TWY_L, TWY_R], 5, 5, 200);
+  const prwLights = dots([PRW_L, PRW_R], 6, 4, 260);
+  return (
+    <g>
+      {18 - d > 1.2 && <path d={keys.join(" ")} fill="rgba(245,245,240,0.88)" />}
+      <path d={dash(0, 0.34, 3.4, 6)} fill="rgba(245,245,240,0.92)" />
+      <path d={dash(TWY_C, 0.08, 1.6, 3, 1.2, 300)} fill="rgba(255,205,60,0.85)" />
+      <path d={dash((PRW_L + PRW_R) / 2, 0.15, 3.4, 6, 1.2, 300)} fill="rgba(245,245,240,0.7)" />
+      <g style={{ opacity: "calc(var(--lights) * 0.5 + 0.5)" }}>
+        {edgeLights.map(([x, y, rr], i) => (
+          <circle key={`e${i}`} cx={r1(x)} cy={r1(y)} r={r1(rr)} fill="#fff6dc" />
+        ))}
+        {prwLights.map(([x, y, rr], i) => (
+          <circle key={`p${i}`} cx={r1(x)} cy={r1(y)} r={r1(rr)} fill="#fff6dc" />
+        ))}
+      </g>
+      <g style={{ opacity: "calc(var(--lights) * 0.6 + 0.4)" }}>
+        {twyGreen.map(([x, y, rr], i) => (
+          <circle key={`g${i}`} cx={r1(x)} cy={r1(y)} r={r1(rr)} fill="#3dff8c" />
+        ))}
+        {twyBlue.map(([x, y, rr], i) => (
+          <circle key={`b${i}`} cx={r1(x)} cy={r1(y)} r={r1(rr)} fill="#4f8cff" />
+        ))}
+      </g>
+    </g>
+  );
+};
+
+const Ground = ({ d, h }: { d: number; h: number }) => (
+  <g>
+    <GroundSurfaces h={Math.round(h * 100) / 100} />
+    <RapidExits d={d} h={h} />
+    <GroundMarkings d={d} h={h} />
+  </g>
+);
 
 type Building = { X1: number; X2: number; s: number; depth: number; H: number; tower?: boolean; terminal?: boolean };
 const BUILDINGS: Building[] = [];
@@ -198,7 +295,7 @@ const Surroundings = ({ d, h }: { d: number; h: number }) => {
   for (let s = 0; s < 260; s += 2) {
     const z = s - d;
     if (z < 1 || z > 160) continue;
-    for (const X of [-5.6, -4.4]) {
+    for (const X of [] as number[]) {
       const [x, y] = ground(X, z, h);
       blue.push([x, y, Math.max(0.6, 5 / z)]);
     }
@@ -211,8 +308,6 @@ const Surroundings = ({ d, h }: { d: number; h: number }) => {
   const leads = STANDS.map((st) => quad(-25, -18, Math.max(1, st + 0.25 - d), Math.max(1.05, st + 0.45 - d), h)).join(" ");
   return (
     <>
-      {taxiEnd > 1 && <path d={quad(-5.5, -4.5, zA, taxiEnd, h)} style={{ fill: col("runway", 0.75) }} />}
-      {taxiEnd > 1 && <path d={quad(-5.03, -4.97, zA, taxiEnd, h)} fill="rgba(255,205,60,0.55)" />}
       {/* Apron in front of the terminal, with its taxiway line and stand lead-ins. */}
       {apronB > 1 && (
         <>
@@ -255,7 +350,7 @@ const hash = (n: number) => {
 const BACK_ROW = Array.from({ length: 38 }, (_, i) => [520 + i * 11 + hash(i) * 6, 6 + hash(i + 50) * 14, 6 + hash(i + 90) * 5] as const);
 // [x, height, width, top]: flat, slanted or crowned tops, unevenly spaced.
 const SZR: [number, number, number, "flat" | "slant" | "crown" | "spire"][] = [
-  [598, 15, 6, "flat"], [606, 21, 5, "slant"], [668, 18, 5, "crown"], [676, 24, 6, "flat"], [684, 14, 4, "slant"],
+  [596, 15, 6, "flat"], [628, 21, 5, "slant"], [668, 18, 5, "crown"], [676, 24, 6, "flat"], [684, 14, 4, "slant"],
   [712, 26, 5, "spire"], [719, 19, 6, "flat"], [727, 31, 5, "crown"], [734, 22, 5, "slant"], [741, 17, 6, "flat"],
   [752, 28, 5, "flat"], [759, 20, 4, "crown"], [768, 23, 6, "slant"], [779, 16, 5, "flat"], [816, 18, 6, "crown"],
   [825, 13, 5, "flat"], [836, 21, 5, "slant"], [846, 15, 6, "flat"], [860, 11, 5, "flat"],
@@ -268,7 +363,8 @@ const tower = ([x, t, w, top]: (typeof SZR)[number]) => {
   return `M${x} ${HZ} V${y} H${x + w} V${HZ} Z`;
 };
 // Burj Khalifa: staggered setbacks that step in on alternating sides, and a long needle spire.
-const BURJ_X = 694;
+// Left of centre in the skyline, so it stays in frame on narrow screens.
+const BURJ_X = 616;
 const BURJ = (() => {
   const L = [[0, 7.5], [12, 7.5], [12, 6.2], [24, 6.2], [24, 5], [36, 5], [36, 3.8], [47, 3.8], [47, 2.8], [57, 2.8], [57, 1.8], [66, 1.8], [66, 1.1], [74, 1.1]];
   const R = [[0, 7.5], [18, 7.5], [18, 6], [30, 6], [30, 4.6], [42, 4.6], [42, 3.4], [52, 3.4], [52, 2.4], [61, 2.4], [61, 1.5], [70, 1.5], [70, 1.1], [74, 1.1]];
@@ -278,8 +374,8 @@ const BURJ = (() => {
 })();
 // Emirates Towers: two slim towers with sharp triangular tops, one taller.
 const EMIRATES = [
-  `M620 ${HZ} V${HZ - 30} L624 ${HZ - 42} L628 ${HZ - 30} V${HZ} Z`,
-  `M631 ${HZ} V${HZ - 25} L634.5 ${HZ - 35} L638 ${HZ - 25} V${HZ} Z`,
+  `M688 ${HZ} V${HZ - 30} L692 ${HZ - 42} L696 ${HZ - 30} V${HZ} Z`,
+  `M699 ${HZ} V${HZ - 25} L702.5 ${HZ - 35} L706 ${HZ - 25} V${HZ} Z`,
 ];
 // Cayan Tower: a twisting tower, its outline zig-zagging as the floors rotate.
 const CAYAN = (() => {
@@ -446,7 +542,7 @@ const CALLOUTS: [number, string][] = [
   [0.5, "ROTATE"],
   [0.56, "V2"],
   [0.66, "POSITIVE RATE"],
-  [0.8, "GEAR UP"],
+  [0.71, "GEAR UP"],
 ];
 
 const Layer = React.forwardRef<HTMLDivElement, { children: React.ReactNode; label?: string }>(function Layer({ children, label }, ref) {
@@ -464,7 +560,6 @@ export const Takeoff = () => {
   const ref = useRef<HTMLDivElement>(null);
   const outsideRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
 
   // Reduced motion: a still frame of the climb, no parallax, no shake.
   const [reduced, setReduced] = useState(false);
@@ -479,7 +574,158 @@ export const Takeoff = () => {
     mq.addEventListener("change", update);
     return () => mq.removeEventListener("change", update);
   }, []);
-  const p = useTransform(scrollYProgress, (t) => (reducedRef.current ? 0.75 : t));
+  const progress = useMotionValue(0);
+  // Scroll progress → scene timeline (rotation at 0.5). The roll keeps its length; the climb is
+  // cut short so the sequence ends soon after GEAR UP, while the airport is still in view.
+  const SCENE_END = 0.76;
+  const ROLL_SHARE = 0.66;
+  const p = useTransform(progress, (u) =>
+    reducedRef.current ? 0.72 : u < ROLL_SHARE ? (u / ROLL_SHARE) * 0.5 : 0.5 + ((u - ROLL_SHARE) / (1 - ROLL_SHARE)) * (SCENE_END - 0.5)
+  );
+
+  // Scroll input in the hero drives the take-off through an inertial glide with a speed limit:
+  //  - input is normalised (wheel, trackpad and touch feel alike) and moves a target;
+  //  - the target can sit at most LEAD ahead of (or behind) the actual progress, so hard or
+  //    repeated flicks don't queue up a long run;
+  //  - progress glides towards the target, but never faster than the full take-off in MIN_MS,
+  //    in either direction. Below that, slower scrolling means slower playback.
+  // The page scroll follows the progress, so the hero stays pinned until the take-off is done.
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const MIN_MS = 3500;
+    const LEAD = 0.15;
+    const PX_PER_RUN = 720; // normalised scroll distance for the whole take-off
+    const MAX_EVENT_PX = 60; // per-event clamp, so one big flick event counts like a notch
+    const GLIDE = 6; // 1/s: how quickly progress closes the gap to the target
+    let auto = false; // set by a click: keep the target just ahead until the take-off is done
+    // Hand-off: when the take-off completes, glide to the next section and swallow the burst of
+    // scrolling still coming in (people spam-scroll when the plane won't go faster), so they land
+    // on the next section instead of shooting past it. A short pause releases normal scrolling.
+    let guard = false;
+    let lastGuarded = 0;
+    const HANDOFF_QUIET_MS = 350;
+    const handoff = () => {
+      guard = true;
+      lastGuarded = performance.now();
+      const el = document.getElementById("top");
+      if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: "smooth" });
+    };
+    let target = 0;
+    let raf = 0;
+    let lastInput = 0; // time of the last wheel/touch/key input we let the browser scroll with
+    let last = 0;
+    const range = () => Math.max(1, (ref.current?.offsetHeight ?? 0) - window.innerHeight);
+    const inZone = () => window.scrollY <= range() + 2;
+    const tick = (now: number) => {
+      const dt = last ? Math.min(0.05, (now - last) / 1000) : 1 / 60;
+      last = now;
+      const cur = progress.get();
+      if (auto) target = Math.min(1, cur + LEAD);
+      const gap = target - cur;
+      const maxStep = dt / (MIN_MS / 1000);
+      const step = Math.max(-maxStep, Math.min(maxStep, gap * Math.min(1, GLIDE * dt) + Math.sign(gap) * Math.min(Math.abs(gap), maxStep * 0.15)));
+      const next = Math.abs(gap) < 0.0005 ? target : cur + step;
+      progress.set(next);
+      window.scrollTo({ top: next * range(), behavior: "instant" as ScrollBehavior });
+      if (next !== target || (auto && next < 1)) raf = requestAnimationFrame(tick);
+      else {
+        raf = 0;
+        last = 0;
+        if (next >= 1 && (auto || cur < 1)) {
+          auto = false;
+          handoff();
+        }
+      }
+    };
+    const push = (px: number, e: Event) => {
+      const now = performance.now();
+      if (guard) {
+        if (now - lastGuarded > HANDOFF_QUIET_MS) guard = false;
+        else if (px > 0) {
+          e.preventDefault();
+          lastGuarded = now;
+          return;
+        }
+      }
+      lastInput = now;
+      auto = false;
+      if (!inZone()) return;
+      const cur = progress.get();
+      // At the end and still going down (or at the start going up): let the page scroll normally.
+      if ((px > 0 && cur >= 1 && target >= 1) || (px < 0 && cur <= 0 && target <= 0)) return;
+      e.preventDefault();
+      const d = Math.max(-MAX_EVENT_PX, Math.min(MAX_EVENT_PX, px));
+      target = Math.min(1, Math.max(0, Math.min(cur + LEAD, Math.max(cur - LEAD, target + d / PX_PER_RUN))));
+      if (!raf) raf = requestAnimationFrame(tick);
+    };
+    const onWheel = (e: WheelEvent) => {
+      const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? window.innerHeight : 1;
+      push(e.deltaY * unit, e);
+    };
+    let touchY = 0;
+    const onTouchStart = (e: TouchEvent) => {
+      touchY = e.touches[0]?.clientY ?? 0;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      const y = e.touches[0]?.clientY ?? touchY;
+      push((touchY - y) * 1.6, e);
+      touchY = y;
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.closest?.("input, textarea, [contenteditable]")) return;
+      const map: Record<string, number> = { ArrowDown: 60, ArrowUp: -60, PageDown: 300, PageUp: -300, " ": e.shiftKey ? -300 : 300 };
+      if (e.key in map) push(map[e.key], e);
+    };
+    // Scrolling that bypasses the handlers (scrollbar drag, links) re-syncs the take-off.
+    const onScroll = () => {
+      if (guard) return; // the hand-off glide is in charge
+      if (raf || !inZone()) {
+        if (!raf && !inZone() && progress.get() < 1) {
+          target = 1;
+          progress.set(1);
+        }
+        return;
+      }
+      // Landing inside the hero from outside (e.g. a big scroll up): don't snap; glide there at
+      // the capped speed, holding the page at the current take-off position meanwhile.
+      const cur = progress.get();
+      const t = Math.min(1, Math.max(0, window.scrollY / range()));
+      if (Math.abs(t - cur) <= 0.01) return;
+      if (performance.now() - lastInput < 300) {
+        target = Math.min(cur + LEAD, Math.max(cur - LEAD, t));
+        if (!raf) raf = requestAnimationFrame(tick);
+      } else {
+        // Links, Skip and scrollbar drags: follow the page, no cap.
+        target = t;
+        progress.set(t);
+      }
+    };
+    // Clicking anywhere on the scene (not a button or link) plays the take-off at the same capped pace.
+    const onClick = (e: MouseEvent) => {
+      if ((e.target as HTMLElement)?.closest?.("a, button, nav, input, label")) return;
+      if (!ref.current?.contains(e.target as Node) || progress.get() >= 1) return;
+      auto = true;
+      lastInput = performance.now();
+      if (!raf) raf = requestAnimationFrame(tick);
+    };
+    ref.current?.addEventListener("click", onClick);
+    const host = ref.current;
+    window.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      host?.removeEventListener("click", onClick);
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, [progress]);
+  useMotionValueEvent(progress, "change", (t) => ref.current?.setAttribute("data-progress", t.toFixed(3)));
 
   const [s, setS] = useState({ t: 0, d: 0, h: 1, kt: 0, alt: 0, call: CALLOUTS[0][1], thrust: 0, pitch: 0, horizon: 0 });
   const pending = useRef<number | null>(null);
@@ -561,7 +807,7 @@ export const Takeoff = () => {
   const jitter = s.t < 0.5 && !reduced ? Math.sin(s.t * 1300) * 0.8 * (s.t / 0.5) : 0;
 
   return (
-    <div ref={ref} className={reduced ? "relative h-screen" : "relative h-[170vh]"}>
+    <div ref={ref} className={reduced ? "relative h-screen" : "relative h-[140vh] cursor-pointer"}>
       <div className="sticky top-0 h-screen overflow-hidden bg-floor">
         {/* The scene. Only this part shakes. */}
         <motion.div className="absolute inset-0" style={{ y: shake }}>
@@ -570,8 +816,7 @@ export const Takeoff = () => {
             <motion.g style={{ y: worldY, rotate: pitchRot, originX: `${VP}px`, originY: `${HZ}px` }}>
               <Backdrop />
               <Surroundings d={s.d} h={s.h} />
-              <Runway d={s.d} h={s.h} off={9} w={1.6} />
-              <Runway d={s.d} h={s.h} w={1.4} />
+              <Ground d={s.d} h={s.h} />
             </motion.g>
           </Layer>
           <Layer>
