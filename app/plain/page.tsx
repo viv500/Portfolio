@@ -1,7 +1,7 @@
 import Hero from "@/components/Hero";
 import Bento from "@/components/Bento"
 
-// The previous version of the site, kept reachable at /classic.
+// The previous version of the site, kept reachable at /plain.
 export const metadata = { title: "Vivek Jude Manoj | Classic", robots: { index: false } };
 
 export default function Classic() {
