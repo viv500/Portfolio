@@ -569,7 +569,10 @@ export const Takeoff = () => {
     reducedRef.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     setReduced(reducedRef.current);
     const mq = window.matchMedia("(max-width: 767px)");
-    const update = () => setCompact(mq.matches);
+    const update = () => {
+      setCompact(mq.matches);
+      compactRef.current = mq.matches;
+    };
     update();
     mq.addEventListener("change", update);
     return () => mq.removeEventListener("change", update);
@@ -592,6 +595,9 @@ export const Takeoff = () => {
   // The page scroll follows the progress, so the hero stays pinned until the take-off is done.
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // Phones and tablets: never fight native scrolling (it makes iOS and Android stutter). The
+    // page scrolls with its own momentum and the take-off simply follows the scroll position.
+    const touchMode = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
     const MIN_MS = 3500;
     const LEAD = 0.15;
     const PX_PER_RUN = 720; // normalised scroll distance for the whole take-off
@@ -620,6 +626,17 @@ export const Takeoff = () => {
       const dt = last ? Math.min(0.05, (now - last) / 1000) : 1 / 60;
       last = now;
       const cur = progress.get();
+      if (touchMode) {
+        // Follow the scroll position with a light glide; no cap, no forced scrolling.
+        const next = Math.abs(target - cur) < 0.001 ? target : cur + (target - cur) * Math.min(1, 10 * dt);
+        progress.set(next);
+        if (next !== target) raf = requestAnimationFrame(tick);
+        else {
+          raf = 0;
+          last = 0;
+        }
+        return;
+      }
       if (auto) target = Math.min(1, cur + LEAD);
       const gap = target - cur;
       const maxStep = dt / (MIN_MS / 1000);
@@ -678,6 +695,11 @@ export const Takeoff = () => {
     };
     // Scrolling that bypasses the handlers (scrollbar drag, links) re-syncs the take-off.
     const onScroll = () => {
+      if (touchMode) {
+        target = Math.min(1, Math.max(0, window.scrollY / range()));
+        if (!raf) raf = requestAnimationFrame(tick);
+        return;
+      }
       if (guard) return; // the hand-off glide is in charge
       if (raf || !inZone()) {
         if (!raf && !inZone() && progress.get() < 1) {
@@ -704,16 +726,23 @@ export const Takeoff = () => {
     const onClick = (e: MouseEvent) => {
       if ((e.target as HTMLElement)?.closest?.("a, button, nav, input, label")) return;
       if (!ref.current?.contains(e.target as Node) || progress.get() >= 1) return;
+      if (touchMode) {
+        // Let the browser scroll there natively; the take-off follows.
+        window.scrollTo({ top: range(), behavior: "smooth" });
+        return;
+      }
       auto = true;
       lastInput = performance.now();
       if (!raf) raf = requestAnimationFrame(tick);
     };
     ref.current?.addEventListener("click", onClick);
     const host = ref.current;
-    window.addEventListener("wheel", onWheel, { passive: false });
-    window.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchmove", onTouchMove, { passive: false });
-    window.addEventListener("keydown", onKey);
+    if (!touchMode) {
+      window.addEventListener("wheel", onWheel, { passive: false });
+      window.addEventListener("touchstart", onTouchStart, { passive: true });
+      window.addEventListener("touchmove", onTouchMove, { passive: false });
+      window.addEventListener("keydown", onKey);
+    }
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       cancelAnimationFrame(raf);
@@ -729,6 +758,10 @@ export const Takeoff = () => {
 
   const [s, setS] = useState({ t: 0, d: 0, h: 1, kt: 0, alt: 0, call: CALLOUTS[0][1], thrust: 0, pitch: 0, horizon: 0 });
   const pending = useRef<number | null>(null);
+  const compactRef = useRef(false);
+  const frame = useRef(0);
+  const drawn = useRef(-1);
+  const trailing = useRef<number | null>(null);
   const latest = useRef(0);
   useMotionValueEvent(p, "change", (t) => {
     // Scroll events can outpace frames; render at most once per frame.
@@ -736,6 +769,23 @@ export const Takeoff = () => {
     if (pending.current !== null) return;
     pending.current = requestAnimationFrame(() => {
       pending.current = null;
+      // Phones: redraw the scene at most every other frame, and only on a visible change.
+      // (The world motion and shake are motion values and still run every frame.)
+      if (compactRef.current) {
+        frame.current += 1;
+        const t = latest.current;
+        const settled = t === 0 || t >= 0.999;
+        if (!settled && (frame.current % 2 === 1 || Math.abs(t - drawn.current) < 0.004)) {
+          // Make sure the final position is drawn once scrolling stops.
+          if (trailing.current) clearTimeout(trailing.current);
+          trailing.current = window.setTimeout(() => {
+            drawn.current = latest.current;
+            update(latest.current);
+          }, 90);
+          return;
+        }
+        drawn.current = t;
+      }
       update(latest.current);
     });
   });
@@ -807,7 +857,7 @@ export const Takeoff = () => {
   const jitter = s.t < 0.5 && !reduced ? Math.sin(s.t * 1300) * 0.8 * (s.t / 0.5) : 0;
 
   return (
-    <div ref={ref} className={reduced ? "relative h-screen" : "relative h-[140vh] cursor-pointer"}>
+    <div ref={ref} className={reduced ? "relative h-screen" : "relative h-[180vh] cursor-pointer md:h-[140vh]"}>
       <div className="sticky top-0 h-screen overflow-hidden bg-floor">
         {/* The scene. Only this part shakes. */}
         <motion.div className="absolute inset-0" style={{ y: shake }}>

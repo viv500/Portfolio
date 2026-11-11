@@ -275,9 +275,12 @@ export const Panel = ({
       <path d={`M${line(LIP)} V700 H-220 Z`} style={{ fill: col("cabin-dark") }} />
       <g transform={`translate(0 ${-SHIFT})`}>
       <Structure />
-      <Screen transform={pfdL}>
-        <Pfd ias={ias} alt={alt} pitch={pitch} fma={fma} />
-      </Screen>
+      {/* On phones (detail off) the outboard PFDs and yokes are outside the crop, so skip them. */}
+      {detail && (
+        <Screen transform={pfdL}>
+          <Pfd ias={ias} alt={alt} pitch={pitch} fma={fma} />
+        </Screen>
+      )}
       <Screen transform={ndL} knobs="none">
         <Nd gs={gs} nm={nm} />
       </Screen>
@@ -290,9 +293,11 @@ export const Panel = ({
       <Screen transform={ndR} knobs="none">
         <Nd gs={gs} nm={nm} />
       </Screen>
-      <Screen transform={pfdR} knobs="right">
-        <Pfd ias={ias} alt={alt} pitch={pitch} fma={fma} />
-      </Screen>
+      {detail && (
+        <Screen transform={pfdR} knobs="right">
+          <Pfd ias={ias} alt={alt} pitch={pitch} fma={fma} />
+        </Screen>
+      )}
       </g>
       <Sidewalls />
       <Hood />
@@ -309,8 +314,8 @@ export const Panel = ({
           </text>
         </g>
       ))}
-      <Yoke side="left" pull={pull} jitter={jitter} detail={detail} />
-      <Yoke side="right" pull={pull} jitter={-jitter} detail={detail} />
+      {detail && <Yoke side="left" pull={pull} jitter={jitter} detail={detail} />}
+      {detail && <Yoke side="right" pull={pull} jitter={-jitter} detail={detail} />}
       </g>
       <Mcp />
     </g>
