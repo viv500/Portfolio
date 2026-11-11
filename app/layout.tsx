@@ -11,9 +11,21 @@ const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 const sign = Inter_Tight({ subsets: ["latin"], weight: ["500", "600", "700", "800"], variable: "--font-sign" });
 
 export const metadata: Metadata = {
-  title: "Vivek Jude Manoj | Infrastructure & Developer Tooling",
+  metadataBase: new URL("https://www.vivekjudemanoj.com"),
+  title: "Vivek Manoj - Backend and Infra Engineer",
   description:
-    "Software engineer working on infrastructure and developer tooling. Incoming at Shopify, previously Arctic Wolf and Rocket. Computer Science + AI Specialization at the University of Waterloo.",
+    "Backend and infrastructure engineer. Incoming at Shopify, previously Arctic Wolf and Rocket. Computer Science + AI Specialization at the University of Waterloo.",
+  openGraph: {
+    title: "Vivek Manoj - Backend and Infra Engineer",
+    description: "Backend and infrastructure engineer. Incoming at Shopify, previously Arctic Wolf and Rocket.",
+    url: "https://www.vivekjudemanoj.com",
+    siteName: "Vivek Manoj",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Vivek Manoj - Backend and Infra Engineer",
+  },
 };
 
 export default function RootLayout({
