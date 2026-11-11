@@ -17,9 +17,9 @@ export const Departures = () => (
     <div className="mx-auto max-w-6xl">
       <GateHeader letter="A" en="Departures" label="Experience" intro="Where I've worked. Select a flight for the full story." />
 
-      <div className="metal rounded-lg p-2.5 md:p-3">
+      <div className="board-frame metal rounded-lg p-2.5 md:p-3">
         <div className="mb-2 flex items-center justify-between px-2 pt-0.5"><span className="screw" /><span className="font-mono text-[9px] uppercase tracking-[0.3em] text-ink/70">Departures · Terminal VJM</span><span className="screw" /></div>
-      <div className="device recessed overflow-hidden rounded-md bg-floor">
+      <div className="device board-screen recessed overflow-hidden rounded-md bg-floor">
         <div className={`grid ${COLS} items-center gap-x-3 border-b border-white/10 px-4 py-3 font-mono text-[10px] uppercase tracking-[0.2em] text-sign md:px-6`}>
           <span className="hidden md:block">Time</span>
           <span>

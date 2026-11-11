@@ -73,7 +73,7 @@ export const PaletteSwitch = () => {
       aria-checked={day}
       aria-label={tip}
       onClick={toggle}
-      className={`flex h-8 w-14 items-center rounded-full border p-0.5 shadow-lg backdrop-blur transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-sign ${
+      className={`flex h-8 w-14 items-center rounded-full border p-0.5 shadow-lg transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-sign ${
         day ? "border-[#b98a3e] bg-[#f3dfb8]" : "border-white/35 bg-black/70"
       }`}
     >

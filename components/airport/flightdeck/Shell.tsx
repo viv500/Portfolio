@@ -115,9 +115,21 @@ const Frame = memo(function Frame() {
       {/* Window seals: a dark gasket and a bevelled inner edge. */}
       <path d={PANE_PATHS} fill="none" stroke="#050607" strokeWidth="4.5" strokeLinejoin="round" />
       <path d={PANE_PATHS} fill="none" stroke={col("cabin")} strokeWidth="1.4" strokeLinejoin="round" transform="translate(0.6 0.9)" />
+      {/* Frame depth: a dark reveal just inside each pane where the glass meets the frame. */}
+      <path d={PANE_PATHS} fill="none" stroke="rgba(0,0,0,0.45)" strokeWidth="3" strokeLinejoin="round" transform="translate(0 2.5)" />
       {/* Rim light from the sky on the edges that face the windows. */}
       <path d={`${line(fo, fob)} ${line(R(fo), R(fob))} ${line(so, sob)} ${line(R(so), R(sob))}`} stroke={col("rim", 0.55)} strokeWidth="1.8" fill="none" />
       <path d={`${line(WS_POST[0], WS_POST[3])} ${line(WS_POST[1], WS_POST[2])}`} stroke={col("rim", 0.35)} strokeWidth="0.9" />
+      {/* Stowed sun visors along the top of the first side windows. */}
+      {[1, -1].map((d) => {
+        const m = (x: number) => (d === 1 ? x : 1000 - x);
+        return (
+          <g key={d}>
+            <path d={`M${m(226)} 136 L${m(70)} 143 L${m(70)} 158 L${m(226)} 150 Z`} fill="rgba(20,22,26,0.82)" />
+            <path d={`M${m(226)} 150 L${m(70)} 158`} stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+          </g>
+        );
+      })}
       {/* Ambient occlusion in the corners. */}
       <rect x="-200" y="-200" width={VIEW_W + 400} height={VIEW_H + 400} fill="url(#corner-ao)" pointerEvents="none" />
     </g>
@@ -131,8 +143,8 @@ const Glass = memo(function Glass() {
       <path d={`${sp(WS_SIDE1_L)} ${sp(WS_SIDE2_L)}`} fill="url(#glass-side-l)" />
       <path d={`${sp(mx(WS_SIDE1_L))} ${sp(mx(WS_SIDE2_L))}`} fill="url(#glass-side-r)" />
       {/* A soft streak of glare across each front pane. */}
-      <path d="M300 132 L338 130 L372 290 L338 293 Z" fill="rgba(255,255,255,0.045)" />
-      <path d="M612 127 L640 129 L668 290 L644 288 Z" fill="rgba(255,255,255,0.035)" />
+      <path d="M300 131 L338 131 L364 244 L328 242 Z" fill="rgba(255,255,255,0.045)" />
+      <path d="M612 129 L640 129 L662 244 L640 246 Z" fill="rgba(255,255,255,0.035)" />
     </g>
   );
 });
@@ -233,9 +245,9 @@ export const ShellDefs = () => (
 const CW = 172;
 const CH = 112;
 const CX = 278; // left edge, so the glass is centred on the captain's front pane
-const CY = 150; // top edge; the horizon outside (y 205) crosses the glass near its middle
+const CY = 136; // top edge; the horizon outside (y 205) crosses the glass near its middle
 
-const Hud = ({ call, kt, alt, horizon, climb, dx }: { call: string; kt: number; alt: number; horizon: number; climb: number; dx: number }) => {
+const Hud = ({ call, kt, alt, horizon, climb, dx, fma }: { call: string; kt: number; alt: number; horizon: number; climb: number; dx: number; fma: [string, string, string] }) => {
   // The glass is drawn at full size and scaled to 80% about its centre; the horizon on it follows the real one.
   const hy = r1((205 + horizon - (CY + CH * 0.1)) / 0.8);
   const fpm = r1(hy - climb * 4.2);
@@ -270,15 +282,14 @@ const Hud = ({ call, kt, alt, horizon, climb, dx }: { call: string; kt: number; 
       <rect width={CW} height={CH} rx="34" fill="url(#combiner-sheen)" />
       <rect width={CW} height={CH} rx="34" fill="none" stroke="rgba(255,255,255,0.32)" strokeWidth="0.9" />
 
-      <g clipPath="url(#combiner-clip)" filter="url(#hud-glow)" fontFamily="var(--font-mono), monospace" textAnchor="middle">
+      <g clipPath="url(#combiner-clip)" filter={dx ? undefined : "url(#hud-glow)"} fontFamily="var(--font-mono), monospace" textAnchor="middle">
         {/* Flight mode annunciations. */}
         {[
-          [34, "MAN FLX"],
-          [72, "SRS"],
-          [104, "RWY"],
-          [140, "A/THR"],
+          [40, fma[0]],
+          [86, fma[1]],
+          [132, fma[2]],
         ].map(([x, t]) => (
-          <text key={t as string} x={x as number} y="13" fontSize="5.6" style={txt}>
+          <text key={x as number} x={x as number} y="13" fontSize="5.6" style={txt}>
             {t}
           </text>
         ))}
@@ -325,12 +336,12 @@ const Hud = ({ call, kt, alt, horizon, climb, dx }: { call: string; kt: number; 
   );
 };
 
-export const Shell = ({ compact, call, kt, alt, horizon, climb }: { compact: boolean; call: string; kt: number; alt: number; horizon: number; climb: number }) => (
+export const Shell = ({ compact, fma, call, kt, alt, horizon, climb }: { compact: boolean; fma: [string, string, string]; call: string; kt: number; alt: number; horizon: number; climb: number }) => (
   <>
     <ShellDefs />
     <Frame />
     <Overhead compact={compact} />
     <Glass />
-    <Hud call={call} kt={kt} alt={alt} horizon={horizon} climb={climb} dx={compact ? 64 : 0} />
+    <Hud call={call} kt={kt} alt={alt} horizon={horizon} climb={climb} dx={compact ? 64 : 0} fma={fma} />
   </>
 );

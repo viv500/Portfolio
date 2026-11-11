@@ -70,7 +70,8 @@ export const Carousel = ({ count, renderBag }: { count: number; renderBag: (i: n
         const scale = 0.74 + 0.26 * p.depth;
         bag.style.transform = `translate3d(${(p.x - (BAG_W * scale) / 2).toFixed(1)}px, ${(p.y - 6 - BAG_H * scale).toFixed(1)}px, 0) scale(${scale.toFixed(3)})`;
         bag.style.zIndex = String(Math.round(p.depth * 20));
-        bag.style.filter = `brightness(${(0.62 + 0.38 * p.depth).toFixed(2)})`;
+        const shade = bag.lastElementChild as HTMLElement | null;
+        if (shade) shade.style.opacity = (0.38 * (1 - p.depth)).toFixed(2);
       });
       slats.current?.setAttribute("stroke-dashoffset", (-s).toFixed(1));
     };
@@ -147,6 +148,7 @@ export const Carousel = ({ count, renderBag }: { count: number; renderBag: (i: n
           style={{ width: BAG_W }}
         >
           {renderBag(i % count, i >= count)}
+          <span aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-xl bg-black opacity-0" />
         </div>
       ))}
     </div>

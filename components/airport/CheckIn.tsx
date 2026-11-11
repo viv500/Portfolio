@@ -63,7 +63,7 @@ export const CheckIn = () => {
         </div>
 
         {/* The board. */}
-        <div className="metal rounded-lg p-2.5 md:p-3"><div className="device recessed rounded-md bg-floor p-4 md:p-7">
+        <div className="board-frame metal rounded-lg p-2.5 md:p-3"><div className="device board-screen recessed rounded-md bg-floor p-4 md:p-7">
           <div className="mb-4 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.25em] text-flap/70 md:text-xs">
             <span>Passenger</span>
             <span className="hidden sm:inline">Gate · Infrastructure</span>

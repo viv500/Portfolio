@@ -23,7 +23,7 @@ const PanelLabel = ({ children, className = "" }: { children: React.ReactNode; c
 
 // ── Overhead panel: the tech stack as rows of switches ──────────────────
 const Switch = ({ label, i }: { label: string; i: number }) => {
-  const [on, setOn] = useState(i % 4 !== 3);
+  const [on, setOn] = useState(true);
   return (
     <button type="button" aria-pressed={on} onClick={() => setOn((v) => !v)} className="group flex w-[4.6rem] flex-col items-center gap-1.5 focus-visible:outline-none" title={label}>
       <span className="relative flex h-9 w-6 items-center justify-center rounded-[5px] bg-gradient-to-b from-raised to-floor shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_2px_3px_rgba(0,0,0,0.7)] group-focus-visible:ring-2 group-focus-visible:ring-sign">
@@ -188,19 +188,19 @@ const NavDisplay = () => {
   );
 };
 
-// ── ECAM: what shipped ──────────────────────────────────────────────────
+// ── EICAS: what shipped ──────────────────────────────────────────────────
 const LOG = roles.flatMap((role) =>
   role.stories
     .filter((s) => s.stat)
     .map((s) => ({ sys: (flights[role.slug]?.dest ?? role.company).replace("ROCKET MORTGAGE", "ROCKET"), title: s.title, stat: s.stat!, href: `#experience/${role.slug}` }))
 );
 
-const Ecam = () => (
+const Eicas = () => (
   <div className="metal relative rounded-xl p-3">
     <Screws />
     <div className="device glass recessed relative rounded-md bg-screen px-4 py-3 font-mono text-[11px] leading-relaxed md:text-xs">
       <div className="mb-2 flex justify-between border-b border-white/10 pb-1.5 text-[10px]">
-        <span className="text-ink/80">ECAM · SHIPPED</span>
+        <span className="text-ink/80">EICAS · SHIPPED</span>
         <span className="text-ops">NORMAL</span>
       </div>
       <ol className="grid gap-y-0.5 lg:grid-cols-2 lg:gap-x-8">
@@ -217,7 +217,7 @@ const Ecam = () => (
       </ol>
     </div>
     <div className="mt-2 px-1">
-      <PanelLabel>Lower ECAM</PanelLabel>
+      <PanelLabel>Lower EICAS</PanelLabel>
     </div>
   </div>
 );
@@ -250,7 +250,7 @@ export const Cockpit = () => (
           </div>
         </div>
         <div className="mt-8">
-          <Ecam />
+          <Eicas />
         </div>
       </div>
       </div>

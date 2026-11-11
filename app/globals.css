@@ -234,9 +234,9 @@ html.light .text-neutral-300:not(.keep-dark, .keep-dark *) { color: rgb(21 18 36
   --sky-2: 98 70 118;
   --sky-3: 232 135 90;
   --sun: 1;
-  --cabin: 62 66 74;
-  --cabin-mid: 38 41 47;
-  --cabin-dark: 17 19 22;
+  --cabin: 60 66 76;
+  --cabin-mid: 38 43 51;
+  --cabin-dark: 18 20 25;
   --rim: 255 166 96;
   --cabin-lit: 255 196 120;
   --clouds: 0;
@@ -245,8 +245,8 @@ html.light .text-neutral-300:not(.keep-dark, .keep-dark *) { color: rgb(21 18 36
   --building-side: 30 24 22;
   --building-roof: 44 34 30;
   --hud: 88 214 150;
-  --ground: 9 8 8;
-  --ground-far: 40 26 24;
+  --ground: 34 24 18;
+  --ground-far: 96 64 44;
   --runway: 38 36 36;
   --cloud: 243 222 210;
   --lights: 0.95;
@@ -259,15 +259,27 @@ html.light .text-neutral-300:not(.keep-dark, .keep-dark *) { color: rgb(21 18 36
   --ambient-warm: 255 160 80;
   --sh: 0 0 0;
   --sh-k: 1;
+  --skyline: 34 22 28;
+  --skyline-far: 120 70 72;
+  --vault: 150 128 124;
+  --tower-core: 34 40 72;
+  --jet-dim: 0.35;
+  --haze: 255 150 96;
+  --glass-band: 44 58 70;
+  --apron: 46 36 30;
+  --jet: 120 110 112;
+  --jet-tail: 70 60 80;
+  --sunlight: 0.45;
+  --sunlit: 255 170 100;
 }
 :root[data-palette="day"] {
   /* The same airport in daytime: cream paper, brown ink, the same gold. */
-  --floor: 222 209 184;
-  --wall: 233 222 200;
-  --panel: 243 235 220;
-  --raised: 247 241 230;
-  --edge: 196 180 152;
-  --sign-deep: 150 84 10;
+  --floor: 216 197 160;
+  --wall: 230 213 182;
+  --panel: 240 228 205;
+  --raised: 245 236 218;
+  --edge: 196 174 136;
+  --sign-deep: 128 70 8;
   --sign: 245 178 58;
   --sign-glow: 255 222 150;
   --sign-ink: 34 18 4;
@@ -278,22 +290,22 @@ html.light .text-neutral-300:not(.keep-dark, .keep-dark *) { color: rgb(21 18 36
   --pass-shade: 238 228 208;
   --cover: 92 34 38;
   --sun: 0.55;
-  --cabin: 76 70 64;
-  --cabin-mid: 54 49 44;
-  --cabin-dark: 28 25 22;
+  --cabin: 72 80 92;
+  --cabin-mid: 50 57 68;
+  --cabin-dark: 28 32 40;
   --cabin-lit: 255 214 160;
-  --rim: 255 236 205;
+  --rim: 255 250 240;
   --screen: 5 6 9;
   --building: 224 220 212;
   --building-side: 176 170 160;
   --building-roof: 240 238 232;
   --hud: 70 235 150;
-  --sky-0: 10 58 182;
-  --sky-1: 22 98 224;
-  --sky-2: 64 148 242;
-  --sky-3: 168 212 252;
-  --ground: 70 106 62;
-  --ground-far: 126 150 112;
+  --sky-0: 8 52 156;
+  --sky-1: 24 96 210;
+  --sky-2: 92 160 232;
+  --sky-3: 214 226 232;
+  --ground: 176 146 104;
+  --ground-far: 214 190 148;
   --runway: 92 92 94;
   --cloud: 255 255 255;
   --lights: 0.15;
@@ -309,14 +321,26 @@ html.light .text-neutral-300:not(.keep-dark, .keep-dark *) { color: rgb(21 18 36
   color-scheme: light;
 
   --clouds: 1;
+  --skyline: 118 132 148;
+  --skyline-far: 176 186 194;
+  --vault: 226 230 234;
+  --tower-core: 28 52 112;
+  --jet-dim: 0;
+  --haze: 236 228 210;
+  --glass-band: 54 132 146;
+  --apron: 200 196 186;
+  --jet: 244 246 248;
+  --jet-tail: 56 80 120;
+  --sunlight: 1;
+  --sunlit: 255 248 225;
 }
 /* In daylight, boards, screens and instrument faces are navy blue rather than black. */
 :root[data-palette="day"] .device {
-  --floor: 14 10 8;
-  --wall: 27 21 17;
-  --panel: 40 32 26;
-  --raised: 55 44 35;
-  --edge: 82 67 54;
+  --floor: 60 48 37;
+  --wall: 68 55 43;
+  --panel: 80 65 51;
+  --raised: 98 80 64;
+  --edge: 126 105 84;
   --screen: 5 6 9;
   --ink: 243 232 212;
   --sign: 245 178 58;
@@ -603,4 +627,40 @@ svg.foil { -webkit-text-fill-color: initial; background: none; color: #d8b65e; }
 /* Hackathon passport spread: the paper dips into the spine at top and bottom. */
 @media (min-width: 768px) {
   .spread-curve { clip-path: polygon(0 0, 35% 0, 42% 0.4%, 47% 1.1%, 50% 1.8%, 53% 1.1%, 58% 0.4%, 65% 0, 100% 0, 100% 100%, 65% 100%, 58% 99.6%, 53% 98.9%, 50% 98.2%, 47% 98.9%, 42% 99.6%, 35% 100%, 0 100%); }
+}
+
+/* Touch devices: skip the costly ink texture and blend mode on stamps; it repaints while scrolling. */
+@media (hover: none) {
+  .ink { filter: none; mix-blend-mode: normal; }
+}
+@media (hover: none) { .cloud-drift { animation: none; } }
+
+/* Daylight: the boards sit in a warm brown housing a few shades lighter than the board itself. */
+:root[data-palette="day"] .board-frame {
+  --raised: 138 113 88;
+  --panel: 116 94 72;
+  --wall: 98 79 61;
+  --edge: 162 136 108;
+  --ink: 246 236 216;
+  --sh: 60 40 20;
+  --sh-k: 0.8;
+}
+
+/* Board housing bevel: lit top edge, shaded bottom edge, a faint inner shadow where it meets the board. */
+:root[data-palette="day"] .board-frame {
+  box-shadow:
+    inset 0 2px 0 rgba(255, 236, 205, 0.35),
+    inset 0 -3px 0 rgba(40, 26, 12, 0.45),
+    inset 0 0 0 1px rgba(40, 26, 12, 0.35),
+    inset 0 6px 14px -8px rgba(255, 236, 205, 0.25),
+    0 18px 34px -16px rgba(60, 40, 20, 0.55);
+}
+/* The board face itself is near-black in both themes, so the flaps have strong contrast. */
+:root[data-palette="day"] .board-screen {
+  --floor: 20 16 16;
+  --wall: 26 21 19;
+  --panel: 34 28 25;
+  --raised: 48 40 35;
+  --edge: 72 60 52;
+  box-shadow: inset 0 3px 10px rgba(0, 0, 0, 0.75), inset 0 0 0 1px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 236, 205, 0.25);
 }

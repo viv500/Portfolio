@@ -274,7 +274,7 @@ const NavArrow = ({ side, label, onClick, small }: { side: "left" | "right"; lab
 );
 
 const PageCount = ({ text }: { text: string }) => (
-  <span className="pointer-events-none absolute bottom-3 left-1/2 z-30 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/65 px-3 py-1 font-mono text-[10px] text-white shadow-lg backdrop-blur-sm">{text}</span>
+  <span className="pointer-events-none absolute bottom-3 left-1/2 z-30 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/65 px-3 py-1 font-mono text-[10px] text-white shadow-lg">{text}</span>
 );
 
 // ── Booklet ──────────────────────────────────────────────────────────────

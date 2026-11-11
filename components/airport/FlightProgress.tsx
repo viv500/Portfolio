@@ -14,11 +14,12 @@ export const FlightProgress = () => {
     // Climb for the first fifth, cruise, then descend over the last fifth.
     const alt = p < 0.2 ? (p / 0.2) * 37000 : p > 0.8 ? ((1 - p) / 0.2) * 37000 : 37000;
     const minutes = Math.round((1 - p) * 835); // DXB to YYZ is about 13 h 55 min.
-    setReadout({ alt: Math.round(alt / 100) * 100, eta: `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, "0")}` });
+    const next = { alt: Math.round(alt / 500) * 500, eta: `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, "0")}` };
+    setReadout((prev) => (prev.alt === next.alt && prev.eta === next.eta ? prev : next));
   });
 
   return (
-    <div aria-hidden="true" className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-floor/95 backdrop-blur">
+    <div aria-hidden="true" className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-floor">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-1.5 font-mono text-[10px] text-flap/70 md:px-6">
         <span className="text-flap">DXB</span>
         <div className="relative h-4 flex-1">

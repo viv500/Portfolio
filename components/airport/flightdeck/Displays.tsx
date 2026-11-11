@@ -191,8 +191,8 @@ export const Nd = ({ gs, nm }: { gs: number; nm: number }) => {
   );
 };
 
-/** Engine and warning display: N1 and EGT dials, fuel flow. */
-export const EngineDisplay = ({ n1, egt, ff }: { n1: number; egt: number; ff: number }) => {
+/** Boeing EICAS: N1 and EGT dials for both engines, total fuel, and short status messages. */
+export const Eicas = ({ n1, egt, ff, airborne }: { n1: number; egt: number; ff: number; airborne: boolean }) => {
   const dial = (cx: number, cy: number, r: number, frac: number, value: string, big: boolean) => {
     const a0 = -215;
     const a1 = 35;
@@ -202,71 +202,89 @@ export const EngineDisplay = ({ n1, egt, ff }: { n1: number; egt: number; ff: nu
     const ang = a0 + (a1 - a0) * Math.min(1, Math.max(0, frac));
     const [nx, ny] = pt(ang, r - 1);
     const [rx, ry] = pt(a0 + (a1 - a0) * 0.92, r);
+    // Filled sector up to the needle, as on Boeing engine dials.
+    const [fx, fy] = pt(ang, r);
+    const large = ang - a0 > 180 ? 1 : 0;
     return (
       <g>
+        <path d={`M${cx} ${cy} L${sx} ${sy} A ${r} ${r} 0 ${large} 1 ${fx} ${fy} Z`} fill="rgba(255,255,255,0.14)" />
         <path d={`M${sx} ${sy} A ${r} ${r} 0 1 1 ${ex} ${ey}`} fill="none" stroke={WHITE} strokeWidth={big ? 1 : 0.8} />
         <path d={`M${rx} ${ry} A ${r} ${r} 0 0 1 ${ex} ${ey}`} fill="none" stroke="#ff4d4d" strokeWidth={big ? 1.6 : 1.2} />
-        <line x1={cx} y1={cy} x2={nx} y2={ny} stroke={GREEN} strokeWidth={big ? 1.5 : 1.1} strokeLinecap="round" />
-        <rect x={cx + 1} y={cy + 2} width={big ? 20 : 15} height={big ? 8 : 6.5} fill="#000" stroke="rgba(255,255,255,0.4)" strokeWidth="0.4" />
-        <text x={cx + (big ? 19 : 14.5)} y={cy + (big ? 8.4 : 7.2)} fontSize={big ? 6.5 : 5} fill={GREEN} textAnchor="end">
+        <line x1={cx} y1={cy} x2={nx} y2={ny} stroke={WHITE} strokeWidth={big ? 1.4 : 1} strokeLinecap="round" />
+        <rect x={cx + 1} y={cy - (big ? 10 : 8)} width={big ? 18 : 14} height={big ? 7.5 : 6} fill="#000" stroke="rgba(255,255,255,0.5)" strokeWidth="0.4" />
+        <text x={cx + (big ? 18 : 14) - 0.5} y={cy - (big ? 4.2 : 3.4)} fontSize={big ? 5.8 : 4.6} fill={WHITE} textAnchor="end">
           {value}
         </text>
       </g>
     );
   };
+  const memo = airborne ? ["GEAR UP", "FLAPS 5", "A/T ARM"] : ["AUTOBRAKE RTO", "SEATBELTS ON", "PARK BRAKE OFF"];
   return (
     <g style={font}>
-      {dial(30, 30, 17, n1 / 104, n1.toFixed(1), true)}
-      {dial(90, 30, 17, n1 / 104, n1.toFixed(1), true)}
-      <text x="60" y="27" fontSize="5.5" fill={WHITE} textAnchor="middle">
+      {dial(18, 26, 13, n1 / 104, n1.toFixed(1), true)}
+      {dial(52, 26, 13, n1 / 104, n1.toFixed(1), true)}
+      <text x="35" y="47" fontSize="5" fill={CYAN} textAnchor="middle">
         N1
       </text>
-      <text x="60" y="34" fontSize="4.5" fill={CYAN} textAnchor="middle">
-        %
-      </text>
-      {dial(30, 68, 11, (egt - 300) / 700, String(Math.round(egt)), false)}
-      {dial(90, 68, 11, (egt - 300) / 700, String(Math.round(egt)), false)}
-      <text x="60" y="68" fontSize="5" fill={WHITE} textAnchor="middle">
+      {dial(18, 66, 9, (egt - 300) / 700, String(Math.round(egt)), false)}
+      {dial(52, 66, 9, (egt - 300) / 700, String(Math.round(egt)), false)}
+      <text x="35" y="82" fontSize="5" fill={CYAN} textAnchor="middle">
         EGT
       </text>
-      <text x="60" y="75" fontSize="4.5" fill={CYAN} textAnchor="middle">
-        °C
+      <line x1="72" x2="72" y1="6" y2="94" stroke="rgba(255,255,255,0.25)" strokeWidth="0.4" />
+      <text x="76" y="10" fontSize="4.2" fill={CYAN}>
+        TOTAL FUEL
       </text>
-      <text x="8" y="95" fontSize="5" fill={WHITE}>
-        FF <tspan fill={GREEN}>{Math.round(ff)}</tspan> <tspan fill={CYAN}>KG/H</tspan>
+      <text x="76" y="18" fontSize="6.5" fill={WHITE}>
+        18.4
       </text>
-      <text x="112" y="95" fontSize="5" fill={WHITE} textAnchor="end">
-        FOB <tspan fill={GREEN}>18400</tspan>
+      <text x="96" y="18" fontSize="4" fill={CYAN}>
+        KGS X 1000
       </text>
+      <text x="76" y="28" fontSize="4.2" fill={CYAN}>
+        FF
+      </text>
+      <text x="86" y="28" fontSize="4.6" fill={WHITE}>
+        {(ff / 1000).toFixed(1)}
+      </text>
+      {memo.map((m, i) => (
+        <text key={m} x="76" y={46 + i * 9} fontSize="4.4" fill={WHITE}>
+          {m}
+        </text>
+      ))}
     </g>
   );
 };
 
-/** Lower ECAM: the take-off memo. */
-export const Memo = ({ airborne }: { airborne: boolean }) => (
-  <g style={font} fontSize="6">
-    <text x="6" y="12" fill={WHITE}>
-      T.O MEMO
-    </text>
-    {airborne ? (
-      <>
-        <text x="6" y="26" fill={GREEN}>LDG GEAR UP</text>
-        <text x="6" y="36" fill={GREEN}>SIGNS ON</text>
-        <text x="6" y="46" fill={CYAN}>CLIMB THR</text>
-      </>
-    ) : (
-      <>
-        <text x="6" y="26" fill={GREEN}>AUTO BRK MAX</text>
-        <text x="6" y="36" fill={GREEN}>SIGNS ON</text>
-        <text x="6" y="46" fill={GREEN}>SPLRS ARM</text>
-        <text x="6" y="56" fill={GREEN}>FLAPS T.O</text>
-      </>
-    )}
-    <text x="6" y="74" fill={CYAN}>
-      T.O CONFIG NORMAL
-    </text>
-    <text x="114" y="94" fill={AMBER} textAnchor="end" fontSize="5">
-      {airborne ? "" : "T.O INHIBIT"}
-    </text>
-  </g>
-);
+/** Integrated standby flight display: a small attitude ball with speed and altitude. */
+export const Isfd = ({ ias, alt, pitch }: { ias: number; alt: number; pitch: number }) => {
+  const id = React.useId().replace(/:/g, "");
+  return (
+    <g style={font}>
+      <defs>
+        <clipPath id={`isfd${id}`}>
+          <circle cx="60" cy="52" r="34" />
+        </clipPath>
+      </defs>
+      <rect width="120" height="100" fill="#000" />
+      <g clipPath={`url(#isfd${id})`}>
+        <g transform={`translate(0 ${r1(pitch * 1.2)})`}>
+          <rect x="0" y="-60" width="120" height="112" fill="#2a7ad2" />
+          <rect x="0" y="52" width="120" height="110" fill="#8a5a2b" />
+          <line x1="0" x2="120" y1="52" y2="52" stroke={WHITE} strokeWidth="0.8" />
+        </g>
+      </g>
+      <circle cx="60" cy="52" r="34" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="0.8" />
+      <path d="M44 52 h10 v4 M76 52 h-10 v4" stroke="#ffcc33" strokeWidth="2" fill="none" />
+      <text x="13" y="56" fontSize="11" fill={WHITE} textAnchor="middle">
+        {Math.round(ias)}
+      </text>
+      <text x="107" y="56" fontSize="9" fill={WHITE} textAnchor="middle">
+        {Math.round(alt / 10) * 10}
+      </text>
+      <text x="60" y="96" fontSize="7" fill={CYAN} textAnchor="middle">
+        STBY
+      </text>
+    </g>
+  );
+};
