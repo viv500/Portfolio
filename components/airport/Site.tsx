@@ -16,11 +16,10 @@ import { Runway } from "./GateHeader";
 /**
  * The airport site, as one journey: take-off → in flight (captain's PA, pilot's logbook, flight deck)
  * → landing → arrivals (connecting flights, passport control, passport, baggage claim).
- * `uncapped` turns off the take-off's speed limit (the /nolimit preview).
  */
-export const AirportSite = ({ uncapped = false }: { uncapped?: boolean }) => (
+export const AirportSite = () => (
   <main className="aviation relative w-full overflow-x-clip bg-wall text-ink">
-    <Takeoff uncapped={uncapped} />
+    <Takeoff />
     <CheckIn />
     <Wayfinding />
     {/* In flight */}

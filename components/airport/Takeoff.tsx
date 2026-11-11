@@ -560,11 +560,7 @@ const Layer = React.forwardRef<HTMLDivElement, { children: React.ReactNode; labe
   );
 });
 
-/**
- * `uncapped` (used only by /nolimit): scrolling drives the take-off directly, at whatever speed
- * you scroll, and it coasts on a little after you stop, like momentum scrolling.
- */
-export const Takeoff = ({ uncapped = false }: { uncapped?: boolean }) => {
+export const Takeoff = () => {
   const ref = useRef<HTMLDivElement>(null);
   const outsideRef = useRef<HTMLDivElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
@@ -597,31 +593,22 @@ export const Takeoff = ({ uncapped = false }: { uncapped?: boolean }) => {
     reducedRef.current ? 0.72 : u < ROLL_SHARE ? (u / ROLL_SHARE) * 0.5 : 0.5 + ((u - ROLL_SHARE) / (1 - ROLL_SHARE)) * (SCENE_END - 0.5)
   );
 
-  // Scroll input in the hero drives the take-off through an inertial glide with a speed limit:
-  //  - input is normalised (wheel, trackpad and touch feel alike) and moves a target;
-  //  - the target can sit at most LEAD ahead of (or behind) the actual progress, so hard or
-  //    repeated flicks don't queue up a long run;
-  //  - progress glides towards the target, but never faster than the full take-off in MIN_MS,
-  //    in either direction. Below that, slower scrolling means slower playback.
-  // The page scroll follows the progress, so the hero stays pinned until the take-off is done.
+  // One gesture plays the whole take-off: any scroll, swipe or key down (or a click/tap on the
+  // scene) runs it start to finish at its intended pace (MIN_MS), however much or little you
+  // scroll; input during the run is absorbed. Scrolling back up rewinds it the same way. The page
+  // scroll follows the progress, so the hero stays pinned until the take-off is done.
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    // Phones and tablets: the hero is a single screen. While the page is at the very top, swipes
-    // drive the take-off through the same capped glide as on desktop, without ever moving the
-    // page by script (that fights native scrolling and stutters on iOS and Android). Once the
-    // take-off is done, the next swipe scrolls the page normally.
+    // Phones and tablets: the hero is a single screen, and the page is never moved by script
+    // during the run (that fights native scrolling and stutters on iOS and Android).
     const touchMode = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
-    const MIN_MS = 3000; // also the pace of click-to-play when uncapped
-    const LEAD = uncapped ? 1 : 0.3;
-    const PX_PER_RUN = 340; // normalised scroll distance for the whole take-off (~3–4 notches)
-    const MAX_EVENT_PX = 100; // per-event clamp, so one big flick event counts like a notch
-    const GLIDE = 6; // 1/s: how quickly progress closes the gap to the target
-    let auto = false; // set by a click: keep the target just ahead until the take-off is done
+    const MIN_MS = 3000; // the whole take-off
+    const LEAD = 0.3;
+    const GLIDE = 6; // 1/s: eases the last stretch into the end
+    let dir: 0 | 1 | -1 = 0; // playing forward, backward, or idle
     // Hand-off: when the take-off completes, glide to the next section and swallow the burst of
-    // scrolling still coming in (people spam-scroll when the plane won't go faster), so they land
-    // on the next section instead of shooting past it. A short pause releases normal scrolling.
-    // The guard has a hard limit (HANDOFF_MAX_MS from the hand-off, about the glide plus a short
-    // grace), so continuous spam can't hold it forever; a brief pause releases it sooner.
+    // scrolling still coming in, so people land on the next section instead of shooting past it.
+    // A short pause releases normal scrolling; HANDOFF_MAX_MS caps it so spam can't hold it.
     let guard = false;
     let lastGuarded = 0;
     let guardEnd = 0;
@@ -634,15 +621,8 @@ export const Takeoff = ({ uncapped = false }: { uncapped?: boolean }) => {
       const el = document.getElementById("top");
       if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: "smooth" });
     };
-    let target = 0;
-    // Uncapped momentum: each scroll also adds a coasting velocity (progress/s) that fades with
-    // FRICTION, so the plane carries on about COAST × the scroll's own distance after you stop.
-    const FRICTION = 3; // 1/s: a coast dies out over about a second
-    const COAST = 0.5;
-    const MAX_VEL = 1.5; // a burst of spam coasts at most ~half the take-off
-    let vel = 0;
     let raf = 0;
-    let lastInput = 0; // time of the last wheel/touch/key input we let the browser scroll with
+    let lastInput = 0;
     let last = 0;
     // Measured against the pinned hero rather than the window: mobile browser toolbars change
     // innerHeight mid-scroll, which would make progress jump.
@@ -652,33 +632,28 @@ export const Takeoff = ({ uncapped = false }: { uncapped?: boolean }) => {
       const dt = last ? Math.min(0.05, (now - last) / 1000) : 1 / 60;
       last = now;
       const cur = progress.get();
-      if (auto) target = Math.min(1, cur + LEAD);
-      if (uncapped && vel) {
-        target += vel * dt;
-        vel *= Math.exp(-FRICTION * dt);
-        if (target <= 0 || target >= 1 || Math.abs(vel) < 0.01) vel = 0;
-        target = Math.min(1, Math.max(0, target));
-      }
+      const target = dir > 0 ? Math.min(1, cur + LEAD) : Math.max(0, cur - LEAD);
       const gap = target - cur;
       const maxStep = dt / (MIN_MS / 1000);
-      // Uncapped: follow the scroll almost at once (~50 ms of smoothing so wheel notches don't
-      // jump), with no speed limit. Otherwise: the capped glide.
-      const step =
-        uncapped && !auto
-          ? gap * Math.min(1, 20 * dt)
-          : Math.max(-maxStep, Math.min(maxStep, gap * Math.min(1, GLIDE * dt) + Math.sign(gap) * Math.min(Math.abs(gap), maxStep * 0.15)));
-      const next = Math.abs(gap) < 0.0005 ? target : cur + step;
+      const step = Math.max(-maxStep, Math.min(maxStep, gap * Math.min(1, GLIDE * dt) + Math.sign(gap) * Math.min(Math.abs(gap), maxStep * 0.15)));
+      // Never step past the end (an overshoot would hide the moment the run finishes).
+      const end = dir > 0 ? 1 : 0;
+      const next = Math.abs(end - cur) < 0.0005 || Math.abs(step) >= Math.abs(end - cur) ? end : cur + step;
       progress.set(next);
       if (!touchMode) window.scrollTo({ top: next * range(), behavior: "instant" as ScrollBehavior });
-      if (next !== target || (auto && next < 1) || vel) raf = requestAnimationFrame(tick);
-      else {
-        raf = 0;
-        last = 0;
-        if (next >= 1 && (auto || (cur < 1 && !touchMode))) {
-          auto = false;
-          handoff();
-        }
+      if (next !== end) {
+        raf = requestAnimationFrame(tick);
+        return;
       }
+      raf = 0;
+      last = 0;
+      const finished = dir > 0;
+      dir = 0;
+      if (finished) handoff();
+    };
+    const play = (d: 1 | -1) => {
+      dir = d;
+      if (!raf) raf = requestAnimationFrame(tick);
     };
     const push = (px: number, e: Event) => {
       const now = performance.now();
@@ -691,72 +666,51 @@ export const Takeoff = ({ uncapped = false }: { uncapped?: boolean }) => {
         }
       }
       lastInput = now;
-      auto = false;
-      if (!inZone()) return;
+      if (!inZone() || px === 0) return;
       const cur = progress.get();
-      // At the end and still going down (or at the start going up): let the page scroll normally.
-      if ((px > 0 && cur >= 1 && target >= 1) || (px < 0 && cur <= 0 && target <= 0)) return;
+      // Done and still going down (or at the start going up): let the page scroll normally.
+      if ((px > 0 && cur >= 1 && dir === 0) || (px < 0 && cur <= 0 && dir === 0)) return;
       e.preventDefault();
-      const d = Math.max(-MAX_EVENT_PX, Math.min(MAX_EVENT_PX, px));
-      target = Math.min(1, Math.max(0, Math.min(cur + LEAD, Math.max(cur - LEAD, target + d / PX_PER_RUN))));
-      if (uncapped) {
-        if (vel * d < 0) vel = 0; // reversing kills the coast rather than fighting it
-        vel = Math.max(-MAX_VEL, Math.min(MAX_VEL, vel + (d / PX_PER_RUN) * COAST * FRICTION));
-      }
-      if (!raf) raf = requestAnimationFrame(tick);
+      play(px > 0 ? 1 : -1);
     };
-    const onWheel = (e: WheelEvent) => {
-      const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? window.innerHeight : 1;
-      push(e.deltaY * unit, e);
-    };
+    const onWheel = (e: WheelEvent) => push(e.deltaY, e);
     let touchY = 0;
     const onTouchStart = (e: TouchEvent) => {
       touchY = e.touches[0]?.clientY ?? 0;
     };
     const onTouchMove = (e: TouchEvent) => {
       const y = e.touches[0]?.clientY ?? touchY;
-      push((touchY - y) * 1.6, e);
+      // Ignore tiny jitters so a tap isn't read as a swipe.
+      if (Math.abs(touchY - y) < 2) return;
+      push(touchY - y, e);
       touchY = y;
     };
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.closest?.("input, textarea, [contenteditable]")) return;
-      const map: Record<string, number> = { ArrowDown: 60, ArrowUp: -60, PageDown: 300, PageUp: -300, " ": e.shiftKey ? -300 : 300 };
+      const map: Record<string, number> = { ArrowDown: 1, ArrowUp: -1, PageDown: 1, PageUp: -1, " ": e.shiftKey ? -1 : 1 };
       if (e.key in map) push(map[e.key], e);
     };
-    // Scrolling that bypasses the handlers (scrollbar drag, links) re-syncs the take-off.
+    // Scrolling that bypasses the handlers (scrollbar drag, links, Skip) re-syncs the take-off.
     const onScroll = () => {
-      if (touchMode) return; // on touch, progress comes only from swipes at the top of the page
-      if (guard) return; // the hand-off glide is in charge
-      if (raf || !inZone()) {
-        if (!raf && !inZone() && progress.get() < 1) {
-          target = 1;
-          progress.set(1);
-        }
+      if (touchMode || guard || raf) return;
+      if (!inZone()) {
+        if (progress.get() < 1) progress.set(1);
         return;
       }
-      // Landing inside the hero from outside (e.g. a big scroll up): don't snap; glide there at
-      // the capped speed, holding the page at the current take-off position meanwhile.
       const cur = progress.get();
       const t = Math.min(1, Math.max(0, window.scrollY / range()));
       if (Math.abs(t - cur) <= 0.01) return;
-      if (performance.now() - lastInput < 300) {
-        target = Math.min(cur + LEAD, Math.max(cur - LEAD, t));
-        if (!raf) raf = requestAnimationFrame(tick);
-      } else {
-        // Links, Skip and scrollbar drags: follow the page, no cap.
-        vel = 0;
-        target = t;
-        progress.set(t);
-      }
+      // Scrolled back up into the hero: rewind the whole take-off. Otherwise (links, scrollbar
+      // drags) just follow the page.
+      if (performance.now() - lastInput < 300) play(t < cur ? -1 : 1);
+      else progress.set(t);
     };
-    // Clicking anywhere on the scene (not a button or link) plays the take-off at the same capped pace.
+    // Clicking or tapping the scene (not a button or link) plays it too.
     const onClick = (e: MouseEvent) => {
       if ((e.target as HTMLElement)?.closest?.("a, button, nav, input, label")) return;
       if (!ref.current?.contains(e.target as Node) || progress.get() >= 1) return;
-      auto = true;
-      vel = 0;
       lastInput = performance.now();
-      if (!raf) raf = requestAnimationFrame(tick);
+      play(1);
     };
     ref.current?.addEventListener("click", onClick);
     const host = ref.current;
@@ -774,7 +728,7 @@ export const Takeoff = ({ uncapped = false }: { uncapped?: boolean }) => {
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("scroll", onScroll);
     };
-  }, [progress, uncapped]);
+  }, [progress]);
   useMotionValueEvent(progress, "change", (t) => ref.current?.setAttribute("data-progress", t.toFixed(3)));
 
   const [s, setS] = useState({ t: 0, d: 0, h: 1, kt: 0, alt: 0, call: CALLOUTS[0][1], thrust: 0, pitch: 0, horizon: 0 });
