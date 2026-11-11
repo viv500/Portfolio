@@ -93,7 +93,7 @@ const RapidExits = ({ d, h }: { d: number; h: number }) => {
 };
 
 /** Markings and lights that move: dashes and dots slide along their perspective lines. */
-const GroundMarkings = ({ d, h }: { d: number; h: number }) => {
+const GroundMarkings = ({ d, h, lite }: { d: number; h: number; lite: boolean }) => {
   const dash = (X: number, half: number, len: number, period: number, near = 1.2, far = 420) => {
     const out: string[] = [];
     const first = Math.floor(d / period) * period;
@@ -120,16 +120,18 @@ const GroundMarkings = ({ d, h }: { d: number; h: number }) => {
   };
   // Threshold piano keys at the start of the roll; they scroll away under us.
   const keys = [-6.6, -5.4, -4.2, -3, -1.8, 1.8, 3, 4.2, 5.4, 6.6].map((X) => quad(X - 0.4, X + 0.4, Math.max(1.2, 12 - d), 18 - d, h));
-  const edgeLights = dots([-RWY, RWY], 4, 9);
-  const twyGreen = dots([TWY_C], 3, 5, 200);
-  const twyBlue = dots([TWY_L, TWY_R], 5, 5, 200);
-  const prwLights = dots([PRW_L, PRW_R], 6, 4, 260);
+  // Phones only see the middle of the scene: the taxiway and parallel runway are almost
+  // entirely off-screen there, so skip their lights and draw fewer, nearer runway lights.
+  const edgeLights = lite ? dots([-RWY, RWY], 6, 9, 120) : dots([-RWY, RWY], 4, 9);
+  const twyGreen = lite ? [] : dots([TWY_C], 3, 5, 200);
+  const twyBlue = lite ? [] : dots([TWY_L, TWY_R], 5, 5, 200);
+  const prwLights = lite ? [] : dots([PRW_L, PRW_R], 6, 4, 260);
   return (
     <g>
       {18 - d > 1.2 && <path d={keys.join(" ")} fill="rgba(245,245,240,0.88)" />}
       <path d={dash(0, 0.34, 3.4, 6)} fill="rgba(245,245,240,0.92)" />
-      <path d={dash(TWY_C, 0.08, 1.6, 3, 1.2, 300)} fill="rgba(255,205,60,0.85)" />
-      <path d={dash((PRW_L + PRW_R) / 2, 0.15, 3.4, 6, 1.2, 300)} fill="rgba(245,245,240,0.7)" />
+      {!lite && <path d={dash(TWY_C, 0.08, 1.6, 3, 1.2, 300)} fill="rgba(255,205,60,0.85)" />}
+      {!lite && <path d={dash((PRW_L + PRW_R) / 2, 0.15, 3.4, 6, 1.2, 300)} fill="rgba(245,245,240,0.7)" />}
       <g style={{ opacity: "calc(var(--lights) * 0.5 + 0.5)" }}>
         {edgeLights.map(([x, y, rr], i) => (
           <circle key={`e${i}`} cx={r1(x)} cy={r1(y)} r={r1(rr)} fill="#fff6dc" />
@@ -150,11 +152,11 @@ const GroundMarkings = ({ d, h }: { d: number; h: number }) => {
   );
 };
 
-const Ground = ({ d, h }: { d: number; h: number }) => (
+const Ground = ({ d, h, lite = false }: { d: number; h: number; lite?: boolean }) => (
   <g>
     <GroundSurfaces h={Math.round(h * 100) / 100} />
-    <RapidExits d={d} h={h} />
-    <GroundMarkings d={d} h={h} />
+    {!lite && <RapidExits d={d} h={h} />}
+    <GroundMarkings d={d} h={h} lite={lite} />
   </g>
 );
 
@@ -201,17 +203,19 @@ const arc = (z: number, h: number, upto = Math.PI / 2, n = 6) =>
     return P(C_RIDGE - (C_RIDGE - C_IN) * Math.cos(t), C_WALL + C_RISE * Math.sin(t) - h, z);
   });
 
-const Concourse = ({ d, h, C_S0, C_S1 }: { d: number; h: number; C_S0: number; C_S1: number }) => {
+const Concourse = ({ d, h, C_S0, C_S1, lite = false }: { d: number; h: number; C_S0: number; C_S1: number; lite?: boolean }) => {
   if (C_S1 - d < 2) return null;
   const z0 = Math.max(1.6, C_S0 - d);
   const segs: { d: string; glass: boolean }[] = [];
-  const step = 3;
+  // Phones draw the roof in fewer, larger ribs (the concourse is small in the corner there).
+  const step = lite ? 6 : 3;
+  const n = lite ? 3 : 6;
   for (let s0 = C_S0, k = 0; s0 < C_S1; s0 += step, k++) {
     const za = Math.max(1.6, s0 - d);
     const zb = s0 + step - d;
     if (zb <= 1.6 || za > 260) continue;
-    const A = arc(za, h);
-    const B = arc(zb, h).reverse();
+    const A = arc(za, h, Math.PI / 2, n);
+    const B = arc(zb, h, Math.PI / 2, n).reverse();
     segs.push({ d: `M${[...A, ...B].map((p) => p.join(" ")).join(" L")} Z`, glass: k % 2 === 1 });
   }
   const zEnd = C_S1 - d;
@@ -290,7 +294,7 @@ const Jet = ({ s, d, h }: { s: number; d: number; h: number }) => {
   return <use href="#jet-art" transform={`translate(${x} ${y}) scale(${-k} ${k})`} />;
 };
 
-const Surroundings = ({ d, h }: { d: number; h: number }) => {
+const Surroundings = ({ d, h, lite = false }: { d: number; h: number; lite?: boolean }) => {
   const blue: [number, number, number][] = [];
   for (let s = 0; s < 260; s += 2) {
     const z = s - d;
@@ -323,7 +327,7 @@ const Surroundings = ({ d, h }: { d: number; h: number }) => {
         ))}
       <AtcTower s={108} d={d} h={h} />
       {[...CONCOURSES].reverse().map(([a, b]) => (
-        <Concourse key={a} C_S0={a} C_S1={b} d={d} h={h} />
+        <Concourse key={a} C_S0={a} C_S1={b} d={d} h={h} lite={lite} />
       ))}
       {STANDS.map((st) => (
         <JetBridge key={st} s={st} d={d} h={h} />
@@ -559,6 +563,7 @@ const Layer = React.forwardRef<HTMLDivElement, { children: React.ReactNode; labe
 export const Takeoff = () => {
   const ref = useRef<HTMLDivElement>(null);
   const outsideRef = useRef<HTMLDivElement>(null);
+  const stickyRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Reduced motion: a still frame of the climb, no parallax, no shake.
@@ -607,12 +612,17 @@ export const Takeoff = () => {
     // Hand-off: when the take-off completes, glide to the next section and swallow the burst of
     // scrolling still coming in (people spam-scroll when the plane won't go faster), so they land
     // on the next section instead of shooting past it. A short pause releases normal scrolling.
+    // The guard has a hard limit (HANDOFF_MAX_MS from the hand-off, about the glide plus a short
+    // grace), so continuous spam can't hold it forever; a brief pause releases it sooner.
     let guard = false;
     let lastGuarded = 0;
-    const HANDOFF_QUIET_MS = 350;
+    let guardEnd = 0;
+    const HANDOFF_QUIET_MS = 250;
+    const HANDOFF_MAX_MS = 1000;
     const handoff = () => {
       guard = true;
       lastGuarded = performance.now();
+      guardEnd = lastGuarded + HANDOFF_MAX_MS;
       const el = document.getElementById("top");
       if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: "smooth" });
     };
@@ -620,7 +630,9 @@ export const Takeoff = () => {
     let raf = 0;
     let lastInput = 0; // time of the last wheel/touch/key input we let the browser scroll with
     let last = 0;
-    const range = () => Math.max(1, (ref.current?.offsetHeight ?? 0) - window.innerHeight);
+    // Measured against the pinned hero rather than the window: mobile browser toolbars change
+    // innerHeight mid-scroll, which would make progress jump.
+    const range = () => Math.max(1, (ref.current?.offsetHeight ?? 0) - (stickyRef.current?.offsetHeight ?? window.innerHeight));
     const inZone = () => window.scrollY <= range() + 2;
     const tick = (now: number) => {
       const dt = last ? Math.min(0.05, (now - last) / 1000) : 1 / 60;
@@ -657,7 +669,7 @@ export const Takeoff = () => {
     const push = (px: number, e: Event) => {
       const now = performance.now();
       if (guard) {
-        if (now - lastGuarded > HANDOFF_QUIET_MS) guard = false;
+        if (now > guardEnd || now - lastGuarded > HANDOFF_QUIET_MS) guard = false;
         else if (px > 0) {
           e.preventDefault();
           lastGuarded = now;
@@ -769,13 +781,13 @@ export const Takeoff = () => {
     if (pending.current !== null) return;
     pending.current = requestAnimationFrame(() => {
       pending.current = null;
-      // Phones: redraw the scene at most every other frame, and only on a visible change.
+      // Phones: redraw the scene at most every third frame, and only on a visible change.
       // (The world motion and shake are motion values and still run every frame.)
       if (compactRef.current) {
         frame.current += 1;
         const t = latest.current;
         const settled = t === 0 || t >= 0.999;
-        if (!settled && (frame.current % 2 === 1 || Math.abs(t - drawn.current) < 0.004)) {
+        if (!settled && (frame.current % 3 !== 0 || Math.abs(t - drawn.current) < 0.006)) {
           // Make sure the final position is drawn once scrolling stops.
           if (trailing.current) clearTimeout(trailing.current);
           trailing.current = window.setTimeout(() => {
@@ -808,6 +820,25 @@ export const Takeoff = () => {
 
   // Rotation: the nose comes up about 15° and holds.
   const worldY = useTransform(p, [0.5, 0.64, 1], [0, 52, 58]);
+  // Convert scene units to CSS pixels for the composited layer (the SVG is "slice"-scaled).
+  const [unit, setUnit] = useState({ k: 1, ox: "50%", oy: "34%" });
+  useEffect(() => {
+    const measure = () => {
+      const el = outsideRef.current;
+      if (!el) return;
+      const w = el.offsetWidth;
+      const hgt = el.offsetHeight;
+      const k = Math.max(w / VIEW_W, hgt / VIEW_H);
+      // Rotation pivots on the vanishing point (VP, HZ), wherever "slice" puts it on screen.
+      setUnit({ k, ox: `${w / 2 + (VP - VIEW_W / 2) * k}px`, oy: `${hgt / 2 + (HZ - VIEW_H / 2) * k}px` });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (outsideRef.current) ro.observe(outsideRef.current);
+    return () => ro.disconnect();
+  }, []);
+  const worldYPx = useTransform(worldY, (v) => v * unit.k);
+  const worldOrigin = `${unit.ox} ${unit.oy}`;
   const pitchRot = useTransform(p, [0.5, 0.66, 1], [0, -1.2, -0.4]);
   const shake = useTransform(p, (t) => (t < 0.5 && !reducedRef.current ? Math.sin(t * 900) * 1.6 * (t / 0.5) : 0));
   const cue = useTransform(p, [0, 0.1], [1, 0]);
@@ -858,17 +889,21 @@ export const Takeoff = () => {
 
   return (
     <div ref={ref} className={reduced ? "relative h-screen" : "relative h-[180vh] cursor-pointer md:h-[140vh]"}>
-      <div className="sticky top-0 h-screen overflow-hidden bg-floor">
+      <div ref={stickyRef} className="sticky top-0 h-screen overflow-hidden bg-floor">
         {/* The scene. Only this part shakes. */}
         <motion.div className="absolute inset-0" style={{ y: shake }}>
-          <Layer ref={outsideRef} label="View from an airliner flight deck during take-off">
-            <OutsideDefs />
-            <motion.g style={{ y: worldY, rotate: pitchRot, originX: `${VP}px`, originY: `${HZ}px` }}>
-              <Backdrop />
-              <Surroundings d={s.d} h={s.h} />
-              <Ground d={s.d} h={s.h} />
-            </motion.g>
-          </Layer>
+          {/* The world outside. Its climb motion is a transform on an HTML layer (composited by
+              the GPU) rather than on an SVG group, which Chrome would repaint every frame. */}
+          <div ref={outsideRef} className="absolute inset-0 md:inset-[-12px] md:will-change-transform">
+            <motion.div className="absolute inset-0 will-change-transform" style={{ y: worldYPx, rotate: pitchRot, transformOrigin: worldOrigin }}>
+              <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} preserveAspectRatio="xMidYMid slice" className="h-full w-full overflow-visible" role="img" aria-label="View from an airliner flight deck during take-off">
+                <OutsideDefs />
+                <Backdrop />
+                <Surroundings d={s.d} h={s.h} lite={compact} />
+                <Ground d={s.d} h={s.h} lite={compact} />
+              </svg>
+            </motion.div>
+          </div>
           <Layer>
             <Shell compact={compact} fma={fma} call={s.call} kt={s.kt} alt={s.alt} horizon={s.horizon} climb={Math.min(1, Math.max(0, (s.t - 0.55) / 0.1)) * 8} />
           </Layer>
