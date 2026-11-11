@@ -10,15 +10,14 @@ import { Carousel } from "./Carousel";
 
 const BAG_COLOURS = ["#2f4f6f", "#7a2e2e", "#3c5a3a", "#5a4632", "#30343b", "#5b3f6b"];
 
-const Bag = ({ link, i, copy }: { link: (typeof contactLinks)[number]; i: number; copy?: boolean }) => (
+const Bag = ({ link, i }: { link: (typeof contactLinks)[number]; i: number }) => (
   <a
-    aria-hidden={copy || undefined}
-    tabIndex={copy ? -1 : undefined}
+    aria-hidden="true"
+    tabIndex={-1}
     href={link.href}
     target={link.platform === "email" ? undefined : "_blank"}
     rel={link.platform === "email" ? undefined : "noopener noreferrer"}
     className="group relative flex w-44 shrink-0 flex-col items-center pt-4 focus-visible:outline-none"
-    aria-label={link.platform === "email" ? `Email ${link.label}` : link.label}
   >
     {/* Handle. */}
     <span className="absolute top-0 h-5 w-14 rounded-t-lg border-[5px] border-b-0 border-[#a7adb6] shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]" />
@@ -43,7 +42,7 @@ export const Arrivals = () => {
   return (
     <section id="contact" className="scroll-mt-14 amb-arrivals border-t border-black pb-24 pt-16 md:pt-24">
       <div className="mx-auto max-w-6xl px-4 md:px-6">
-        <GateHeader letter="F" en="Arrivals" label="Contact · Resume" />
+        <GateHeader letter="F" en="Arrivals" label="Contact & resume" />
 
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:items-center">
           {/* Resume as a boarding pass with a tear-off stub. */}
@@ -108,7 +107,25 @@ export const Arrivals = () => {
             <a href={email.href} className="mt-3 block break-all font-sign text-2xl font-bold text-flap transition hover:text-sign md:text-3xl">
               {email.label}
             </a>
-            <p className="mt-3 text-base text-flap/70">Email is the best way to reach me. Your bags are on the belt below.</p>
+            <p className="mt-3 text-base text-flap/70">Email is the best way to reach me. I&apos;m also on:</p>
+            {/* Every link, once, in plain view. The carousel below is decoration. */}
+            <ul className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {contactLinks
+                .filter((l) => l.platform !== "email")
+                .map((l) => (
+                  <li key={l.href}>
+                    <a
+                      href={l.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 rounded-[3px] border border-white/10 bg-panel px-3 py-2.5 font-sign text-sm font-semibold text-flap transition hover:border-sign/60 hover:text-sign"
+                    >
+                      <PlatformIcon platform={l.platform} className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{l.label}</span>
+                    </a>
+                  </li>
+                ))}
+            </ul>
           </div>
         </div>
       </div>
@@ -116,9 +133,9 @@ export const Arrivals = () => {
       {/* Baggage carousel. */}
       <div className="relative mt-16">
         <div className="mx-auto mb-3 flex max-w-6xl items-center gap-2 px-4 font-mono text-[10px] uppercase tracking-[0.25em] text-flap/70 md:px-6">
-          <span className="sign-letter h-5 w-5 rounded-[2px] text-[11px]">⧉</span> Baggage claim · Carousel 3 · Links
+          <span className="sign-letter h-5 w-5 rounded-[2px] text-[11px]">⧉</span> Baggage claim · Carousel 3
         </div>
-        <Carousel count={contactLinks.length} renderBag={(i, copy) => <Bag link={contactLinks[i]} i={i} copy={copy} />} />
+        <Carousel count={contactLinks.length} renderBag={(i) => <Bag link={contactLinks[i]} i={i} />} />
       </div>
 
       <footer className="mx-auto mt-16 max-w-6xl px-4 text-center md:px-6">

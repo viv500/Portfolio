@@ -1,6 +1,9 @@
 import React from "react";
 
-/** Section header styled as an overhead gate sign: letter plate, sign text, plain-language label. */
+/**
+ * Section header. The plain-language name (`label`) is the heading; the airport sign above it
+ * (letter plate + themed name, `en`) is a small, secondary flourish.
+ */
 export const GateHeader = ({
   letter,
   en,
@@ -15,14 +18,14 @@ export const GateHeader = ({
   tone?: "dark" | "light";
 }) => (
   <div className="mb-8 md:mb-10">
-    <div className="flex flex-wrap items-end justify-between gap-4">
-      <div className="sign-housing inline-flex"><div className="inline-flex items-stretch overflow-hidden rounded-[3px] font-sign font-bold">
-        <span className="sign-letter w-11 text-xl md:w-12 md:text-2xl">{letter}</span>
-        <span className="sign-plate px-4 py-2 text-xl md:text-2xl">{en}</span>
-      </div></div>
-      <span className={`font-mono text-xs uppercase tracking-[0.25em] ${tone === "dark" ? "text-flap/70" : "text-black/60"}`}>{label}</span>
+    <div className="sign-housing inline-flex opacity-80">
+      <div className="inline-flex items-stretch overflow-hidden rounded-[3px] font-sign text-xs font-bold md:text-[13px]">
+        <span className="sign-letter w-6 md:w-7">{letter}</span>
+        <span className="sign-plate px-2.5 py-1">{en}</span>
+      </div>
     </div>
-    {intro && <p className={`mt-4 max-w-4xl text-base leading-relaxed ${tone === "dark" ? "text-flap/80" : "text-black/75"}`}>{intro}</p>}
+    <h2 className={`mt-3 font-sign text-3xl font-extrabold tracking-tight md:text-[44px] md:leading-[1.1] ${tone === "dark" ? "text-flap" : "text-black"}`}>{label}</h2>
+    {intro && <p className={`mt-3 max-w-4xl text-base leading-relaxed ${tone === "dark" ? "text-flap/80" : "text-black/75"}`}>{intro}</p>}
   </div>
 );
 

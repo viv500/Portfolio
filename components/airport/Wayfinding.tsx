@@ -43,8 +43,8 @@ export const Wayfinding = () => {
                 <span className={`flex h-5 w-5 items-center justify-center rounded-[2px] text-[11px] ${on ? "lightbox" : "sign-letter"}`}>
                   {gate.letter}
                 </span>
-                {gate.label}
-                <span className={`hidden font-semibold lg:inline ${on ? "text-sign/60" : "text-black/60"}`}>{gate.hint}</span>
+                {gate.hint}
+                <span className={`hidden text-[11px] font-medium lg:inline ${on ? "text-sign/55" : "text-black/50"}`}>{gate.label}</span>
               </a>
             </li>
           );

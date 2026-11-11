@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { impact, roles, techGroups } from "@/components/data";
-import { flights } from "@/components/data/airport";
+import { shipped } from "@/components/data/airport";
 import { GateHeader } from "./GateHeader";
 import { Airspeed, Altimeter, Attitude, Bezel, Heading, TurnCoordinator, VerticalSpeed, useInstrumentProgress } from "./instruments";
 
@@ -25,32 +25,32 @@ const PanelLabel = ({ children, className = "" }: { children: React.ReactNode; c
 const Switch = ({ label, i }: { label: string; i: number }) => {
   const [on, setOn] = useState(true);
   return (
-    <button type="button" aria-pressed={on} onClick={() => setOn((v) => !v)} className="group flex w-[4.6rem] flex-col items-center gap-1.5 focus-visible:outline-none" title={label}>
-      <span className="relative flex h-9 w-6 items-center justify-center rounded-[5px] bg-gradient-to-b from-raised to-floor shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_2px_3px_rgba(0,0,0,0.7)] group-focus-visible:ring-2 group-focus-visible:ring-sign">
-        <span className="h-3 w-3 rounded-full bg-[#050607] shadow-[inset_0_1px_2px_rgba(0,0,0,0.9)]" />
+    <button type="button" aria-pressed={on} onClick={() => setOn((v) => !v)} className="group flex items-center gap-1.5 pr-2 focus-visible:outline-none" title={label}>
+      <span className="relative flex h-5 w-3.5 shrink-0 items-center justify-center rounded-[4px] bg-gradient-to-b from-raised to-floor shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_2px_3px_rgba(0,0,0,0.7)] group-focus-visible:ring-2 group-focus-visible:ring-sign">
+        <span className="h-2 w-2 rounded-full bg-[#050607] shadow-[inset_0_1px_2px_rgba(0,0,0,0.9)]" />
         <span
-          className={`absolute left-1/2 h-5 w-2 -translate-x-1/2 rounded-full bg-gradient-to-r from-[#8d929b] via-[#e7e9ed] to-[#7a7f88] shadow-[0_2px_3px_rgba(0,0,0,0.6)] transition-all duration-150 ${on ? "top-0" : "top-[1rem]"}`}
+          className={`absolute left-1/2 h-3 w-1.5 -translate-x-1/2 rounded-full bg-gradient-to-r from-[#8d929b] via-[#e7e9ed] to-[#7a7f88] shadow-[0_2px_3px_rgba(0,0,0,0.6)] transition-all duration-150 ${on ? "top-0" : "top-[0.5rem]"}`}
         />
       </span>
-      <span className="text-center font-mono text-[9px] uppercase leading-tight text-ink/75 [text-shadow:0_0_6px_rgb(var(--ink)/0.25)]">{label}</span>
+      <span className="whitespace-nowrap font-mono text-[10px] uppercase leading-none text-ink/80 [text-shadow:0_0_6px_rgb(var(--ink)/0.25)]">{label}</span>
     </button>
   );
 };
 
 const Overhead = () => (
-  <div className="overhead-panel metal relative rounded-t-[22px] px-5 pb-6 pt-8 md:px-8">
+  <div className="overhead-panel metal relative rounded-t-[22px] px-4 pb-3.5 pt-5 md:px-6">
     <Screws />
-    <div className="mb-5 flex items-center justify-between">
+    <div className="mb-2.5 flex items-center justify-between">
       <PanelLabel>Overhead panel · Stack</PanelLabel>
       <PanelLabel className="hidden text-ink/70 sm:inline">Systems</PanelLabel>
     </div>
-    <div className="grid gap-x-6 gap-y-6 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {techGroups.map((g) => (
-        <div key={g.name} className="recessed rounded-md bg-wall/70 p-3">
-          <div className="mb-3 flex items-baseline justify-between gap-2 border-b border-white/[0.06] pb-1.5">
-            <span className="font-sign text-[12px] font-bold uppercase tracking-wide text-ink">{g.name}</span>
+        <div key={g.name} className="recessed rounded-md bg-wall/70 px-2.5 py-2">
+          <div className="mb-1.5 flex items-baseline justify-between gap-2 border-b border-white/[0.06] pb-1">
+            <span className="font-sign text-[11px] font-bold uppercase tracking-wide text-ink">{g.name}</span>
           </div>
-          <div className="flex flex-wrap gap-y-3">
+          <div className="flex flex-wrap gap-x-1.5 gap-y-1.5">
             {g.items.map((item, i) => (
               <Switch key={item} label={item} i={i} />
             ))}
@@ -189,28 +189,27 @@ const NavDisplay = () => {
 };
 
 // ── EICAS: what shipped ──────────────────────────────────────────────────
+// Dark screen styling, but sentence case in the body font so it reads at a glance.
 const LOG = roles.flatMap((role) =>
   role.stories
-    .filter((s) => s.stat)
-    .map((s) => ({ sys: (flights[role.slug]?.dest ?? role.company).replace("ROCKET MORTGAGE", "ROCKET"), title: s.title, stat: s.stat!, href: `#experience/${role.slug}` }))
+    .filter((s) => shipped[s.title])
+    .map((s) => ({ sys: role.company.replace("Rocket Mortgage", "Rocket").replace("UW Computer Science Club", "UW CS Club"), ...shipped[s.title], href: `#experience/${role.slug}` }))
 );
 
 const Eicas = () => (
   <div className="metal relative rounded-xl p-3">
     <Screws />
-    <div className="device glass recessed relative rounded-md bg-screen px-4 py-3 font-mono text-[11px] leading-relaxed md:text-xs">
-      <div className="mb-2 flex justify-between border-b border-white/10 pb-1.5 text-[10px]">
+    <div className="device glass recessed relative rounded-md bg-screen px-4 py-3 text-[14px] leading-snug md:text-[15px]">
+      <div className="mb-2 flex justify-between border-b border-white/10 pb-1.5 font-mono text-[10px]">
         <span className="text-ink/80">EICAS · SHIPPED</span>
         <span className="text-ops">NORMAL</span>
       </div>
-      <ol className="grid gap-y-0.5 lg:grid-cols-2 lg:gap-x-8">
+      <ol className="grid gap-y-1 lg:grid-cols-2 lg:gap-x-8">
         {LOG.map((e, i) => (
-          <motion.li key={e.title} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.12 * i }}>
-            <a href={e.href} className="grid grid-cols-[minmax(0,1fr)] gap-x-3 rounded px-1 py-0.5 transition hover:bg-white/[0.05] sm:grid-cols-[6.5rem_minmax(0,1fr)]">
-              <span className="text-live">{e.sys}</span>
-              <span>
-                <span className="text-ops">{e.title.toUpperCase()}</span> <span className="text-cyan">{e.stat}</span>
-              </span>
+          <motion.li key={e.n + e.text} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.12 * i }}>
+            <a href={e.href} className="block rounded px-1 py-1 text-ink/90 transition hover:bg-white/[0.05]">
+              <span className="whitespace-nowrap font-semibold text-cyan">{e.n}</span> {e.text}{" "}
+              <span className="whitespace-nowrap pl-1 text-[12px] text-live/90">{e.sys}</span>
             </a>
           </motion.li>
         ))}
@@ -225,10 +224,10 @@ const Eicas = () => (
 export const Cockpit = () => (
   <section id="ops" className="amb-cockpit scroll-mt-14 px-4 pb-16 pt-10 md:px-6 md:pb-24">
     <div className="mx-auto max-w-6xl">
-      <GateHeader letter="B" en="Flight Deck" label="Impact · Stack" intro="Results from my internships, on the instruments. Select any instrument or waypoint for the details." />
+      <GateHeader letter="B" en="Flight Deck" label="Impact & stack" intro="Results from my internships, on the instruments. Select any instrument or waypoint for the details." />
       {/* The instruments come first; the overhead (stack) panel follows. */}
       <div className="flex flex-col">
-      <div className="order-3 mt-6">
+      <div className="order-3 mt-4">
         <Overhead />
       </div>
       <div className="order-1">

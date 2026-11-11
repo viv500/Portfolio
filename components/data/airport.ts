@@ -28,9 +28,9 @@ export const flights: Record<string, Flight> = {
 export type Stamp = { ink: "blue" | "red" | "green" | "violet" | "teal"; shape: "round" | "rect" | "oval"; rotate: number };
 
 export const stamps: Record<string, Stamp> = {
-  canify: { ink: "red", shape: "round", rotate: -8 },
-  datafest: { ink: "blue", shape: "rect", rotate: 5 },
-  watchdog: { ink: "green", shape: "oval", rotate: -4 },
+  canify: { ink: "red", shape: "round", rotate: -2 },
+  datafest: { ink: "blue", shape: "rect", rotate: 1.5 },
+  watchdog: { ink: "green", shape: "oval", rotate: -1 },
   sofia: { ink: "violet", shape: "rect", rotate: 7 },
   "finance-cats": { ink: "teal", shape: "round", rotate: -11 },
   pixelperfect: { ink: "blue", shape: "oval", rotate: 9 },
@@ -57,4 +57,20 @@ export const previews: Record<string, string> = {
   sofia: "/media/sofia/dashboard.jpg",
   "finance-cats": "/media/finance-cats/home.png",
   leaselinker: "/media/leaselinker/home.jpg",
+};
+
+/**
+ * Short lines for the EICAS "shipped" screen, keyed by story title: the key number first, then
+ * a few plain words. Stories without an entry here aren't listed.
+ */
+export const shipped: Record<string, { n: string; text: string }> = {
+  "AWS Dedicated Host Allocator": { n: "~5 hrs", text: "saved per AWS host allocation" },
+  "macOS CI build nodes": { n: "5+", text: "macOS CI build nodes" },
+  "Bazel caching for ARM64 builds": { n: "~40%", text: "faster ARM64 builds" },
+  "CI security hardening": { n: "20+", text: "pipelines hardened, zero downtime" },
+  "MCP DevOps agent": { n: "~20 hrs/wk", text: "saved with an MCP agent (est.)" },
+  "API performance and Rocket Homes features": { n: "35%", text: "lower API latency" },
+  "Class Profile 2024": { n: "2,500+", text: "users on Class Profile 2024" },
+  "Kubernetes deployments": { n: "2 hrs → 10 min", text: "deploys across 12+ services" },
+  "C++ gRPC service": { n: "35%", text: "less gRPC serialization overhead" },
 };

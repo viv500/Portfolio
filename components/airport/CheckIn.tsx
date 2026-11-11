@@ -63,17 +63,17 @@ export const CheckIn = () => {
         </div>
 
         {/* The board. */}
-        <div className="board-frame metal rounded-lg p-2.5 md:p-3"><div className="device board-screen recessed rounded-md bg-floor p-4 md:p-7">
-          <div className="mb-4 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.25em] text-flap/70 md:text-xs">
+        <div className="board-frame metal rounded-lg p-2.5 md:p-3"><div className="device board-screen recessed rounded-md bg-floor px-4 py-3 md:px-6 md:py-4">
+          <div className="mb-2 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.25em] text-flap/70 md:text-xs">
             <span>Passenger</span>
             <span className="hidden sm:inline">Gate · Infrastructure</span>
           </div>
-          <h1 className="text-[16px] min-[420px]:text-[18px] sm:text-[32px] md:text-[44px] lg:text-[52px]">
+          <h1 className="text-[14px] min-[420px]:text-[15px] sm:text-[22px] md:text-[26px] lg:text-[28px]">
             <SplitFlap text={profile.name} spins={10} />
           </h1>
-          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 md:mt-6">
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
             <span className="board-blink font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-live md:text-xs">● Live</span>
-            <div className="flap-sm text-[11px] min-[400px]:text-[12px] sm:text-[16px] md:text-[20px]">
+            <div className="flap-sm text-[11px] min-[400px]:text-[12px] sm:text-[14px] md:text-[16px]">
               <SplitFlap text={MESSAGES[message]} length={BOARD_WIDTH} delay={600} spins={5} cellClassName="!text-live" />
             </div>
           </div>
@@ -81,7 +81,7 @@ export const CheckIn = () => {
 
         <div className="mt-8 grid gap-8 md:mt-10 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
           <div>
-            <p className="max-w-2xl font-sign text-2xl font-semibold leading-snug text-flap md:text-[34px]">{profile.hero}</p>
+            <p className="max-w-2xl font-sign text-[28px] font-bold leading-tight text-flap md:text-[44px]">{profile.hero}</p>
             <p className="mt-3 max-w-2xl text-base leading-relaxed text-flap/65">
               Infrastructure and developer tooling engineer. Grew up in Dubai, studying CS + AI at Waterloo.
             </p>
