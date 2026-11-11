@@ -28,6 +28,7 @@ const config = {
     extend: {
       fontFamily: {
         mono: ["var(--font-mono)", "ui-monospace", "monospace"],
+        sign: ["var(--font-sign)", "Helvetica Neue", "Arial", "sans-serif"],
       },
       colors: {
         black: {
@@ -44,7 +45,30 @@ const config = {
         blue: {
           "100": "#E4ECFF",
         },
-        purple: "#CBACF9",
+        // Palette colours are CSS variables (see app/globals.css) so palettes can be swapped.
+        // "purple" is the old accent name, kept so the reused detail panels follow the sign colour.
+        purple: "rgb(var(--brand) / <alpha-value>)",
+        sign: { DEFAULT: "rgb(var(--sign) / <alpha-value>)", deep: "rgb(var(--sign-deep) / <alpha-value>)", glow: "rgb(var(--sign-glow) / <alpha-value>)", ink: "rgb(var(--sign-ink) / <alpha-value>)" },
+        floor: "rgb(var(--floor) / <alpha-value>)",
+        screen: "rgb(var(--screen) / <alpha-value>)",
+        wall: "rgb(var(--wall) / <alpha-value>)",
+        panel: "rgb(var(--panel) / <alpha-value>)",
+        raised: "rgb(var(--raised) / <alpha-value>)",
+        edge: "rgb(var(--edge) / <alpha-value>)",
+        ink: "rgb(var(--ink) / <alpha-value>)",
+        paper: { DEFAULT: "rgb(var(--paper) / <alpha-value>)", shade: "rgb(var(--paper-shade) / <alpha-value>)" },
+        pass: { DEFAULT: "rgb(var(--pass) / <alpha-value>)", shade: "rgb(var(--pass-shade) / <alpha-value>)" },
+        cover: "rgb(var(--cover) / <alpha-value>)",
+        sky: { 1: "rgb(var(--sky-1) / <alpha-value>)", 2: "rgb(var(--sky-2) / <alpha-value>)", 3: "rgb(var(--sky-3) / <alpha-value>)" },
+        ops: "rgb(var(--ops) / <alpha-value>)",
+        live: "rgb(var(--live) / <alpha-value>)",
+        alert: "rgb(var(--alert) / <alpha-value>)",
+        cyan: "rgb(var(--cyan) / <alpha-value>)",
+        magenta: "rgb(var(--magenta) / <alpha-value>)",
+        // Older names from round one.
+        board: "rgb(var(--floor) / <alpha-value>)",
+        terminal: "rgb(var(--wall) / <alpha-value>)",
+        flap: "rgb(var(--ink) / <alpha-value>)",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
