@@ -88,8 +88,8 @@ export const CheckIn = () => {
           <div className="md:col-start-1 md:row-start-1">
             <h1 className="max-w-2xl font-sign text-[28px] font-bold leading-tight text-flap md:text-[44px]">{profile.hero}</h1>
             <p className="mt-3 max-w-2xl text-base leading-relaxed text-flap/65">
-              I’m a backend and infrastructure engineer focused on cloud, CI/build systems and AI developer tooling. I’m currently a 4th year
-              at the <span className="font-medium text-flap/90">University of Waterloo</span> studying Computer Science and AI.
+              Hey, I’m Vivek! I’m a fourth-year Computer Science and AI student at the <span className="font-medium text-flap/90">University of Waterloo</span>.
+              I work on backend and infrastructure, mainly cloud, CI/build systems, and AI developer tooling.
             </p>
             <dl className="mt-5 grid max-w-xs grid-cols-2 gap-px overflow-hidden rounded-[3px] border border-white/10 bg-white/10 font-mono text-[9px] uppercase sm:text-[10px]">
               {[
