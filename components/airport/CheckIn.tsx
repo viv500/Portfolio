@@ -84,7 +84,7 @@ export const CheckIn = () => {
         {/* The text column is the headline's width (42rem); the badge is centred in the space between
             it and the right edge of the ACARS panel (no column gap, so the centre is exact). */}
         <div className="mt-14 grid gap-8 md:mt-12 md:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] md:gap-x-0">
-          <CrewBadge className="md:col-start-2 md:row-start-1 md:self-start md:justify-self-center" />
+          <CrewBadge className="justify-self-center md:col-start-2 md:row-start-1 md:self-start" />
           <div className="md:col-start-1 md:row-start-1">
             <h1 className="max-w-2xl font-sign text-[28px] font-bold leading-tight text-flap md:text-[44px]">{profile.hero}</h1>
             <p className="mt-3 max-w-2xl text-base leading-relaxed text-flap/65">
