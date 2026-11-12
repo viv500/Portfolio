@@ -72,8 +72,8 @@ export const CheckIn = () => {
           <p className="mt-3 text-[13px] leading-relaxed text-ink md:text-[15px] [text-shadow:0_0_8px_rgb(var(--ink)/0.25)]">
             {/* The greeting follows the active palette (CSS, so it changes live with the toggle). */}
             <span className="greet-evening">Good evening</span>
-            <span className="greet-afternoon">Good afternoon</span>, this is Captain <span className="text-live">Vivek Jude Manoj</span> speaking. We&apos;ve
-            reached our cruising altitude, so sit back and relax while I tell you a bit about what I do.
+            <span className="greet-afternoon">Good afternoon</span> from the flight deck. We’ve reached cruising altitude, so here’s a bit about
+            who’s flying.
             <span aria-hidden="true" className="board-blink ml-1 inline-block h-[1em] w-[0.55em] translate-y-[0.15em] bg-ink/80" />
           </p>
           </div>
@@ -88,7 +88,8 @@ export const CheckIn = () => {
           <div className="md:col-start-1 md:row-start-1">
             <h1 className="max-w-2xl font-sign text-[28px] font-bold leading-tight text-flap md:text-[44px]">{profile.hero}</h1>
             <p className="mt-3 max-w-2xl text-base leading-relaxed text-flap/65">
-              Infrastructure and developer tooling engineer. CS + AI at the <span className="font-medium text-flap/90">University of Waterloo</span>. Grew up in Dubai.
+              I’m a backend and infrastructure engineer focused on cloud, CI/build systems and AI developer tooling. I’m currently a 4th year
+              at the <span className="font-medium text-flap/90">University of Waterloo</span> studying Computer Science and AI.
             </p>
             <dl className="mt-5 grid max-w-xs grid-cols-2 gap-px overflow-hidden rounded-[3px] border border-white/10 bg-white/10 font-mono text-[9px] uppercase sm:text-[10px]">
               {[
