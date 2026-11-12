@@ -23,7 +23,7 @@ export const GateHeader = ({
       {en}
     </p>
     <h2 className={`mt-2 font-sign text-3xl font-extrabold tracking-tight md:text-[44px] md:leading-[1.1] ${tone === "dark" ? "text-flap" : "text-black"}`}>{label}</h2>
-    {intro && <p className={`mt-3 max-w-4xl text-base leading-relaxed ${tone === "dark" ? "text-flap/80" : "text-black/75"}`}>{intro}</p>}
+    {intro && <p className={`section-sub mt-3 max-w-[65ch] text-[1.1rem] font-normal leading-relaxed ${tone === "light" ? "!text-black/80" : ""}`}>{intro}</p>}
   </div>
 );
 

@@ -608,6 +608,10 @@ svg.foil { -webkit-text-fill-color: initial; background: none; color: #d8b65e; }
 .badge-sway:hover { animation: badge-sway 1.8s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .badge-sway:hover { animation: none; } }
 
+/* Section subtitles: high contrast, ~85% of the heading colour; a dark brown in daylight. */
+.section-sub { color: rgb(var(--ink) / 0.85); }
+:root[data-palette="day"] .section-sub { color: #4a3220; }
+
 /* Captain's greeting: "Good evening" at golden hour, "Good afternoon" in daylight. */
 .greet-afternoon { display: none; }
 :root[data-palette="day"] .greet-afternoon { display: inline; }
