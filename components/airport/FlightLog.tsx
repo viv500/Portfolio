@@ -236,7 +236,7 @@ export const FlightLog = () => {
   return (
     <section id="experience" className="amb-cockpit scroll-mt-14 px-4 py-16 md:px-6 md:py-24">
       <div className="mx-auto max-w-6xl">
-        <GateHeader letter="A" en="Pilot's logbook" label="Experience" intro="Where I've worked. Select an entry for the full story." />
+        <GateHeader letter="A" en="Pilot's logbook" label="Experience" intro="Where I've worked." hint="Select an entry for the full story" />
         <Spread rows={rows} />
         <Page rows={rows} />
       </div>

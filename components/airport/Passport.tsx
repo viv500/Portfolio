@@ -410,7 +410,7 @@ export const Passport = () => {
   return (
     <section id="about" className="amb-desk scroll-mt-14 overflow-hidden px-4 py-16 md:px-6 md:py-24">
       <div className="mx-auto max-w-6xl">
-        <GateHeader letter="E" en="Passport" label="About" intro="Who I am, where I'm from and what I'm into." />
+        <GateHeader letter="E" en="Passport" label="About" intro="Who I am, where I'm from and what I'm into." hint="Open the passport and turn the pages" />
 
         <div ref={book}>
           {/* Desktop. Closed, only the front cover shows, centred; as it swings open the book slides

@@ -90,17 +90,18 @@ const Instrument = ({ stat, kind, index }: { stat: number; kind: (typeof SIX)[nu
     <VerticalSpeed p={p} value={s.value} />;
   return (
     <a ref={ref} href={`#${s.route}`} className="group flex flex-col items-center gap-2 focus-visible:outline-none" aria-label={`${s.prefix ?? ""}${s.value}${s.suffix ?? ""} ${s.label}. ${s.detail}`}>
-      <div className="w-full max-w-[11.5rem] transition-transform duration-300 group-hover:-translate-y-0.5 group-focus-visible:ring-2 group-focus-visible:ring-sign">
+      <div className="w-full max-w-[10rem] transition-transform duration-300 group-hover:-translate-y-0.5 group-focus-visible:ring-2 group-focus-visible:ring-sign">
         <Bezel label={s.label}>{face}</Bezel>
       </div>
       {/* Backlit placard. */}
       <div className="device w-full max-w-[11.5rem] rounded-[3px] border border-black bg-gradient-to-b from-panel to-floor px-2 py-1.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-        <div className="font-mono text-[15px] font-bold text-ink [text-shadow:0_0_8px_rgb(var(--ink)/0.35)]">
-          {s.prefix}
+        {/* The number is the headline: big, bold, in the accent colour; units are smaller. */}
+        <div className="font-sign text-[30px] font-extrabold leading-none text-sign [text-shadow:0_0_10px_rgb(var(--sign)/0.35)]">
+          {s.prefix && <span className="text-[20px]">{s.prefix}</span>}
           {s.value}
-          <span className="text-[11px] text-ink/70">{s.suffix}</span>
+          <span className="ml-0.5 text-[16px] font-bold">{(s.suffix ?? "").trim()}</span>
         </div>
-        <div className="font-sign text-[11.5px] font-semibold leading-tight text-ink/70 group-hover:text-ink">{s.label}</div>
+        <div className="mt-1 font-sign text-[12.5px] font-semibold leading-tight text-ink/75 group-hover:text-ink">{s.label}</div>
       </div>
     </a>
   );
@@ -224,7 +225,7 @@ const Eicas = () => (
 export const Cockpit = () => (
   <section id="ops" className="amb-cockpit scroll-mt-14 px-4 pb-16 pt-10 md:px-6 md:pb-24">
     <div className="mx-auto max-w-6xl">
-      <GateHeader letter="B" en="Flight deck" label="Impact" intro="Results from my internships, on the instruments. Select any instrument or waypoint for the details." />
+      <GateHeader letter="B" en="Flight deck" label="Impact" intro="Results from my internships, on the instruments." hint="Select any instrument or waypoint for details" />
       {/* The instruments come first; the overhead (stack) panel follows. */}
       <div className="flex flex-col">
       <div className="order-3 mt-4">

@@ -55,7 +55,7 @@ export const PassportControl = () => {
     <section id="hackathons" className="amb-desk scroll-mt-14 px-4 py-16 md:px-6 md:py-24">
       <InkFilter />
       <div className="mx-auto max-w-6xl">
-        <GateHeader letter="D" en="Passport Control" label="Hackathons" intro="Seven hackathons, three wins, $3,500 in prizes. Each stamp opens the project." />
+        <GateHeader letter="D" en="Passport Control" label="Hackathons" intro="Seven hackathons, three wins, $3,500 in prizes." hint="Each stamp opens the project" />
 
         <div className="relative rounded-lg bg-cover p-2 elev-4 md:p-2.5">
         <div className="passport-paper spread-curve relative overflow-hidden rounded-md px-4 py-8 md:px-10 md:py-12">
