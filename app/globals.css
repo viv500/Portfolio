@@ -652,30 +652,29 @@ svg.foil { -webkit-text-fill-color: initial; background: none; color: #d8b65e; }
 .section-sub { color: rgb(var(--ink) / 0.9); }
 :root[data-palette="day"] .section-sub { color: #3f2a19; }
 
-/* Intro take-off: the overlay only shows while html[data-takeoff] is set (before first paint, by
-   the script in app/layout.tsx). Meanwhile the page sits at the top, underneath, with its content
-   hidden (the intro section keeps its background, so the push-through lands on it seamlessly). */
+/* Intro take-off: the overlay shows while html[data-takeoff] is set (before first paint, by the
+   script in app/layout.tsx). "on": the page sits at the top underneath, content hidden. "out": the
+   hand-off; the overlay is pure page colour and fading away, so the page content shows under it. */
 .takeoff-overlay { display: none; }
 html[data-takeoff] .takeoff-overlay { display: block; }
 html[data-takeoff], html[data-takeoff] body { overflow: hidden; overscroll-behavior: none; }
-html[data-takeoff] main.aviation > :not(.takeoff-overlay):not(#top):not(.flight-strip),
-html[data-takeoff] #top > * { visibility: hidden; }
-/* The sky through the windscreen on the way to the page: amber then deep amber at golden hour;
-   cloud then whiteout in daylight. The last layer is the page background itself (bg-wall). */
-.to-sky-a { background: linear-gradient(180deg, #f6c071 0%, #e99a45 55%, #d87d33 100%); }
-.to-sky-b { background: linear-gradient(180deg, #7a3d15 0%, #4a2610 60%, rgb(var(--wall)) 100%); }
-:root[data-palette="day"] .to-sky-a {
+html[data-takeoff="on"] main.aviation > :not(.takeoff-overlay):not(#top):not(.flight-strip),
+html[data-takeoff="on"] #top > * { visibility: hidden; }
+/* Daylight: the cloud the plane climbs into, over the whole frame (unused at golden hour). */
+.to-cloud { display: none; }
+:root[data-palette="day"] .to-cloud {
+  display: block;
   background:
-    radial-gradient(40% 30% at 25% 40%, rgba(255,255,255,0.95), transparent 70%),
-    radial-gradient(45% 35% at 70% 55%, rgba(255,255,255,0.9), transparent 70%),
-    linear-gradient(180deg, #e9edf2, #f4f2ec);
+    radial-gradient(45% 35% at 25% 35%, #ffffff, transparent 70%),
+    radial-gradient(50% 40% at 72% 60%, #ffffff, transparent 70%),
+    radial-gradient(60% 50% at 50% 100%, #f7f4ec, transparent 70%),
+    linear-gradient(180deg, #eef1f4, #f8f6f0);
 }
-:root[data-palette="day"] .to-sky-b { background: #fbfaf6; }
 
 /* Intro reveal (after the take-off): the ACARS line types in, then the rest fades in (≤400 ms). */
-#top .reveal-item { transition: opacity 0.3s ease; }
-#top .reveal-item + .reveal-item { transition-delay: 0.1s; }
-#top[data-reveal="hidden"] .reveal-item, #top[data-reveal="typing"] .reveal-item { opacity: 0; transition: none; }
+#top .reveal-item { transition: opacity 0.35s ease, transform 0.35s ease; }
+#top .reveal-item + .reveal-item { transition-delay: 0.05s; }
+#top[data-reveal="hidden"] .reveal-item, #top[data-reveal="typing"] .reveal-item { opacity: 0; transform: translateY(10px); transition: none; }
 /* The sky at the top of the page: an amber horizon glow and dim stars at golden hour, white haze in daylight. */
 .horizon-glow { background: radial-gradient(70% 100% at 50% 0%, rgba(232, 150, 70, 0.14), transparent 70%); }
 :root[data-palette="day"] .horizon-glow { background: radial-gradient(80% 100% at 50% 0%, rgba(255, 255, 255, 0.55), transparent 70%); }

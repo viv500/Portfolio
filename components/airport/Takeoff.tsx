@@ -563,25 +563,34 @@ const Layer = React.forwardRef<HTMLDivElement, { children: React.ReactNode; labe
 });
 
 /** The intro, from first frame to removal. */
-export const TAKEOFF_TOTAL_MS = 4000;
-// Timeline (ms): hold, roll (THRUST SET, 80 KNOTS, V1), rotate and climb (ROTATE, POSITIVE
-// RATE, GEAR UP), the sky turning into the page, then the push through the windscreen.
-const T = { hold: 300, roll: 1900, climb: 2700, sky: 3300, push: 3900 } as const;
-const SKIP_PUSH_MS = 300;
+export const TAKEOFF_TOTAL_MS = 3900;
+// Timeline (ms): hold, roll (THRUST SET, 80 KNOTS, V1), rotate and climb (ROTATE, POSITIVE RATE,
+// GEAR UP), then the dip into the page: at golden hour the whole frame dims to the page's
+// near-black; in daylight the plane climbs into cloud, whites out, and settles to the page beige.
+// At `dim` the overlay is pure page colour; the page content appears under it and the overlay
+// fades away, so the page fades in.
+const T = { hold: 300, roll: 1900, climb: 2700, cloud: 3100, dim: 3400, end: 3900 } as const;
+const SKIP_DIM_MS = 150;
+const SKIP_OUT_MS = 250;
 const SCENE_END = 0.76;
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
-const easeIn = (x: number) => x * x * x;
+/** Ease in and out (smoothstep). */
+const ease = (x: number) => {
+  const t = clamp01(x);
+  return t * t * (3 - 2 * t);
+};
 /** Scene time (0 → SCENE_END, rotation at 0.5) at `ms` into the intro. */
 const sceneAt = (ms: number) =>
   ms < T.hold ? 0 : ms < T.roll ? ((ms - T.hold) / (T.roll - T.hold)) * 0.5 : ms < T.climb ? 0.5 + ((ms - T.roll) / (T.climb - T.roll)) * (SCENE_END - 0.5) : SCENE_END;
 
 /**
  * The take-off: a one-time autoplay intro, as a fixed overlay above the page (which sits at the
- * top, underneath, its content hidden until the overlay is gone). The plane rolls, rotates and
- * climbs; the sky through the windscreen turns into the page background; the camera pushes
- * through the windscreen; the overlay goes and the page is revealed. It never scrolls the page.
- * Any wheel, touch, key or click (or Skip) jumps to the sky-matched frame and pushes through in
- * 300 ms. Plays once per session (and never with reduced motion); "Replay take-off" plays it again.
+ * top, underneath, its content hidden until the hand-off). The plane rolls, rotates and climbs;
+ * the frame dips to the page colour (dark at golden hour, through cloud in daylight); then the
+ * overlay fades away as the page fades in. Only opacity animates in the transition, and the
+ * cockpit is already still by then. It never scrolls the page. Any wheel, touch, key or click (or
+ * Skip) dips in 150 ms and hands off in 250 ms. Once per session (never with reduced motion);
+ * "Replay take-off" plays it again.
  */
 export const Takeoff = () => {
   const outsideRef = useRef<HTMLDivElement>(null);
@@ -600,14 +609,11 @@ export const Takeoff = () => {
     return () => mq.removeEventListener("change", update);
   }, []);
 
-  // Everything the timeline drives, as motion values (transform and opacity only).
+  // Everything the timeline drives, as motion values.
   const p = useMotionValue(0); // scene time
-  const skyA = useMotionValue(0); // amber (golden hour) / cloud (day)
-  const skyB = useMotionValue(0); // deep amber / whiteout
-  const skyC = useMotionValue(0); // the page background
-  const push = useMotionValue(0); // push through the windscreen, 0 → 1
-  const scale = useTransform(push, (v) => 1 + 3 * easeIn(v));
-  const fade = useTransform(push, [0.7, 1], [1, 0]);
+  const cloud = useMotionValue(0); // daylight: the cloud whiteout over the whole frame
+  const veil = useMotionValue(0); // the page colour over the whole frame
+  const out = useMotionValue(1); // the overlay's own opacity (fades it away at the hand-off)
   const skipRef = useRef<() => void>(() => {});
 
   // ── The controller ───────────────────────────────────────────────────────
@@ -616,10 +622,21 @@ export const Takeoff = () => {
     let raf = 0;
     let start = 0;
     let skipAt = 0;
+    let from = { cloud: 0, veil: 0 }; // where a skip starts its quick dip from
+    let handedOff = false;
     let running = false;
     let waiting = false; // overlay up, timeline not started yet (fonts loading)
     let skipQueued = false;
     let alive = true;
+    const day = () => html.dataset.palette === "day";
+    // The overlay is pure page colour: show the page content under it and start the reveal.
+    const handOff = () => {
+      if (handedOff) return;
+      handedOff = true;
+      takeoffClimb.set(1);
+      html.dataset.takeoff = "out";
+      window.dispatchEvent(new CustomEvent("takeoff:done"));
+    };
     const finish = (skipped: boolean, elapsed: number) => {
       running = false;
       try {
@@ -627,59 +644,63 @@ export const Takeoff = () => {
       } catch {
         // Storage blocked: it'll just play again next time.
       }
-      takeoffClimb.set(1);
       delete html.dataset.takeoff;
       setActive(false);
-      window.dispatchEvent(new CustomEvent("takeoff:done"));
       if (!skipped) posthog.capture("takeoff_completed", { ms: Math.round(elapsed) });
     };
     const tick = (now: number) => {
       if (!running) return;
       if (skipAt) {
-        const k = clamp01((now - skipAt) / SKIP_PUSH_MS);
-        push.set(k);
-        if (k >= 1) return finish(true, skipAt - start);
+        const e = now - skipAt;
+        const k = ease(e / SKIP_DIM_MS);
+        veil.set(from.veil + (1 - from.veil) * k);
+        if (day()) cloud.set(from.cloud + (1 - from.cloud) * k);
+        if (e >= SKIP_DIM_MS) {
+          handOff();
+          out.set(1 - ease((e - SKIP_DIM_MS) / SKIP_OUT_MS));
+          if (e >= SKIP_DIM_MS + SKIP_OUT_MS) return finish(true, skipAt - start);
+        }
       } else {
         // Dev-only test hook: window.__takeoffAt freezes the timeline at that many ms.
         const frozen = process.env.NODE_ENV !== "production" ? (window as unknown as { __takeoffAt?: number }).__takeoffAt : undefined;
         const ms = frozen ?? now - start;
         p.set(sceneAt(ms));
-        takeoffClimb.set(clamp01((ms - T.roll) / (T.push - T.roll)));
-        skyA.set(clamp01((ms - T.climb) / 200));
-        skyB.set(clamp01((ms - T.climb - 200) / 200));
-        skyC.set(clamp01((ms - T.climb - 400) / 200));
-        push.set(clamp01((ms - T.sky) / (T.push - T.sky)));
-        if (ms >= T.push) return finish(false, ms);
+        takeoffClimb.set(clamp01((ms - T.roll) / (T.dim - T.roll)));
+        if (day()) {
+          cloud.set(ease((ms - T.climb) / (T.cloud - T.climb)));
+          veil.set(ease((ms - T.cloud) / (T.dim - T.cloud)));
+        } else {
+          cloud.set(0);
+          veil.set(ease((ms - T.climb) / (T.dim - T.climb)));
+        }
+        if (ms >= T.dim) {
+          handOff();
+          out.set(1 - ease((ms - T.dim) / (T.end - T.dim)));
+        } else out.set(1);
+        if (ms >= T.end) return finish(false, ms);
       }
       raf = requestAnimationFrame(tick);
     };
-    // Skip: straight to the sky-matched frame, then push through in 300 ms. Never blocks input.
+    // Skip: a quick dip to the page colour, then the hand-off. Never blocks input.
     const skip = () => {
       if (waiting) {
         skipQueued = true;
         return;
       }
-      if (!running || skipAt) return;
-      const now = performance.now();
-      if (now - start >= T.sky) return; // already pushing through
-      skipAt = now;
-      posthog.capture("takeoff_skipped", { ms: Math.round(now - start) });
-      p.set(SCENE_END);
-      skyA.set(1);
-      skyB.set(1);
-      skyC.set(1);
-      push.set(0);
-      takeoffClimb.set(1);
+      if (!running || skipAt || handedOff) return;
+      skipAt = performance.now();
+      from = { cloud: cloud.get(), veil: veil.get() };
+      posthog.capture("takeoff_skipped", { ms: Math.round(skipAt - start) });
     };
     skipRef.current = skip;
     const play = async () => {
       p.set(0);
-      skyA.set(0);
-      skyB.set(0);
-      skyC.set(0);
-      push.set(0);
+      cloud.set(0);
+      veil.set(0);
+      out.set(1);
       takeoffClimb.set(0);
       skipAt = 0;
+      handedOff = false;
       skipQueued = false;
       waiting = true;
       html.dataset.takeoff = "on";
@@ -718,7 +739,7 @@ export const Takeoff = () => {
       window.removeEventListener("pointerdown", onInput);
       window.removeEventListener("takeoff:replay", onReplay);
     };
-  }, [p, skyA, skyB, skyC, push]);
+  }, [p, cloud, veil, out]);
 
   // ── Scene state from the scene time ─────────────────────────────────────
   const [s, setS] = useState({ t: 0, d: 0, h: 1, kt: 0, alt: 0, call: CALLOUTS[0][1], thrust: 0, pitch: 0, horizon: 0 });
@@ -756,22 +777,17 @@ export const Takeoff = () => {
   // Rotation and climb: the nose comes up and the world drops away, so the terminal and the
   // skyline sink below the sill.
   const worldY = useTransform(p, [0.5, 0.64, SCENE_END], [0, 70, 120]);
-  // Scene units → CSS pixels (the SVG is "slice"-scaled), and the push-through origin: the
-  // middle of the captain's front window (kept on screen on narrow phones).
-  const [unit, setUnit] = useState({ k: 1, ox: "50%", oy: "34%", px: "37%", py: "32%" });
+  // Scene units → CSS pixels (the SVG is "slice"-scaled).
+  const [unit, setUnit] = useState({ k: 1, ox: "50%", oy: "34%" });
   useEffect(() => {
     const measure = () => {
       const w = window.innerWidth;
       const hgt = window.innerHeight;
       const k = Math.max(w / VIEW_W, hgt / VIEW_H);
-      const visW = w / k;
-      const ux = Math.min(466, Math.max(370, VP - visW / 2 + visW * 0.25));
       setUnit({
         k,
         ox: `${w / 2 + (VP - VIEW_W / 2) * k}px`,
         oy: `${hgt / 2 + (HZ - VIEW_H / 2) * k}px`,
-        px: `${w / 2 + (ux - VIEW_W / 2) * k}px`,
-        py: `${hgt / 2 + (190 - VIEW_H / 2) * k}px`,
       });
     };
     measure();
@@ -813,7 +829,6 @@ export const Takeoff = () => {
   const climbing = s.t >= 0.66; // POSITIVE RATE
   const fma: [string, string, string] = climbing ? ["THR REF", "LNAV", "VNAV SPD"] : ["THR REF", "TO/GA", "TO/GA"];
   // Yokes: pulled back at ROTATE, easing to a gentle climb position after POSITIVE RATE.
-  const ease = (x: number) => x * x * (3 - 2 * x);
   const pull = s.t < 0.5 ? 0 : s.t < 0.58 ? ease((s.t - 0.5) / 0.08) : 1 - 0.08 * ease(Math.min(1, (s.t - 0.58) / 0.42));
   const jitter = s.t > 0 && s.t < 0.5 ? Math.sin(s.t * 1300) * 0.8 * (s.t / 0.5) : 0;
 
@@ -821,12 +836,10 @@ export const Takeoff = () => {
     // Rendered in the page markup, but shown only while html[data-takeoff] is set (CSS), so a
     // first visit gets the cockpit on the very first paint and later visits never see it.
     <div className="takeoff-overlay fixed inset-0 z-[39]">
-      <motion.div className="absolute inset-0" style={{ opacity: fade }}>
-        {/* The camera: scales up around the captain's window for the push-through. */}
-        <motion.div className="absolute inset-0 overflow-hidden bg-floor will-change-transform" style={{ scale, transformOrigin: `${unit.px} ${unit.py}` }}>
+      <motion.div className="absolute inset-0 will-change-[opacity]" style={{ opacity: out }}>
+        <div className="absolute inset-0 overflow-hidden bg-floor">
           <motion.div className="absolute inset-0" style={{ y: shake }}>
-            {/* The world outside, composited on its own layer; the sky layers over it turn the
-                view through the windows into the page background. */}
+            {/* The world outside, composited on its own layer. */}
             <div ref={outsideRef} className="absolute inset-0 md:inset-[-12px] md:will-change-transform">
               <motion.div className="absolute inset-0 will-change-transform" style={{ y: worldYPx, rotate: pitchRot, transformOrigin: `${unit.ox} ${unit.oy}` }}>
                 <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} preserveAspectRatio="xMidYMid slice" className="h-full w-full overflow-visible" role="img" aria-label="View from an airliner flight deck during take-off">
@@ -836,9 +849,6 @@ export const Takeoff = () => {
                   <Ground d={s.d} h={s.h} lite={compact} />
                 </svg>
               </motion.div>
-              <motion.div aria-hidden="true" className="to-sky-a absolute inset-0" style={{ opacity: skyA }} />
-              <motion.div aria-hidden="true" className="to-sky-b absolute inset-0" style={{ opacity: skyB }} />
-              <motion.div aria-hidden="true" className="absolute inset-0 bg-wall" style={{ opacity: skyC }} />
             </div>
             <Layer>
               <Shell compact={compact} fma={fma} call={s.call} kt={s.kt} alt={s.alt} horizon={s.horizon} climb={Math.min(1, Math.max(0, (s.t - 0.55) / 0.1)) * 8} />
@@ -847,7 +857,7 @@ export const Takeoff = () => {
               <Panel ias={s.kt} alt={s.alt} pitch={s.pitch} n1={22 + s.thrust * 72} egt={420 + s.thrust * 360} ff={600 + s.thrust * 2240} thrust={s.thrust} airborne={airborne} fma={fma} pull={pull} jitter={jitter} detail={!compact} />
             </Layer>
           </motion.div>
-        </motion.div>
+        </div>
 
         {/* Name card and actions: pinned at a fixed safe inset, outside the moving layers. */}
         <div
@@ -874,6 +884,9 @@ export const Takeoff = () => {
             </button>
           </div>
         </div>
+        {/* The dip into the page: cloud (daylight only), then the page colour, over the whole frame. */}
+        <motion.div aria-hidden="true" className="to-cloud pointer-events-none absolute inset-0 z-20" style={{ opacity: cloud }} />
+        <motion.div aria-hidden="true" className="pointer-events-none absolute inset-0 z-20 bg-wall" style={{ opacity: veil }} />
       </motion.div>
     </div>
   );
