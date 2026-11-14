@@ -289,7 +289,7 @@ html.light .text-neutral-300:not(.keep-dark, .keep-dark *) { color: rgb(21 18 36
   --gold-text: 138 90 16;
   --card-edge: 110 70 30;
   --card-edge-a: 0.25;
-  --stat-card: 29 22 16;
+  --stat-card: 74 55 38;        /* medium cocoa: dark enough for the gold numbers, not black */
   --impact-panel: 203 184 154;
   /* The same airport in daytime: cream paper, brown ink, the same gold. */
   --floor: 216 197 160;
@@ -473,10 +473,8 @@ html.light .text-neutral-300:not(.keep-dark, .keep-dark *) { color: rgb(21 18 36
 }
 
 /* Section ambience: each area is lit differently. */
-.amb-terminal { background:
-  radial-gradient(60% 40% at 20% 0%, rgb(var(--ambient-warm) / 0.08), transparent 70%),
-  radial-gradient(60% 40% at 80% 0%, rgb(var(--ambient-warm) / 0.06), transparent 70%),
-  linear-gradient(180deg, rgb(var(--wall)) 0%, rgb(var(--floor)) 100%); }
+/* Flat page colour: the intro's dolly through the windscreen lands on exactly this. */
+.amb-terminal { background: rgb(var(--wall)); }
 .amb-hall { background:
   radial-gradient(50% 30% at 50% 0%, rgb(var(--ambient-warm) / 0.06), transparent 75%),
   linear-gradient(180deg, rgb(var(--floor)) 0%, rgb(var(--wall)) 18%, rgb(var(--wall)) 82%, rgb(var(--floor)) 100%); }
@@ -672,33 +670,45 @@ svg.foil { -webkit-text-fill-color: initial; background: none; color: #d8b65e; }
 .section-sub { color: rgb(var(--ink) / 0.9); }
 :root[data-palette="day"] .section-sub { color: #3f2a19; }
 
+/* Intro take-off: the overlay shows while html[data-takeoff] is set (before first paint, by the
+   script in app/layout.tsx). Meanwhile the page sits at the top, underneath, with its content
+   hidden (the intro section keeps its background: the same colour the dolly lands on). */
+.takeoff-overlay { display: none; }
+html[data-takeoff] .takeoff-overlay { display: block; }
+html[data-takeoff], html[data-takeoff] body { overflow: hidden; overscroll-behavior: none; }
+html[data-takeoff="on"] main.aviation > :not(.takeoff-overlay):not(#top):not(.flight-strip),
+html[data-takeoff="on"] #top > * { visibility: hidden; }
+/* The dusk sweeping down the sky (a 3×-tall layer moved down by transform): flat page colour on
+   top, then warm dark brown, deep amber and golden amber, then clear. In daylight: page beige,
+   then a band of cloud. */
+.dusk-sweep {
+  background: linear-gradient(180deg,
+    rgb(var(--wall)) 0%, rgb(var(--wall)) 50%,
+    #2e1d13 54%, #4a2a17 58%, #6e3a19 62%, rgba(160, 82, 34, 0.75) 66%, rgba(214, 128, 60, 0.35) 70%, rgba(236, 148, 80, 0) 75%, rgba(236, 148, 80, 0) 100%);
+}
+:root[data-palette="day"] .dusk-sweep {
+  background: linear-gradient(180deg,
+    rgb(var(--wall)) 0%, rgb(var(--wall)) 52%,
+    #f6f2e8 58%, #ffffff 63%, rgba(255, 255, 255, 0.85) 67%, rgba(255, 255, 255, 0) 74%, rgba(255, 255, 255, 0) 100%);
+}
+
+/* Intro reveal (after the take-off): the ACARS line types in, then the rest fades in (≤400 ms). */
+#top .reveal-first { transition: opacity 0.25s ease; }
+#top[data-reveal="hidden"] .reveal-first { opacity: 0; transition: none; }
+/* The rest comes in alongside the typing (not after it), so the page fills in straight away. */
+#top .reveal-item { transition: opacity 0.4s ease 0.15s, transform 0.4s ease 0.15s; }
+#top .reveal-item + .reveal-item { transition-delay: 0.25s; }
+#top[data-reveal="hidden"] .reveal-item { opacity: 0; transform: translateY(10px); transition: none; }
+/* The sky at the top of the page: an amber horizon glow and dim stars at golden hour, white haze in daylight. */
+.horizon-glow { background: radial-gradient(70% 100% at 50% 0%, rgba(232, 150, 70, 0.14), transparent 70%); }
+:root[data-palette="day"] .horizon-glow { background: radial-gradient(80% 100% at 50% 0%, rgba(255, 255, 255, 0.55), transparent 70%); }
+:root[data-palette="day"] .horizon-stars { display: none; }
+@media (prefers-reduced-motion: reduce) { .replay-btn { display: none; } }
+
 /* Captain's greeting: "Good evening" at golden hour, "Good afternoon" in daylight. */
 .greet-afternoon { display: none; }
 :root[data-palette="day"] .greet-afternoon { display: inline; }
 :root[data-palette="day"] .greet-evening { display: none; }
-
-/* Take-off prompt: a gold highlight runs round the pill's border, and its glow pulses. */
-@property --cue-spin { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
-@keyframes cue-spin { to { --cue-spin: 360deg; } }
-@keyframes cue-pulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.65; } }
-.cue-ring {
-  position: absolute; inset: 0; border-radius: 9999px; padding: 1.5px;
-  background: conic-gradient(from var(--cue-spin), rgb(var(--sign) / 0.4) 0deg, rgb(var(--sign) / 0.4) 240deg, rgb(var(--sign)) 290deg, #fff6d2 320deg, rgb(var(--sign)) 340deg, rgb(var(--sign) / 0.4) 360deg);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  animation: cue-spin 2.8s linear infinite;
-}
-.cue-glow { position: absolute; inset: 0; border-radius: 9999px; box-shadow: 0 0 14px 0 rgb(var(--sign) / 0.4); animation: cue-pulse 2.6s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) {
-  .cue-ring { animation: none; background: rgb(var(--sign)); }
-  .cue-glow { animation: none; opacity: 0.4; }
-}
-
-/* Gentle bob on the "scroll to take off" cue. */
-@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
-.bob { animation: bob 2.2s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .bob { animation: none; } }
 
 /* Daylight: bright gold text on cream fails contrast, so outside dark devices it uses the deep gold. */
 :root[data-palette="day"] .text-sign:not(.device *),

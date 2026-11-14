@@ -45,7 +45,9 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             // A saved choice wins; otherwise pick by the visitor's local time (daytime 6:00–17:00,
             // golden hour otherwise). The automatic pick isn't saved, so it follows the clock.
-            __html: `(function(){var d=document.documentElement,p=null;try{p=localStorage.getItem("palette")}catch(e){}if(p!=="day"&&p!=="golden"){var h=new Date().getHours();p=h>=6&&h<17?"day":"golden"}d.dataset.palette=p})()`,
+            // Also flags the intro take-off (home page, every load, not with reduced motion). A tap, click or
+            // key before the scripts load counts as a skip; scrolling doesn't (trackpad momentum lingers).
+            __html: `(function(){var d=document.documentElement,p=null;try{p=localStorage.getItem("palette")}catch(e){}if(p!=="day"&&p!=="golden"){var h=new Date().getHours();p=h>=6&&h<17?"day":"golden"}d.dataset.palette=p;try{if(location.pathname==="/"&&!matchMedia("(prefers-reduced-motion: reduce)").matches){d.dataset.takeoff="on";var k=function(){if(!d.dataset.takeoffReady)d.dataset.takeoffSkip="1"};["pointerdown","touchstart","keydown"].forEach(function(t){addEventListener(t,k,{once:true,passive:true})})}}catch(e){}})()`,
           }}
         />
       </head>

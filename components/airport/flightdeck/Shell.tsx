@@ -142,9 +142,12 @@ const Glass = memo(function Glass() {
       <path d={`${sp(WS_FRONT_L)} ${sp(mx(WS_FRONT_L))}`} fill="url(#glass-front)" />
       <path d={`${sp(WS_SIDE1_L)} ${sp(WS_SIDE2_L)}`} fill="url(#glass-side-l)" />
       <path d={`${sp(mx(WS_SIDE1_L))} ${sp(mx(WS_SIDE2_L))}`} fill="url(#glass-side-r)" />
-      {/* A soft streak of glare across each front pane. */}
-      <path d="M300 131 L338 131 L364 244 L328 242 Z" fill="rgba(255,255,255,0.045)" />
-      <path d="M612 129 L640 129 L662 244 L640 246 Z" fill="rgba(255,255,255,0.035)" />
+      {/* A soft streak of glare across each front pane (--glare lets the take-off's camera move
+          change the reflection as its angle to the glass changes). */}
+      <g style={{ opacity: "var(--glare, 1)" }}>
+        <path d="M300 131 L338 131 L364 244 L328 242 Z" fill="rgba(255,255,255,0.045)" />
+        <path d="M612 129 L640 129 L662 244 L640 246 Z" fill="rgba(255,255,255,0.035)" />
+      </g>
     </g>
   );
 });
