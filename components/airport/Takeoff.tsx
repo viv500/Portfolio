@@ -652,6 +652,9 @@ export const Takeoff = () => {
   // ── The controller ───────────────────────────────────────────────────────
   useEffect(() => {
     const html = document.documentElement;
+    // From here on, input is handled below; the pre-paint script stops recording early skips
+    // (otherwise its one-time listeners could fire on a later click, e.g. the first Replay).
+    html.dataset.takeoffReady = "1";
     let raf = 0;
     let start = 0;
     let skipAt = 0;
