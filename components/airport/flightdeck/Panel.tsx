@@ -1,7 +1,9 @@
 import React, { memo } from "react";
-import { P, SILL, affine, col, poly, ps, r1, type V3 } from "./geometry";
+import { P, SILL, affine, sillAt, col, poly, ps, r1, type V3 } from "./geometry";
 import { Eicas, Isfd, Nd, Pfd, SCREEN_H, SCREEN_W } from "./Displays";
 import { Yoke } from "./Yoke";
+import { Quadrant } from "./Quadrant";
+import type { MotionValue } from "framer-motion";
 
 // Glareshield, main instrument panel, pedestal and side consoles, all in perspective.
 
@@ -36,59 +38,101 @@ const Screen = ({ transform, children, knobs = "left" }: { transform: string; ch
   </g>
 );
 
-// ── Glareshield hood (screen space) ─────────────────────────────────────
-// A thin hood: a narrow top surface from the window sill to a rounded front lip that overhangs
-// the displays. Flat across the front panes, wrapping down along the side-window sills.
+// ── Glareshield (screen space) ─────────────────────────────────────────
+// One continuous shape, after the 777 front panel: a straight centre section (MCP and both EFIS
+// panels) whose ends round over at the shoulders and slope smoothly down and outward, following
+// the outer display sections, to rounded tips at the panel's outer corners. Seen from slightly
+// above, so a thin strip of its top surface runs back to the windscreen. Grey family, one shade
+// darker than the panel; gradients only.
 const SHIFT = 40; // the panel below sits this much higher than its 3D layout, tucked under the hood
-const LIP: [number, number][] = [[-220, 352], [-166, 346], [16, 330], [40, 324], [222, 288], [262, 280], [500, 280], [738, 280], [778, 288], [960, 324], [984, 330], [1166, 346], [1220, 352]];
-const LIP_DEPTH = 24;
-const line = (pts: [number, number][], dy = 0) => pts.map(([x, y]) => `${x} ${y + dy}`).join(" L");
-const LIP_TOP = `M${line(LIP)}`;
-const HOOD_TOP_MID = 280;
-/** Where the window sill is at x, along the front panes. */
-const sillAt = (x: number) => {
-  for (let i = 1; i < SILL.length; i++) {
-    const [x0, y0] = SILL[i - 1];
-    const [x1, y1] = SILL[i];
-    if (x >= x0 && x <= x1) return y0 + ((y1 - y0) * (x - x0)) / (x1 - x0);
-  }
-  return SILL[SILL.length - 1][1];
+const GS_TOP = 268; // top of the front face, centre section
+const GS_BOTTOM = 298; // bottom of the front face, centre section
+const HOOD_TOP_MID = GS_TOP;
+const mirror = (d: string) => d.replace(/(-?[\d.]+) (-?[\d.]+)/g, (_, x, y) => `${(1000 - Number(x)).toFixed(1).replace(/\.0$/, "")} ${y}`);
+// Left half of the front face's top edge, from the centre out to the tip (the right is mirrored).
+const TOP_L = `L335 ${GS_TOP} C312 ${GS_TOP} 296 270 282 276 L70 314 C48 318 30 324 28 330`;
+// The tip, and the bottom edge back in to the centre (it runs just above the display tops).
+const BOTTOM_L = `C26 338 34 342 48 341 L262 315 C284 312 300 ${GS_BOTTOM} 335 ${GS_BOTTOM} L500 ${GS_BOTTOM}`;
+/** Reverse a simple "L/C" chain so it can be walked from the other end (for the right half). */
+const FACE = `M500 ${GS_TOP} ${TOP_L} ${BOTTOM_L} Z M500 ${GS_TOP} ${mirror(TOP_L)} ${mirror(BOTTOM_L)} Z`;
+const TOP_EDGE = `M28 330 C30 324 48 318 70 314 L282 276 C296 270 312 ${GS_TOP} 335 ${GS_TOP} L665 ${GS_TOP} C688 ${GS_TOP} 704 270 718 276 L930 314 C952 318 970 324 972 330`;
+const BOTTOM_EDGE = `M48 341 L262 315 C284 312 300 ${GS_BOTTOM} 335 ${GS_BOTTOM} L665 ${GS_BOTTOM} C700 ${GS_BOTTOM} 716 312 738 315 L952 341`;
+/** The top surface: from the windscreen base (the sill) forward to the face's top edge. */
+const TOP_SURFACE = (() => {
+  const back = SILL.filter(([x]) => x > 28 && x < 972).reverse().map(([x, y]) => `L${x} ${y}`).join(" ");
+  return `${TOP_EDGE} L972 315 ${back} L28 315 Z`;
+})();
+/** On a wing of the face, a point a fraction s of the way from its top edge to its bottom edge. */
+const onWing = (x: number, s: number): [number, number] => {
+  const top = 276 + ((314 - 276) * (282 - x)) / (282 - 70);
+  const bot = 315 + ((341 - 315) * (262 - x)) / (262 - 48);
+  return [x, top + s * (bot - top)];
 };
 
 const Hood = memo(function Hood() {
-  const sill = SILL.map((p) => p.join(" ")).join(" L");
-  const top = `M${sill} L${line([...LIP].reverse())} Z`;
-  const lip = `M${line(LIP)} L${line([...LIP].reverse(), LIP_DEPTH)} Z`;
-  // Defog vents: a row of small slots just in front of the windshield base.
-  const vents = Array.from({ length: 30 }, (_, i) => 262 + i * 16.4)
-    .filter((x) => Math.abs(x - 500) > 14)
-    .map((x) => {
-      const y = sillAt(x) + 6;
-      return `M${r1(x - 5)} ${r1(y)} h10 v2.2 h-10 Z`;
-    })
-    .join(" ");
+  const knobs: [number, number][] = [onWing(236, 0.5), onWing(206, 0.5)];
+  const grille = onWing(78, 0.5);
   return (
     <g>
-      {/* Soft shadow cast onto the displays below the lip. */}
-      <path d={`M${line(LIP, LIP_DEPTH)} L${line([...LIP].reverse(), LIP_DEPTH + 22)} Z`} fill="url(#under-gs)" />
-      {/* Top surface: dark matte, a faint texture, and a soft reflection of the sky near the glass. */}
-      <path d={top} fill="url(#gs-top)" />
-      <path d={top} fill="url(#gs-grain)" />
-      <path d={top} fill="url(#gs-reflect)" />
-      <path d={vents} fill="rgba(0,0,0,0.55)" />
-      <path d={`M${sill}`} fill="none" stroke={col("rim", 0.45)} strokeWidth="1.4" />
-      <path d={lip} fill="url(#gs-lip)" />
-      <path d={LIP_TOP} fill="none" stroke={col("rim", 0.35)} strokeWidth="1.6" />
-      {/* Sunlight through the front panes, with hard shadows from the pillars and centre post. */}
-      <g style={{ opacity: "var(--sunlight)" }}>
-        <path d="M262 239 L490 252 L500 280 L272 280 Z" style={{ fill: col("sunlit", 0.16) }} />
-        <path d="M510 252 L738 239 L728 280 L500 280 Z" style={{ fill: col("sunlit", 0.12) }} />
-        <path d="M244 236 L262 239 L272 280 L250 282 Z" fill="rgba(0,0,0,0.28)" />
-        <path d="M490 252 L510 252 L516 280 L496 280 Z" fill="rgba(0,0,0,0.3)" />
-        <path d={LIP_TOP} fill="none" style={{ stroke: col("sunlit", 0.5) }} strokeWidth="2" />
-      </g>
-      {/* Faint glow from the screens onto the underside of the lip. */}
-      <ellipse cx="500" cy={HOOD_TOP_MID + LIP_DEPTH + 2} rx="330" ry="8" fill="url(#lip-glow)" />
+      <defs>
+        <linearGradient id="gs-face" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0" style={{ stopColor: col("cabin-mid") }} />
+          <stop offset="1" style={{ stopColor: col("cabin-dark") }} />
+        </linearGradient>
+        {/* Hood-top strip: dark matte, darker toward the glass. */}
+        <linearGradient id="gs-top" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0" style={{ stopColor: col("cabin-dark") }} />
+          <stop offset="1" style={{ stopColor: col("cabin-mid") }} />
+        </linearGradient>
+        {/* EFIS panel, used either side of the MCP. */}
+        <g id="gs-efis">
+          <rect width="62" height="22" rx="1.5" style={{ fill: col("cabin-dark") }} stroke="rgba(0,0,0,0.55)" strokeWidth="1" />
+          <path d="M1 0.9 H61" stroke="rgba(255,255,255,0.07)" strokeWidth="0.8" />
+          {[12, 50].map((x) => (
+            <circle key={x} cx={x} cy="11" r="4.2" fill="url(#knob)" stroke="rgba(0,0,0,0.5)" strokeWidth="0.5" />
+          ))}
+          {[22, 28, 34, 40].map((x) => (
+            <g key={x}>
+              <rect x={x - 2.2} y="6" width="4.4" height="3.6" rx="0.6" fill="#3d4148" />
+              <rect x={x - 2.2} y="12.5" width="4.4" height="3.6" rx="0.6" fill="#3d4148" />
+            </g>
+          ))}
+        </g>
+        {/* Master WARNING over CAUTION: small square buttons, dull and unlit. */}
+        <g id="gs-warn">
+          <rect width="9" height="8.5" rx="0.8" fill="#5a3634" stroke="rgba(0,0,0,0.5)" strokeWidth="0.5" />
+          <rect y="10" width="9" height="8.5" rx="0.8" fill="#5a4c32" stroke="rgba(0,0,0,0.5)" strokeWidth="0.5" />
+          <text x="4.5" y="5.2" fontSize="1.9" fill="rgba(235,210,205,0.7)" textAnchor="middle" fontFamily="var(--font-mono), monospace">WARN</text>
+          <text x="4.5" y="15.2" fontSize="1.9" fill="rgba(235,222,195,0.7)" textAnchor="middle" fontFamily="var(--font-mono), monospace">CAUT</text>
+        </g>
+      </defs>
+      {/* Soft shadow from the underside onto the top of the display bezels. */}
+      <path d={BOTTOM_EDGE} fill="none" stroke="rgba(0,0,0,0.18)" strokeWidth="14" transform="translate(0 6)" />
+      <path d={BOTTOM_EDGE} fill="none" stroke="rgba(0,0,0,0.28)" strokeWidth="6" transform="translate(0 3)" />
+      {/* The thin top surface back to the windscreen, then the front face. */}
+      <path d={TOP_SURFACE} fill="url(#gs-top)" />
+      <path d={FACE} fill="url(#gs-face)" />
+      <path d={FACE} fill="rgba(0,0,0,0.1)" />
+      <path d={BOTTOM_EDGE} fill="none" stroke="rgba(0,0,0,0.45)" strokeWidth="1.4" />
+      {/* Light along the top edge: warm at golden hour, neutral by day. */}
+      <path d={TOP_EDGE} fill="none" stroke="rgb(var(--sunlit))" strokeOpacity="0.45" strokeWidth="1.1" />
+      {/* Contents: EFIS panels either side of the MCP (drawn separately), warning/caution at the ends. */}
+      <use href="#gs-efis" x="328" y={GS_TOP + 4} />
+      <use href="#gs-efis" x="610" y={GS_TOP + 4} />
+      <use href="#gs-warn" x="312" y={GS_TOP + 6} />
+      <use href="#gs-warn" x="679" y={GS_TOP + 6} />
+      {/* On each wing: two small knobs (clock, map light) and a speaker grille near the tip. */}
+      {[false, true].map((right) =>
+        [...knobs.map(([x, y], i) => (
+          <circle key={`${right}-k${i}`} cx={right ? 1000 - x : x} cy={y} r="3.2" fill="url(#knob)" stroke="rgba(0,0,0,0.5)" strokeWidth="0.5" />
+        )),
+        <g key={`${right}-g`}>
+          <circle cx={right ? 1000 - grille[0] : grille[0]} cy={grille[1]} r="5.5" style={{ fill: col("cabin-dark") }} stroke="rgba(0,0,0,0.5)" strokeWidth="0.6" />
+          {[-2.6, 0, 2.6].map((dy) => (
+            <path key={dy} d={`M${(right ? 1000 - grille[0] : grille[0]) - 3.6} ${grille[1] + dy} h7.2`} stroke="rgba(0,0,0,0.55)" strokeWidth="0.9" />
+          ))}
+        </g>]
+      )}
     </g>
   );
 });
@@ -103,7 +147,8 @@ const Wipers = memo(function Wipers() {
       <circle cx={px} cy={py} r="4" fill="#1a1b1e" stroke="rgba(255,255,255,0.15)" strokeWidth="0.8" />
     </g>
   );
-  return <g>{[wiper(274, 241, 1), wiper(726, 241, -1)]}</g>;
+  // Pivots on the frame at the outer bottom corner of each pane, outside the glass.
+  return <g>{[wiper(262, sillAt(262) - 3, 1), wiper(738, sillAt(738) - 3, -1)]}</g>;
 });
 
 /** Sidewalls below the side windows: a padded panel seam and a gasper vent. */
@@ -175,7 +220,7 @@ const Structure = memo(function Structure() {
 /** Boeing mode control panel on the glareshield. Values are autopilot targets, labelled as such. */
 const Mcp = memo(function Mcp() {
   const W = 260;
-  const k = 0.82;
+  const k = 0.8;
   const t = `translate(${500 - (W * k) / 2} ${HOOD_TOP_MID + 4}) scale(${k})`;
   const windows = [
     { x: 40, label: "IAS/MACH", value: "160" },
@@ -239,6 +284,7 @@ export const Panel = ({
   pull,
   jitter,
   detail,
+  lever,
 }: {
   ias: number;
   alt: number;
@@ -252,6 +298,8 @@ export const Panel = ({
   pull: number;
   jitter: number;
   detail: boolean;
+  /** Thrust lever position, 0 idle → 1 take-off thrust (a motion value: the levers move by transform). */
+  lever: MotionValue<number>;
 }) => {
   const pfdL = affine(wingL(0.88, -0.35), wingL(0.52, -0.35), wingL(0.88, -0.54), SCREEN_W, SCREEN_H);
   const ndL = affine(wingL(0.44, -0.35), wingL(0.08, -0.35), wingL(0.44, -0.54), SCREEN_W, SCREEN_H);
@@ -261,18 +309,11 @@ export const Panel = ({
   const isfd = affine([0.15, -0.37, PANEL_Z], [0.255, -0.37, PANEL_Z], [0.15, -0.475, PANEL_Z], SCREEN_W, SCREEN_H);
   const gs = Math.round(ias);
   const nm = 6153 - Math.round(alt / 600);
-  // Throttles: two large handles that advance as thrust is set.
-  const lever = (X: number, zTop: number, Ytop: number) => {
-    const [bx, by] = P(X, -0.66, 0.84);
-    const [hx, hy] = P(X, Ytop, zTop);
-    return { bx, by, hx, hy, s: 440 / zTop };
-  };
-  const throttles = [-0.045, 0.045].map((X) => lever(X, 0.74 + thrust * 0.18, -0.55));
   return (
     <g>
       <PanelDefs />
       {/* Opaque backing from the glareshield down, so nothing outside ever shows behind the panel. */}
-      <path d={`M${line(LIP)} V700 H-220 Z`} style={{ fill: col("cabin-dark") }} />
+      <path d={`M${SILL.map((q) => q.join(" ")).join(" L")} V700 H-220 Z`} style={{ fill: col("cabin-dark") }} />
       <g transform={`translate(0 ${-SHIFT})`}>
       <Structure />
       {/* On phones (detail off) the outboard PFDs and yokes are outside the crop, so skip them. */}
@@ -303,17 +344,7 @@ export const Panel = ({
       <Hood />
       <Wipers />
       <g transform={`translate(0 ${-SHIFT})`}>
-      {throttles.map((l, i) => (
-        <g key={i}>
-          <line x1={l.bx} y1={l.by} x2={l.hx} y2={l.hy} stroke="#1b1d21" strokeWidth={r1(0.022 * l.s)} strokeLinecap="round" />
-          {/* T-handle with a light grip, as on the 777. */}
-          <rect x={r1(l.hx - 0.05 * l.s)} y={r1(l.hy - 0.02 * l.s)} width={r1(0.1 * l.s)} height={r1(0.04 * l.s)} rx="6" fill="url(#lever)" stroke="rgba(255,255,255,0.18)" />
-          <rect x={r1(l.hx - 0.04 * l.s)} y={r1(l.hy - 0.016 * l.s)} width={r1(0.08 * l.s)} height={r1(0.01 * l.s)} rx="2" fill="rgba(255,255,255,0.35)" />
-          <text x={l.hx} y={r1(l.hy + 0.012 * l.s)} fontSize={r1(0.018 * l.s)} fill="#2a2d32" textAnchor="middle" fontFamily="var(--font-mono), monospace" fontWeight="700">
-            {i + 1}
-          </text>
-        </g>
-      ))}
+      <Quadrant thrust={lever} />
       {detail && <Yoke side="left" pull={pull} jitter={jitter} detail={detail} />}
       {detail && <Yoke side="right" pull={pull} jitter={-jitter} detail={detail} />}
       </g>
@@ -341,27 +372,6 @@ const PanelDefs = memo(function PanelDefs() {
         <stop offset="0" stopColor="#000" stopOpacity="0.6" />
         <stop offset="1" stopColor="#000" stopOpacity="0" />
       </linearGradient>
-      <linearGradient id="gs-top" x1="0" x2="0" y1="1" y2="0">
-        <stop offset="0" style={{ stopColor: col("cabin-dark") }} />
-        <stop offset="1" style={{ stopColor: col("cabin") }} />
-      </linearGradient>
-      <linearGradient id="gs-lip" x1="0" x2="0" y1="0" y2="1">
-        <stop offset="0" style={{ stopColor: col("cabin") }} />
-        <stop offset="0.35" style={{ stopColor: col("cabin-mid") }} />
-        <stop offset="1" style={{ stopColor: col("cabin-dark") }} />
-      </linearGradient>
-      <pattern id="gs-grain" width="3" height="3" patternUnits="userSpaceOnUse">
-        <rect width="1" height="1" fill="rgba(255,255,255,0.035)" />
-        <rect x="1.5" y="1.5" width="1" height="1" fill="rgba(0,0,0,0.12)" />
-      </pattern>
-      <linearGradient id="gs-reflect" x1="0" x2="0" y1="0" y2="1">
-        <stop offset="0" style={{ stopColor: col("sky-2"), stopOpacity: 0.16 }} />
-        <stop offset="0.6" style={{ stopColor: col("sky-2"), stopOpacity: 0 }} />
-      </linearGradient>
-      <radialGradient id="lip-glow">
-        <stop offset="0" stopColor="rgb(95,212,232)" stopOpacity="0.16" />
-        <stop offset="1" stopColor="rgb(95,212,232)" stopOpacity="0" />
-      </radialGradient>
       <linearGradient id="console-top" x1="0" x2="0" y1="0" y2="1">
         <stop offset="0" style={{ stopColor: col("cabin") }} />
         <stop offset="1" style={{ stopColor: col("cabin-dark") }} />
@@ -378,11 +388,6 @@ const PanelDefs = memo(function PanelDefs() {
         <stop offset="0" stopColor="#62676f" />
         <stop offset="1" stopColor="#16171a" />
       </radialGradient>
-      <linearGradient id="lever" x1="0" x2="0" y1="0" y2="1">
-        <stop offset="0" stopColor="#e4e6ea" />
-        <stop offset="0.5" stopColor="#b6bac1" />
-        <stop offset="1" stopColor="#6e737b" />
-      </linearGradient>
     </defs>
   );
 });

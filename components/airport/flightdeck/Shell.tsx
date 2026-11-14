@@ -63,7 +63,8 @@ const Overhead = memo(function Overhead({ compact }: { compact: boolean }) {
   return (
     <g>
       {/* Ceiling liner, receding towards the windscreen. */}
-      <path d={poly([[-0.8, CEILING_Y, 0.36], [0.8, CEILING_Y, 0.36], [0.8, CEILING_Y, 1.96], [-0.8, CEILING_Y, 1.96]])} fill="url(#ceiling)" />
+      {/* It narrows towards the windscreen, so it stays above the rising window tops. */}
+      <path d={poly([[-0.8, CEILING_Y, 0.36], [0.8, CEILING_Y, 0.36], [0.5, CEILING_Y, 1.86], [-0.5, CEILING_Y, 1.86]])} fill="url(#ceiling)" />
       {/* Overhead panel. */}
       <path d={poly([[-0.46, OH_Y, 0.5], [0.46, OH_Y, 0.5], [0.46, OH_Y, 1.82], [-0.46, OH_Y, 1.82]])} fill="url(#oh-panel)" />
       {seamsX.map((X) => (
@@ -90,17 +91,19 @@ const Overhead = memo(function Overhead({ compact }: { compact: boolean }) {
         })
       )}
       {/* Shadow where the ceiling meets the windscreen. */}
-      <path d={poly([[-0.8, CEILING_Y, 1.6], [0.8, CEILING_Y, 1.6], [0.8, CEILING_Y, 1.96], [-0.8, CEILING_Y, 1.96]])} fill="url(#ceiling-ao)" />
+      <path d={poly([[-0.56, CEILING_Y, 1.5], [0.56, CEILING_Y, 1.5], [0.5, CEILING_Y, 1.86], [-0.5, CEILING_Y, 1.86]])} fill="url(#ceiling-ao)" />
     </g>
   );
 });
 
 // ── Frame, pillars and walls ─────────────────────────────────────────────
 const line = (a: V2, b: V2) => `M${a.join(" ")} L${b.join(" ")}`;
+/** Just under the side windows' top edge (for the stowed sun visors). */
+const visorY = (x: number) => Math.round((WS_SIDE1_L[0][1] + ((WS_SIDE1_L[1][1] - WS_SIDE1_L[0][1]) * (x - WS_SIDE1_L[0][0])) / (WS_SIDE1_L[1][0] - WS_SIDE1_L[0][0]) + 3) * 10) / 10;
 
 const Frame = memo(function Frame() {
   const [fo, fob] = [WS_FRONT_L[2], WS_FRONT_L[3]];
-  const [so, sob] = [WS_SIDE1_L[0], WS_SIDE1_L[3]];
+  const [so, sob] = [WS_SIDE1_L[0], WS_SIDE1_L[WS_SIDE1_L.length - 1]];
   const R = (p: V2): V2 => [1000 - p[0], p[1]];
   return (
     <g>
@@ -125,8 +128,8 @@ const Frame = memo(function Frame() {
         const m = (x: number) => (d === 1 ? x : 1000 - x);
         return (
           <g key={d}>
-            <path d={`M${m(226)} 136 L${m(70)} 143 L${m(70)} 158 L${m(226)} 150 Z`} fill="rgba(20,22,26,0.82)" />
-            <path d={`M${m(226)} 150 L${m(70)} 158`} stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+            <path d={`M${m(222)} ${visorY(222)} L${m(66)} ${visorY(66)} L${m(66)} ${visorY(66) + 15} L${m(222)} ${visorY(222) + 14} Z`} fill="rgba(20,22,26,0.82)" />
+            <path d={`M${m(222)} ${visorY(222) + 14} L${m(66)} ${visorY(66) + 15}`} stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
           </g>
         );
       })}

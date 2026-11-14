@@ -62,24 +62,57 @@ export const SIDE2_L: V3[] = [
 export const CEILING_Y = 0.37;
 
 // ── Windscreen outline, in screen space ─────────────────────────────────
-// Proportioned after an A320: two wide, short front panes on a thin centre post, slim diagonal
-// A-pillars, and wide side windows. Drawn directly in viewBox units; x is mirrored for the right.
 export type V2 = [number, number];
 export const sp = (pts: V2[]) => `M${pts.map((p) => p.join(" ")).join(" L")} Z`;
 export const mx = (pts: V2[]): V2[] => pts.map(([x, y]) => [1000 - x, y]);
-// Front pane: the top rises slightly towards the outside, the bottom drops away.
-// Side windows: the top starts level with the front pane's outer corner and runs flat to
-// slightly down; the bottom keeps dropping.
-// Boeing 777, after a straight-on flight deck photo: two wide, short front panes (about 2.5:1)
-// either side of a thin vertical post, thick A-pillars raked in at the top, and side windows
-// whose tops line up with the front panes while their bottoms drop away towards the outside.
-// Every window ends at the sill, so nothing outside shows below the glareshield.
-export const WS_FRONT_L: V2[] = [[492, 128], [380, 129], [264, 133], [244, 236], [496, 250]];
-export const WS_SIDE1_L: V2[] = [[232, 134], [58, 141], [40, 312], [222, 242]];
-export const WS_SIDE2_L: V2[] = [[34, 142], [-150, 150], [-166, 336], [16, 318]];
-export const WS_APILLAR_L: V2[] = [[264, 133], [232, 134], [222, 242], [244, 236]];
-export const WS_MIDPILLAR_L: V2[] = [[58, 141], [34, 142], [16, 318], [40, 312]];
+
+// Boeing 777, after a straight-on flight deck photo. Every window sits directly on the
+// glareshield: its bottom edge follows the glareshield's back edge (the same arch across the
+// front panes, then down the sloping wings under the side windows), a thin even hood-top strip
+// (HOOD units) behind its front edge. The tops rise gently from the centre post towards the outer
+// pillars (about 5°), and the pillars lean slightly outward at the top.
+
+/** The glareshield's front top edge, left half (matches the shape drawn in Panel.tsx). */
+const GS_EDGE_L: V2[] = (() => {
+  const bez = (a: V2, b: V2, c: V2, d: V2, n: number): V2[] =>
+    Array.from({ length: n }, (_, i) => {
+      const t = (i + 1) / n;
+      const u = 1 - t;
+      return [u * u * u * a[0] + 3 * u * u * t * b[0] + 3 * u * t * t * c[0] + t * t * t * d[0], u * u * u * a[1] + 3 * u * u * t * b[1] + 3 * u * t * t * c[1] + t * t * t * d[1]];
+    });
+  return [[500, 268], [335, 268], ...bez([335, 268], [312, 268], [296, 270], [282, 276], 8), [70, 314], ...bez([70, 314], [48, 318], [30, 324], [28, 330], 6)];
+})();
+/** Height of the hood-top strip between the glareshield's front edge and the glass. */
+export const HOOD = 20;
+/** The window sill (the glareshield's back edge) at x. Outboard of the glareshield's tips it runs
+ *  on along the side wall under the rear side windows. */
+export const sillAt = (x: number): number => {
+  const xl = x > 500 ? 1000 - x : x;
+  if (xl <= 28) return 330 - HOOD + (28 - xl) * 0.15;
+  for (let i = 1; i < GS_EDGE_L.length; i++) {
+    const [x0, y0] = GS_EDGE_L[i - 1];
+    const [x1, y1] = GS_EDGE_L[i];
+    if (xl <= x0 && xl >= x1) return y0 + ((y1 - y0) * (xl - x0)) / (x1 - x0) - HOOD;
+  }
+  return 268 - HOOD;
+};
+const r = (n: number) => Math.round(n * 10) / 10;
+const at = (x: number): V2 => [x, r(sillAt(x))];
+/** Window tops: rising about 5° from the centre post outward. */
+const TOP_SLOPE = 0.0875;
+const top = (x: number): V2 => [x, r(128 - TOP_SLOPE * (492 - x))];
+const bottom = (from: number, to: number, step = 12): V2[] => {
+  const out: V2[] = [];
+  for (let x = from; from < to ? x < to : x > to; x += from < to ? step : -step) out.push(at(x));
+  return out;
+};
+// Pane outlines, left side (the right is mirrored). Order: top inner, top outer, bottom outer, … bottom inner.
+export const WS_FRONT_L: V2[] = [top(492), top(380), top(250), at(258), ...bottom(270, 496), at(496)];
+export const WS_SIDE1_L: V2[] = [top(224), top(62), at(48), at(70), at(150), at(234)];
+export const WS_SIDE2_L: V2[] = [top(38), top(-150), at(-166), at(26)];
+export const WS_APILLAR_L: V2[] = [top(250), top(224), at(234), at(258)];
+export const WS_MIDPILLAR_L: V2[] = [top(62), top(38), at(26), at(48)];
 // The post tapers towards its base, so the near centreline dashes peek out either side.
-export const WS_POST: V2[] = [[492, 128], [508, 128], [504, 250], [496, 250]];
+export const WS_POST: V2[] = [[492, 128], [508, 128], [504, sillAt(500)], [496, sillAt(500)]];
 /** The sill: the bottom edge of every window, left to right, which the glareshield sits on. */
-export const SILL: V2[] = [[-220, 338], [-166, 336], [16, 318], [40, 312], [222, 242], [244, 236], [496, 250], [504, 250], [756, 236], [778, 242], [960, 312], [984, 318], [1166, 336], [1220, 338]];
+export const SILL: V2[] = Array.from({ length: 145 }, (_, i) => at(-220 + i * 10));
