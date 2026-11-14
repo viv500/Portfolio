@@ -289,7 +289,7 @@ html.light .text-neutral-300:not(.keep-dark, .keep-dark *) { color: rgb(21 18 36
   --gold-text: 138 90 16;
   --card-edge: 110 70 30;
   --card-edge-a: 0.25;
-  --stat-card: 29 22 16;
+  --stat-card: 74 55 38;        /* medium cocoa: dark enough for the gold numbers, not black */
   --impact-panel: 203 184 154;
   /* The same airport in daytime: cream paper, brown ink, the same gold. */
   --floor: 216 197 160;
