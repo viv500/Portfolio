@@ -1,156 +1,193 @@
 import React, { memo, useRef } from "react";
 import { useMotionValueEvent, type MotionValue } from "framer-motion";
-import { P, poly, r1 } from "./geometry";
+import { P, r1 } from "./geometry";
 
-// The throttle quadrant on the pedestal, in the scene's perspective (seen from above and behind):
-// a dark body with a lighter top face, a slot per lever, tick scales, the speedbrake (left, DOWN),
-// the flap lever (right, in its UP–30 gate at 15), fuel control switches and a PARK BRAKE label.
-// The two thrust levers slide forward along their slots, driven by one motion value (0 idle →
-// 1 take-off thrust): a transform only, so nothing re-renders while they move.
-// No filters; flat shapes and gradients; static parts memoised.
+// The 777 throttle quadrant on the pedestal, in the scene's perspective (viewer above and behind):
+// a deep, boxy housing whose top surface arcs fore-aft, wide booted slots, two chunky thrust
+// levers (the hero) with big grips that read almost as one bar, the speedbrake (left, DOWN) and
+// the flap lever (right, in a notched gate at 15), and fuel control toggles on the aft face.
+// Static SVG with gradients only (no filters). The thrust lever is one shared drawing (<use>),
+// placed by a transform written straight from the take-off timeline: no re-renders as it moves.
 
-const TOP_Y = -0.6; // the quadrant's top face (the pedestal is at -0.66)
-const AFT_Z = 0.78; // its aft (near) edge
-const FWD_Z = 1.0; // its forward edge
-const HALF_W = 0.115;
-const THRUST_X = [-0.028, 0.028];
-const SPEEDBRAKE_X = -0.088;
-const FLAP_X = 0.088;
-const SLOT_FROM = 0.795;
-const SLOT_TO = 0.975;
-/** Thrust lever travel along the slot (z of the grip), idle → take-off. */
-const LEVER_Z = [0.8, 0.905] as const;
-const GRIP_Y = -0.53;
-const FLAP_DETENTS: [string, number][] = [["UP", 0.965], ["1", 0.94], ["5", 0.915], ["15", 0.89], ["20", 0.865], ["25", 0.84], ["30", 0.815]];
+const W = 0.13; // housing half-width
+const FLOOR_Y = -0.66; // the pedestal surface
+const AFT_Z = 0.76; // aft (near) face
+const FWD_Z = 1.02; // forward end
+const MID_Z = (AFT_Z + FWD_Z) / 2;
+/** The top surface arcs fore-aft: highest in the middle, falling away at both ends. */
+const topY = (z: number) => -0.58 - 0.05 * ((z - MID_Z) / ((FWD_Z - AFT_Z) / 2)) ** 2;
+const THRUST_X = [-0.027, 0.027] as const;
+const SPEEDBRAKE_X = -0.094;
+const FLAP_X = 0.086;
+const SLOT = [0.79, 0.995] as const;
+const LEVER_Z = [0.81, 0.93] as const; // thrust lever travel along the arc, idle → take-off
+// On the near half of the arc: past its crest the surface falls away and compresses everything.
+const FLAP_DETENTS: [string, number][] = [["UP", 0.905], ["1", 0.889], ["5", 0.873], ["15", 0.857], ["20", 0.841], ["25", 0.825], ["30", 0.809]];
 
-const slot = (X: number, w = 0.006) => poly([[X - w, TOP_Y, SLOT_FROM], [X + w, TOP_Y, SLOT_FROM], [X + w, TOP_Y, SLOT_TO], [X - w, TOP_Y, SLOT_TO]]);
-const tickAt = (X: number, z: number, len: number) => {
-  const [x1, y1] = P(X, TOP_Y, z);
-  const [x2] = P(X + len, TOP_Y, z);
-  return `M${r1(x1)} ${r1(y1)} H${r1(x2)}`;
+type Pt = [number, number];
+const pt = (X: number, z: number, dy = 0): Pt => P(X, topY(z) + dy, z) as Pt;
+const along = (X: number, from: number, to: number, n = 8, dy = 0): Pt[] =>
+  Array.from({ length: n + 1 }, (_, i) => pt(X, from + ((to - from) * i) / n, dy));
+const ptsStr = (pts: Pt[]) => pts.map(([x, y]) => `${r1(x)} ${r1(y)}`).join(" L");
+const closed = (pts: Pt[]) => `M${ptsStr(pts)} Z`;
+const open = (pts: Pt[]) => `M${ptsStr(pts)}`;
+/** A strip on the arc between two X positions (a face, a slot, a chamfer). */
+const strip = (X1: number, X2: number, from = AFT_Z, to = FWD_Z) => closed([...along(X1, from, to), ...along(X2, to, from)]);
+const seg = (a: Pt, b: Pt) => `M${r1(a[0])} ${r1(a[1])} L${r1(b[0])} ${r1(b[1])}`;
+/** Placement for a part drawn in depth-1 units: translate to the surface point, scale 1/z. */
+const placed = (X: number, z: number, stretch = 1) => {
+  const [x, y] = pt(X, z);
+  const k = 1 / z;
+  return `translate(${r1(x)} ${r1(y)}) scale(${k.toFixed(4)} ${(k * stretch).toFixed(4)})`;
 };
 
-/** A small grip drawn in local units at depth 1, placed by translate + scale(1/z). */
-const placed = (X: number, Y: number, z: number) => {
-  const [x, y] = P(X, Y, z);
-  return `translate(${r1(x)} ${r1(y)}) scale(${(1 / z).toFixed(4)})`;
-};
+const Defs = memo(function Defs() {
+  return (
+    <defs>
+      <linearGradient id="q-top" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0" stopColor="#4d5057" />
+        <stop offset="1" stopColor="#3a3d42" />
+      </linearGradient>
+      <linearGradient id="q-front" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0" stopColor="#2c2e32" />
+        <stop offset="1" stopColor="#18191c" />
+      </linearGradient>
+      <linearGradient id="q-shadow" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0" stopColor="#000" stopOpacity="0.7" />
+        <stop offset="1" stopColor="#000" stopOpacity="0" />
+      </linearGradient>
+      <linearGradient id="q-shaft" x1="0" x2="1" y1="0" y2="0">
+        <stop offset="0" stopColor="#3a3c41" />
+        <stop offset="0.6" stopColor="#25272b" />
+        <stop offset="1" stopColor="#141518" />
+      </linearGradient>
+      <linearGradient id="q-grip" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0" stopColor="#f3f1ec" />
+        <stop offset="0.6" stopColor="#d9d6cf" />
+        <stop offset="1" stopColor="#a8a59e" />
+      </linearGradient>
+      <linearGradient id="q-grip-top" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0" stopColor="#ffffff" />
+        <stop offset="1" stopColor="#e8e6e0" />
+      </linearGradient>
+      <radialGradient id="q-collar" cx="0.35" cy="0.3" r="0.75">
+        <stop offset="0" stopColor="#e3e5e9" />
+        <stop offset="1" stopColor="#6d7178" />
+      </radialGradient>
+      {/* The thrust lever, drawn once at depth 1 (scene units × 440); origin where it leaves the slot. */}
+      <g id="q-thrust-lever">
+        <ellipse cx="0" cy="0" rx="7" ry="2" fill="#050506" />
+        {/* Tapered shaft: front face and a darker side face. */}
+        <path d="M-4.6 0 L2.4 0 L1.8 -38 L-3.4 -38 Z" fill="url(#q-shaft)" />
+        <path d="M2.4 0 L4.6 0 L3.4 -38 L1.8 -38 Z" fill="#0e0f11" />
+        {/* Reverse-thrust lever, folded against the front of the main lever. */}
+        <rect x="-2.6" y="-29" width="4.4" height="19" rx="1.2" fill="#18191c" stroke="#3d4046" strokeWidth="0.5" />
+        <rect x="-4.2" y="-32" width="7.6" height="4" rx="1.4" fill="#8e9298" />
+        {/* Grip: a wide rounded block, top face and front face. */}
+        <rect x="-11.5" y="-50" width="23" height="7" rx="3" fill="url(#q-grip-top)" />
+        <rect x="-11.5" y="-46" width="23" height="10" rx="3.4" fill="url(#q-grip)" stroke="#8d8a83" strokeWidth="0.5" />
+        {/* TO/GA button on the front of the grip. */}
+        <rect x="-2.4" y="-40.5" width="4.8" height="2.6" rx="1" fill="#0b0b0c" />
+      </g>
+    </defs>
+  );
+});
 
-const Body = memo(function Body() {
-  const top = poly([[-HALF_W, TOP_Y, AFT_Z], [HALF_W, TOP_Y, AFT_Z], [HALF_W, TOP_Y, FWD_Z], [-HALF_W, TOP_Y, FWD_Z]]);
-  const front = poly([[-HALF_W, TOP_Y, AFT_Z], [HALF_W, TOP_Y, AFT_Z], [HALF_W, -0.66, AFT_Z], [-HALF_W, -0.66, AFT_Z]]);
-  const [fx, fy] = P(0, -0.63, AFT_Z); // middle of the front face
+/** The housing, slots, gate, markings and the aft panel. Static. */
+const Housing = memo(function Housing() {
+  const top = strip(-W, W);
+  const [fl, fr] = [pt(-W, AFT_Z), pt(W, AFT_Z)];
+  const [bl, br] = [P(-W, FLOOR_Y, AFT_Z) as Pt, P(W, FLOOR_Y, AFT_Z) as Pt];
+  const front = closed([fl, fr, br, bl]);
+  // Chamfers along both top edges, and the outer sides below them, give the box visible thickness.
+  const E = W + 0.012;
+  const chamferL = strip(-E, -W);
+  const chamferR = strip(W, E);
+  const sideL = closed([...along(-E, AFT_Z, FWD_Z), ...along(-E, FWD_Z, AFT_Z, 8, -0.016)]);
+  const sideR = closed([...along(E, AFT_Z, FWD_Z), ...along(E, FWD_Z, AFT_Z, 8, -0.016)]);
+  const shadow = closed([P(-E, FLOOR_Y, AFT_Z) as Pt, P(E, FLOOR_Y, AFT_Z) as Pt, P(E + 0.01, FLOOR_Y, AFT_Z - 0.05) as Pt, P(-E - 0.01, FLOOR_Y, AFT_Z - 0.05) as Pt]);
+  const rim = [open(along(-E, AFT_Z, FWD_Z)), open(along(E, AFT_Z, FWD_Z)), seg(pt(-W, FWD_Z), pt(W, FWD_Z))].join(" ");
+  const slot = (X: number, half: number) => strip(X - half, X + half, SLOT[0], SLOT[1]);
+  const brush = THRUST_X.map((X) => `${open(along(X - 0.006, SLOT[0], SLOT[1]))} ${open(along(X + 0.006, SLOT[0], SLOT[1]))}`).join(" ");
+  const ticks = [THRUST_X[0] - 0.024, THRUST_X[1] + 0.017].flatMap((X) =>
+    [0.82, 0.85, 0.88, 0.91, 0.94, 0.97].map((z, i) => seg(pt(X, z), pt(X + (i % 2 ? 0.005 : 0.008), z)))
+  );
+  // The flap gate: notches on its outer edge at each detent.
+  const notches = FLAP_DETENTS.map(([, z]) => seg(pt(FLAP_X + 0.007, z), pt(FLAP_X + 0.013, z)));
   const fs = 440 / AFT_Z;
-  const ticks = THRUST_X.flatMap((X) => [0.82, 0.85, 0.88, 0.91, 0.94, 0.965].map((z, i) => tickAt(X + (X < 0 ? -0.02 : 0.012), z, i % 2 ? 0.006 : 0.009)));
-  const flapGate = FLAP_DETENTS.map(([, z]) => tickAt(FLAP_X + 0.011, z, 0.008));
+  const frontMidY = (fl[1] + bl[1]) / 2;
   return (
     <g>
-      <defs>
-        <linearGradient id="quad-top" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" stopColor="#3b3e44" />
-          <stop offset="1" stopColor="#53575e" />
-        </linearGradient>
-        <linearGradient id="quad-front" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" stopColor="#2a2c30" />
-          <stop offset="1" stopColor="#17181b" />
-        </linearGradient>
-        <linearGradient id="grip" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" stopColor="#f2f0ea" />
-          <stop offset="0.55" stopColor="#d6d3cb" />
-          <stop offset="1" stopColor="#9e9b94" />
-        </linearGradient>
-      </defs>
-      {/* Body: lighter top face, darker front face, a lit edge between them. */}
-      <path d={top} fill="url(#quad-top)" />
-      <path d={front} fill="url(#quad-front)" />
-      <path d={`M${P(-HALF_W, TOP_Y, AFT_Z).join(" ")} L${P(HALF_W, TOP_Y, AFT_Z).join(" ")}`} stroke="rgba(255,255,255,0.22)" strokeWidth="1" />
-      {/* Slots. */}
-      {[...THRUST_X, SPEEDBRAKE_X, FLAP_X].map((X) => (
-        <path key={X} d={slot(X)} fill="#0b0c0e" />
-      ))}
-      {/* White tick scales beside the thrust slots, and the flap gate with its detent labels. */}
-      <path d={[...ticks, ...flapGate].join(" ")} stroke="rgba(255,255,255,0.75)" strokeWidth="0.8" />
+      <path d={shadow} fill="url(#q-shadow)" />
+      <path d={sideL} fill="#1d1f22" />
+      <path d={sideR} fill="#1d1f22" />
+      <path d={front} fill="url(#q-front)" />
+      <path d={top} fill="url(#q-top)" />
+      <path d={chamferL} fill="#5a5d64" />
+      <path d={chamferR} fill="#5a5d64" />
+      {/* Rim light on the edges facing the windows: warm at golden hour, white by day. */}
+      <path d={rim} fill="none" stroke="rgb(var(--sunlit))" strokeOpacity="0.55" strokeWidth="1" />
+      <path d={seg(fl, fr)} stroke="rgba(255,255,255,0.18)" strokeWidth="1" />
+      {/* Slots: wide thrust slots with black brush strips; narrower speedbrake and flap slots. */}
+      <path d={slot(THRUST_X[0], 0.013)} fill="#060607" />
+      <path d={slot(THRUST_X[1], 0.013)} fill="#060607" />
+      <path d={slot(SPEEDBRAKE_X, 0.006)} fill="#060607" />
+      <path d={slot(FLAP_X, 0.006)} fill="#060607" />
+      <path d={brush} stroke="#2b2c30" strokeWidth="1.1" fill="none" />
+      <path d={[...ticks, ...notches].join(" ")} stroke="rgba(255,255,255,0.8)" strokeWidth="0.8" />
       {FLAP_DETENTS.map(([label, z]) => {
-        const [x, y] = P(FLAP_X + 0.022, TOP_Y, z);
+        const [x, y] = pt(FLAP_X + 0.024, z);
         return (
-          <text key={label} x={r1(x)} y={r1(y + 1.6)} fontSize={r1(0.0105 * (440 / z))} fill="rgba(255,255,255,0.8)" fontFamily="var(--font-mono), monospace">
+          <text key={label} x={r1(x)} y={r1(y + 1.8)} fontSize={r1(0.0095 * (440 / z))} fill="rgba(255,255,255,0.85)" fontFamily="var(--font-mono), monospace">
             {label}
           </text>
         );
       })}
-      {/* Speedbrake at DOWN (aft): slim shaft, small pale grip. */}
-      <g transform={placed(SPEEDBRAKE_X, -0.585, 0.81)}>
-        <rect x="-1.4" y="0" width="2.8" height="6.6" fill="#2a2c30" />
-        <path d="M-4 -5 L4 -5 L3 2 L-3 2 Z" fill="url(#grip)" stroke="#5f5c56" strokeWidth="0.5" />
+      {/* Speedbrake at DOWN: a short lever with a flat paddle grip. */}
+      <g transform={placed(SPEEDBRAKE_X, 0.815)}>
+        <rect x="-1.8" y="-15" width="3.6" height="15" fill="url(#q-shaft)" />
+        <path d="M-7 -22 L7 -22 L5.5 -14 L-5.5 -14 Z" fill="url(#q-grip)" stroke="#8d8a83" strokeWidth="0.5" />
       </g>
       {/* Flap lever in the gate at 15: rectangular grip. */}
-      <g transform={placed(FLAP_X, -0.597, 0.89)}>
-        <rect x="-1.4" y="0" width="2.8" height="1.4" fill="#2a2c30" />
-        <rect x="-6.5" y="-4" width="13" height="5" rx="1" fill="url(#grip)" stroke="#5f5c56" strokeWidth="0.5" />
+      <g transform={placed(FLAP_X, 0.857)}>
+        <rect x="-1.8" y="-5" width="3.6" height="5" fill="url(#q-shaft)" />
+        <rect x="-6" y="-10" width="12" height="6.5" rx="1.4" fill="url(#q-grip)" stroke="#8d8a83" strokeWidth="0.5" />
       </g>
-      {/* Front face: two fuel control switches (RUN) and PARK BRAKE. */}
+      {/* Aft face: fuel control toggles (metal collar, small dark lever) and PARK BRAKE. */}
       {THRUST_X.map((X, i) => {
-        const [x, y] = P(X, -0.628, AFT_Z);
+        const [x] = P(X, 0, AFT_Z);
         return (
           <g key={X}>
-            <rect x={r1(x - 0.007 * fs)} y={r1(y - 0.008 * fs)} width={r1(0.014 * fs)} height={r1(0.012 * fs)} rx="1.5" fill="#0d0e10" stroke="#5a5e66" strokeWidth="0.6" />
-            <text x={r1(x)} y={r1(y + 0.014 * fs)} fontSize={r1(0.0075 * fs)} fill="rgba(255,255,255,0.7)" textAnchor="middle" fontFamily="var(--font-mono), monospace">
+            <circle cx={r1(x)} cy={r1(frontMidY + 1)} r={r1(0.0055 * fs)} fill="url(#q-collar)" />
+            <rect x={r1(x - 0.0022 * fs)} y={r1(frontMidY + 1 - 0.013 * fs)} width={r1(0.0044 * fs)} height={r1(0.013 * fs)} rx="1" fill="#141518" />
+            <text x={r1(x + 0.011 * fs)} y={r1(frontMidY + 3)} fontSize={r1(0.0068 * fs)} fill="rgba(255,255,255,0.75)" fontFamily="var(--font-mono), monospace">
               RUN {i + 1}
             </text>
           </g>
         );
       })}
-      <text x={r1(fx - 0.088 * fs)} y={r1(fy + 0.004 * fs)} fontSize={r1(0.0068 * fs)} fill="#e8b04a" textAnchor="middle" fontFamily="var(--font-mono), monospace" fontWeight="700">
+      <text x={r1(P(-0.1, 0, AFT_Z)[0])} y={r1(frontMidY + 3)} fontSize={r1(0.0066 * fs)} fill="#e8b04a" textAnchor="middle" fontFamily="var(--font-mono), monospace" fontWeight="700">
         PARK BRAKE
       </text>
     </g>
   );
 });
 
-/** One thrust lever, in local units at depth 1 (scene units × 440), grip at the origin. */
-const LeverArt = memo(function LeverArt({ side }: { side: -1 | 1 }) {
-  // The grip runs outward from just beside the centre line: a chunky bone with rounded ends.
-  const w = 14;
-  const inner = side * 2.6;
-  const outer = side * (2.6 + w);
-  const x0 = Math.min(inner, outer);
-  return (
-    <g>
-      {/* Shaft down into the slot. */}
-      <rect x={-1.6} y="0" width="3.2" height={r1(-(TOP_Y - GRIP_Y) * 440)} fill="#1d1f23" />
-      {/* Reverse-thrust lever folded flat against the front of the shaft. */}
-      <rect x={side > 0 ? -1 : -5} y="7" width="6" height="2.2" rx="1" fill="#0f1012" />
-      {/* Grip. */}
-      <path
-        d={`M${x0 + 2} -4.4 Q${x0 + w / 2} -2.6 ${x0 + w - 2} -4.4 Q${x0 + w + 1} -4.6 ${x0 + w + 1} 0 Q${x0 + w + 1} 4.6 ${x0 + w - 2} 4.4 Q${x0 + w / 2} 2.6 ${x0 + 2} 4.4 Q${x0 - 1} 4.6 ${x0 - 1} 0 Q${x0 - 1} -4.6 ${x0 + 2} -4.4 Z`}
-        fill="url(#grip)"
-        stroke="#6b6861"
-        strokeWidth="0.5"
-      />
-      <path d={`M${x0 + 3} -3 Q${x0 + w / 2} -1.6 ${x0 + w - 3} -3`} stroke="rgba(255,255,255,0.7)" strokeWidth="0.8" fill="none" />
-      {/* TO/GA button on the front of the grip. */}
-      <circle cx={outer - side * 3} cy="0" r="1.6" fill="#101113" />
-    </g>
-  );
-});
-
-const leverAt = (X: number, v: number) => placed(X, GRIP_Y, LEVER_Z[0] + (LEVER_Z[1] - LEVER_Z[0]) * v);
+/** Thrust lever placement at travel v (0 idle → 1 take-off): along the arc, tilting forward a little. */
+const leverAt = (X: number, v: number) => placed(X, LEVER_Z[0] + (LEVER_Z[1] - LEVER_Z[0]) * v, 1 + 0.07 * v);
 
 // The transform attribute is written straight from the motion value: no re-render as it moves.
-const Lever = ({ X, side, t }: { X: number; side: -1 | 1; t: MotionValue<number> }) => {
-  const ref = useRef<SVGGElement>(null);
+const Lever = ({ X, t }: { X: number; t: MotionValue<number> }) => {
+  const ref = useRef<SVGUseElement>(null);
   useMotionValueEvent(t, "change", (v) => ref.current?.setAttribute("transform", leverAt(X, v)));
-  return (
-    <g ref={ref} transform={leverAt(X, t.get())}>
-      <LeverArt side={side} />
-    </g>
-  );
+  return <use ref={ref} href="#q-thrust-lever" transform={leverAt(X, t.get())} />;
 };
 
 export const Quadrant = ({ thrust }: { thrust: MotionValue<number> }) => (
   <g>
-    <Body />
-    <Lever X={THRUST_X[0]} side={-1} t={thrust} />
-    <Lever X={THRUST_X[1]} side={1} t={thrust} />
+    <Defs />
+    <Housing />
+    <Lever X={THRUST_X[0]} t={thrust} />
+    <Lever X={THRUST_X[1]} t={thrust} />
   </g>
 );
