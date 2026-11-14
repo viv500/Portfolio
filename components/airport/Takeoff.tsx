@@ -590,13 +590,15 @@ const T = { hold: 400, roll: 4000, climb: 6000, duskFrom: 4700, dusk: 6450, doll
 //  - climb: rotation, lift-off and the climb-out; the payoff, a little quicker.
 //  - tail: the last of the dusk and the camera rushing into the window; a transition, so always quick.
 // `shake` scales the runway rumble; it builds with speed (`shakeCurve` > 1 makes it build later and harder).
-export type Pacing = { hold: number; roll: number; climb: number; tail: number; shake: number; shakeCurve: number };
+// `rollPow` shapes the roll's acceleration: higher creeps longer, then surges harder.
+export type Pacing = { hold: number; roll: number; climb: number; tail: number; shake: number; shakeCurve: number; rollPow: number };
 export const PACING = {
   /** Every page load: about 4.5 s to the page. */
-  standard: { hold: 2, roll: 1.33, climb: 1.5, tail: 1.7, shake: 1, shakeCurve: 1 },
-  /** "Replay take-off": for the fans. A slower creep and surge, heavier, progressive shake and a
-   *  deliberate lift-off, about 10 s; the zoom at the end stays quick. */
-  immersive: { hold: 0.5, roll: 0.62, climb: 0.72, tail: 1.7, shake: 1.8, shakeCurve: 1.6 },
+  standard: { hold: 2, roll: 1.33, climb: 1.5, tail: 1.7, shake: 1, shakeCurve: 1, rollPow: 1.7 },
+  /** "Replay take-off": for the fans. A long roll down the runway (about 8 s) with a slow creep
+   *  that builds to a strong surge, heavier progressive shake, and a gentle, gradual rotation and
+   *  lift-off (about 3.6 s); about 13 s in all. The zoom at the end stays quick. */
+  immersive: { hold: 0.5, roll: 0.45, climb: 0.55, tail: 1.7, shake: 1.8, shakeCurve: 1.8, rollPow: 2.2 },
 } satisfies Record<string, Pacing>;
 export type PacingName = keyof typeof PACING;
 /** Master-timeline ms at `real` ms of playback under a pacing. */
@@ -611,7 +613,7 @@ const timelineAt = (real: number, pace: Pacing) => {
   }
   return T.end;
 };
-/** Roll acceleration curve: speed grows as time^ROLL_POW, so it creeps after thrust-up, then builds hard. */
+/** Default roll acceleration curve (each pacing sets its own `rollPow`): speed grows as time^ROLL_POW. */
 const ROLL_POW = 1.7;
 const HANDOFF_MS = 350; // the overlay (pure page colour by then) clearing as the page content appears
 const SKIP_DOLLY_MS = 550;
@@ -651,11 +653,11 @@ const ease = (x: number) => {
   return t * t * (3 - 2 * t);
 };
 /** Scene time (0 → 1, rotation at 0.5) at `ms` into the intro. */
-const sceneAt = (ms: number) =>
+const sceneAt = (ms: number, rollPow = ROLL_POW) =>
   ms < T.hold
     ? 0
     : ms < T.roll
-      ? ((ms - T.hold) / (T.roll - T.hold)) ** ROLL_POW * 0.5
+      ? ((ms - T.hold) / (T.roll - T.hold)) ** rollPow * 0.5
       : ms < T.climb
         ? 0.5 + ((ms - T.roll) / (T.climb - T.roll)) * (SCENE_END - 0.5)
         : SCENE_END + (1 - SCENE_END) * ease((ms - T.climb) / (T.dusk - T.climb));
@@ -765,7 +767,7 @@ export const Takeoff = () => {
         const frozen = process.env.NODE_ENV !== "production" ? (window as unknown as { __takeoffAt?: number }).__takeoffAt : undefined;
         const ms = frozen ?? timelineAt(now - start, pace);
         lastMs = ms;
-        p.set(sceneAt(ms));
+        p.set(sceneAt(ms, pace.rollPow));
         // Runway rumble, in real time (so a slower pacing doesn't slow the vibration itself):
         // builds with speed through the roll, gone at lift-off.
         const roll = clamp01((ms - T.hold) / (T.roll - T.hold));
