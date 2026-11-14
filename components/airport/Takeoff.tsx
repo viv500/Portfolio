@@ -590,15 +590,18 @@ const T = { hold: 400, roll: 4000, climb: 6000, duskFrom: 4700, dusk: 6450, doll
 //  - climb: rotation, lift-off and the climb-out; the payoff, a little quicker.
 //  - tail: the last of the dusk and the camera rushing into the window; a transition, so always quick.
 // `shake` scales the runway rumble; it builds with speed (`shakeCurve` > 1 makes it build later and harder).
-// `rollPow` shapes the roll's acceleration: higher creeps longer, then surges harder.
-export type Pacing = { hold: number; roll: number; climb: number; tail: number; shake: number; shakeCurve: number; rollPow: number };
+// The roll's speed curve: speed = rollLin·u + (1 − rollLin)·u^rollPow over the roll (u: 0 → 1).
+// `rollLin` gives an immediate, gentle but visible roll from brake release; `rollPow` (higher)
+// holds the speed down longer, then surges. Distance down the runway is the integral of speed,
+// so the runway streams by as speed builds; `rollDist` is how far down the runway rotation comes.
+export type Pacing = { hold: number; roll: number; climb: number; tail: number; shake: number; shakeCurve: number; rollPow: number; rollLin: number; rollDist: number };
 export const PACING = {
   /** Every page load: about 4.5 s to the page. */
-  standard: { hold: 2, roll: 1.33, climb: 1.5, tail: 1.7, shake: 1, shakeCurve: 1, rollPow: 1.7 },
+  standard: { hold: 2, roll: 1.33, climb: 1.5, tail: 1.7, shake: 1, shakeCurve: 1, rollPow: 1.7, rollLin: 0.06, rollDist: 130 },
   /** "Replay take-off": for the fans. A long roll down the runway (about 8 s) with a slow creep
    *  that builds to a strong surge, heavier progressive shake, and a gentle, gradual rotation and
    *  lift-off (about 3.6 s); about 13 s in all. The zoom at the end stays quick. */
-  immersive: { hold: 0.5, roll: 0.45, climb: 0.55, tail: 1.7, shake: 1.8, shakeCurve: 1.8, rollPow: 2.2 },
+  immersive: { hold: 1.4, roll: 0.42, climb: 0.55, tail: 1.7, shake: 1.8, shakeCurve: 1.5, rollPow: 2.3, rollLin: 0.2, rollDist: 200 },
 } satisfies Record<string, Pacing>;
 export type PacingName = keyof typeof PACING;
 /** Master-timeline ms at `real` ms of playback under a pacing. */
@@ -652,12 +655,18 @@ const ease = (x: number) => {
   const t = clamp01(x);
   return t * t * (3 - 2 * t);
 };
+/** Roll speed (0 → 1) at roll progress u, and the distance covered (0 → 1, the normalised integral). */
+const rollSpeed = (u: number, pace: Pacing) => pace.rollLin * u + (1 - pace.rollLin) * u ** pace.rollPow;
+const rollTravel = (u: number, pace: Pacing) => {
+  const G = (x: number) => (pace.rollLin * x * x) / 2 + ((1 - pace.rollLin) * x ** (pace.rollPow + 1)) / (pace.rollPow + 1);
+  return G(u) / G(1);
+};
 /** Scene time (0 → 1, rotation at 0.5) at `ms` into the intro. */
-const sceneAt = (ms: number, rollPow = ROLL_POW) =>
+const sceneAt = (ms: number, pace?: Pacing, rollPow = ROLL_POW) =>
   ms < T.hold
     ? 0
     : ms < T.roll
-      ? ((ms - T.hold) / (T.roll - T.hold)) ** rollPow * 0.5
+      ? (pace ? rollSpeed((ms - T.hold) / (T.roll - T.hold), pace) : ((ms - T.hold) / (T.roll - T.hold)) ** rollPow) * 0.5
       : ms < T.climb
         ? 0.5 + ((ms - T.roll) / (T.climb - T.roll)) * (SCENE_END - 0.5)
         : SCENE_END + (1 - SCENE_END) * ease((ms - T.climb) / (T.dusk - T.climb));
@@ -767,7 +776,10 @@ export const Takeoff = () => {
         const frozen = process.env.NODE_ENV !== "production" ? (window as unknown as { __takeoffAt?: number }).__takeoffAt : undefined;
         const ms = frozen ?? timelineAt(now - start, pace);
         lastMs = ms;
-        p.set(sceneAt(ms, pace.rollPow));
+        // Distance down the runway (set before the scene time, which triggers the redraw).
+        const ru = clamp01((ms - T.hold) / (T.roll - T.hold));
+        travel.current = { d: pace.rollDist * rollTravel(ru, pace), atRotate: pace.rollDist };
+        p.set(sceneAt(ms, pace));
         // Runway rumble, in real time (so a slower pacing doesn't slow the vibration itself):
         // builds with speed through the roll, gone at lift-off.
         const roll = clamp01((ms - T.hold) / (T.roll - T.hold));
@@ -933,6 +945,7 @@ export const Takeoff = () => {
   const pending = useRef<number | null>(null);
   const frameCount = useRef(0);
   const latest = useRef(0);
+  const travel = useRef({ d: 0, atRotate: 130 }); // distance down the runway, set by the controller
   useMotionValueEvent(p, "change", (t) => {
     latest.current = t;
     if (pending.current !== null) return;
@@ -946,7 +959,8 @@ export const Takeoff = () => {
     });
   });
   const update = (t: number) => {
-    const d = t < 0.5 ? (t / 0.5) ** 2 * 120 : 120 + (t - 0.5) * 2 * 190;
+    const { d: rolled, atRotate } = travel.current;
+    const d = t < 0.5 ? rolled : atRotate + (t - 0.5) * 2 * 190;
     const climb = Math.max(0, (t - 0.52) / 0.48);
     setS({
       t,
