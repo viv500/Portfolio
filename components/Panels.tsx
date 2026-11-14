@@ -61,10 +61,37 @@ const Sections = ({ sections }: { sections?: Section[] }) => (
             ))}
           </ul>
         )}
+        {section.figure && (
+          <figure className="mt-4">
+            {section.figure.captionAbove && <figcaption className="mb-2 text-sm font-medium text-white-100">{section.figure.caption}</figcaption>}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={section.figure.src} alt={section.figure.alt} loading="lazy" className="w-full rounded-xl border border-white/10 bg-white" />
+            {!section.figure.captionAbove && <figcaption className="mt-2 text-sm text-white-100">{section.figure.caption}</figcaption>}
+          </figure>
+        )}
       </section>
     ))}
   </>
 );
+
+/** The project's links again at the end of the write-up, as outlined buttons. */
+const EndLinks = ({ links }: { links: Project["links"] }) =>
+  links.length ? (
+    <div className="flex flex-wrap gap-3 border-t border-white/10 pt-6">
+      {links.map((link) => (
+        <a
+          key={link.href}
+          href={link.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 rounded-lg border border-purple/60 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-purple/15"
+        >
+          <PlatformIcon platform={link.platform} />
+          {link.platform === "pdf" ? "Read the full report (PDF)" : link.label}
+        </a>
+      ))}
+    </div>
+  ) : null;
 
 const Back = ({ href, label }: { href: string; label: string }) => (
   <a href={href} className="mb-6 inline-flex items-center gap-2 text-sm text-white/60 transition hover:text-purple">
@@ -257,6 +284,7 @@ const ProjectDetail = ({ project, base, backLabel }: { project: Project; base: s
       {project.diagram && <Diagram name={project.diagram} />}
       <Sections sections={project.sections} />
       <MediaGrid items={project.media} />
+      <EndLinks links={project.links} />
     </div>
   </>
 );

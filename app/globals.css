@@ -608,6 +608,48 @@ svg.foil { -webkit-text-fill-color: initial; background: none; color: #d8b65e; }
 .badge-sway:hover { animation: badge-sway 1.8s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .badge-sway:hover { animation: none; } }
 
+/* One shared "this opens something" treatment for every interactive item (logbook entries,
+   impact stats, project passes, hackathon cards): a subtle border, a lift and a gold ring on
+   hover/focus, and a pointer. The lift uses the `translate` property, so it composes with any
+   transform framer-motion sets; the ring fades in with opacity. Nothing non-clickable uses it. */
+.clickable { position: relative; cursor: pointer; border: 1px solid rgb(var(--sign) / 0.32); transition: translate 0.2s ease; }
+/* The ring sits on the inside edge, so cards that clip their content (overflow: hidden) still show it. */
+.clickable::after {
+  content: ""; position: absolute; inset: 0; z-index: 20; border-radius: inherit; pointer-events: none;
+  box-shadow: inset 0 0 0 2px rgb(var(--sign));
+  opacity: 0; transition: opacity 0.2s ease;
+}
+.clickable:hover, .clickable:focus-visible { translate: 0 -3px; }
+.clickable:hover::after, .clickable:focus-visible::after { opacity: 1; }
+.clickable:focus-visible { outline: none; }
+@media (prefers-reduced-motion: reduce) { .clickable:hover, .clickable:focus-visible { translate: none; } }
+/* The always-visible "Details →" on clickable items: gold on dark, deep gold on paper/day. */
+.affordance { font-family: var(--font-mono), monospace; font-size: 11.5px; font-weight: 700; white-space: nowrap; color: rgb(var(--sign)); }
+.on-paper .affordance, :root[data-palette="day"] .affordance:not(.device *) { color: #7a4e0c; }
+
+/* Winning hackathon cards: a gold border and a soft gold glow. */
+.clickable.winner { border: 2px solid #d4a033; box-shadow: 0 0 22px -2px rgba(232, 180, 60, 0.45), 0 10px 24px -14px rgba(0, 0, 0, 0.6); }
+
+/* Logbook: a deeper cream page; entries are ledger rows (square, ruled, no gaps). Hover is a
+   highlighter: a warm fill across the row plus a 3px gold left edge. */
+.logbook-paper.logbook-deep { background-color: rgb(236 222 192); }
+/* Faint ledger rules across the whole page, behind the entry cards. */
+.logbook-paper.logbook-ruled {
+  background-image:
+    repeating-linear-gradient(180deg, transparent 0 31px, rgba(110, 70, 30, 0.08) 31px 32px),
+    radial-gradient(90% 70% at 50% 35%, rgba(255,255,255,0.4), transparent 70%),
+    radial-gradient(140% 120% at 50% 50%, transparent 62%, rgb(var(--paper-shade) / 0.6) 100%);
+}
+.ledger-row { transition: background-color 0.15s ease, box-shadow 0.15s ease; }
+.ledger-row:hover, .ledger-row:focus-visible { background-color: rgba(240, 196, 92, 0.38); box-shadow: inset 3px 0 0 #c9921f; outline: none; }
+/* The row's "Details →" button fills gold when the row (or the button) is hovered. */
+.ledger-row:hover .details-btn, .ledger-row:focus-visible .details-btn { background: #e2a93a; border-color: #b07a16; color: #2a1a04; }
+
+/* Nav-display waypoints: the clickable look in SVG. */
+.waypoint .waypoint-box { stroke: rgb(var(--sign) / 0.3); stroke-width: 1; transition: stroke 0.2s ease; }
+.waypoint:hover .waypoint-box, .waypoint:focus-visible .waypoint-box { stroke: rgb(var(--sign)); stroke-width: 2; }
+.waypoint:focus-visible { outline: none; }
+
 /* Section subtitles: high contrast, ~85% of the heading colour; a dark brown in daylight. */
 .section-sub { color: rgb(var(--ink) / 0.9); }
 :root[data-palette="day"] .section-sub { color: #3f2a19; }
@@ -689,17 +731,6 @@ svg.foil { -webkit-text-fill-color: initial; background: none; color: #d8b65e; }
   .page-curve-left { clip-path: polygon(0 0, 70% 0, 84% 0.3%, 92% 0.8%, 97% 1.5%, 100% 2.4%, 100% 97.6%, 97% 98.5%, 92% 99.2%, 84% 99.7%, 70% 100%, 0 100%); }
   .page-curve-right { clip-path: polygon(0 2.4%, 3% 1.5%, 8% 0.8%, 16% 0.3%, 30% 0, 100% 0, 100% 100%, 30% 100%, 16% 99.7%, 8% 99.2%, 3% 98.5%, 0 97.6%); }
 }
-
-/* Daylight overhead panel: light warm grey like a real Airbus overhead, dark labels. */
-:root[data-palette="day"] .overhead-panel {
-  --raised: 214 208 198;
-  --panel: 196 190 180;
-  --wall: 176 170 160;
-  --floor: 150 144 134;
-  --edge: 232 228 220;
-  --ink: 34 30 26;
-}
-:root[data-palette="day"] .overhead-panel .screw { background: radial-gradient(circle at 35% 30%, #f3f1ec 0%, #a9a49b 60%, #6e6a63 100%); }
 
 /* Daylight cards and frames: a lighter beige than the page, with a soft shadow. */
 :root[data-palette="day"] .pass-stock { box-shadow: 0 10px 24px -12px rgba(90, 64, 30, 0.45); }

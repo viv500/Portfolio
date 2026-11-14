@@ -712,6 +712,19 @@ export const Takeoff = () => {
       lastInput = performance.now();
       play(1);
     };
+    // Skip (or any in-page link) clicked mid-animation: stop the take-off at its end state first,
+    // so the jump lands exactly where it would before the animation started. Without this the
+    // running animation keeps scrolling the page back into the hero.
+    const onLinkClick = (e: MouseEvent) => {
+      const a = (e.target as HTMLElement)?.closest?.('a[href^="#"]');
+      if (!a || !raf) return;
+      cancelAnimationFrame(raf);
+      raf = 0;
+      last = 0;
+      dir = 0;
+      progress.set(1);
+    };
+    document.addEventListener("click", onLinkClick, true);
     ref.current?.addEventListener("click", onClick);
     const host = ref.current;
     window.addEventListener("wheel", onWheel, { passive: false });
@@ -721,6 +734,7 @@ export const Takeoff = () => {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       cancelAnimationFrame(raf);
+      document.removeEventListener("click", onLinkClick, true);
       host?.removeEventListener("click", onClick);
       window.removeEventListener("wheel", onWheel);
       window.removeEventListener("touchstart", onTouchStart);

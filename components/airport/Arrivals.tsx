@@ -40,8 +40,8 @@ export const Arrivals = () => {
   const [torn, setTorn] = useState(false);
   const email = contactLinks.find((l) => l.platform === "email")!;
   return (
-    <section id="contact" className="scroll-mt-14 amb-arrivals border-t border-black pb-24 pt-16 md:pt-24">
-      <div className="mx-auto max-w-6xl px-4 md:px-6">
+    <section id="contact" className="scroll-mt-14 amb-arrivals border-t border-black pb-20 pt-10 md:pt-12">
+      <div className="mx-auto max-w-[75rem] px-4 md:px-6">
         <GateHeader letter="F" en="Baggage claim" label="Contact & résumé" />
 
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:items-center">
@@ -57,14 +57,23 @@ export const Arrivals = () => {
               <div className="flex-1 p-5">
                 <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-black/60">Passenger</div>
                 <div className="font-sign text-2xl font-extrabold uppercase">{profile.name}</div>
-                <div className="mt-4 flex items-center gap-3 font-sign text-4xl font-extrabold">
-                  YKF
-                  <span className="flex flex-1 items-center">
+                {/* Route, like the project passes: FROM/TO eyebrows, the code, a caption. */}
+                <div className="mt-4 flex items-start gap-3">
+                  <div>
+                    <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-black/55">From</div>
+                    <div className="font-sign text-3xl font-extrabold leading-none md:text-[32px]">YKF</div>
+                    <div className="mt-1 text-[11.5px] text-black/60">Waterloo</div>
+                  </div>
+                  <span className="mt-[24px] flex min-w-[2rem] flex-1 items-center">
                     <span className="h-px flex-1 border-t border-dashed border-black/30" />
                     <PlaneIcon className="mx-1 h-4 w-4 rotate-90 text-black/60 transition-transform duration-500 group-hover:translate-x-2" />
                     <span className="h-px flex-1 border-t border-dashed border-black/30" />
                   </span>
-                  YYZ
+                  <div className="max-w-[48%] text-right">
+                    <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-black/55">To</div>
+                    <div className="font-sign text-3xl font-extrabold leading-none md:text-[32px]">ANY</div>
+                    <div className="mt-1 text-[11.5px] leading-tight text-black/60">open to relocation · Summer 2027</div>
+                  </div>
                 </div>
                 <div className="mt-4 grid grid-cols-3 gap-3 border-t border-dashed border-black/15 pt-3 font-sign text-[13px] font-bold uppercase">
                   <div>
@@ -77,7 +86,7 @@ export const Arrivals = () => {
                     <div className="font-mono text-[9px] font-normal tracking-[0.18em] text-black/60">Seat</div>Open
                   </div>
                 </div>
-                <div className="mt-4 font-mono text-xs text-black/60 group-hover:text-black">View resume →</div>
+                <div className="mt-4 font-mono text-xs font-medium text-black/85 group-hover:text-black">View resume →</div>
               </div>
             </a>
             <div className="relative w-3 shrink-0 pass-stock">
@@ -132,13 +141,13 @@ export const Arrivals = () => {
 
       {/* Baggage carousel. */}
       <div className="relative mt-16">
-        <div className="mx-auto mb-3 flex max-w-6xl items-center gap-2 px-4 font-mono text-[10px] uppercase tracking-[0.25em] text-flap/70 md:px-6">
+        <div className="mx-auto mb-3 flex max-w-[75rem] items-center gap-2 px-4 font-mono text-[10px] uppercase tracking-[0.25em] text-flap/70 md:px-6">
           <span className="sign-letter h-5 w-5 rounded-[2px] text-[11px]">⧉</span> Links · Baggage claim
         </div>
         <Carousel count={contactLinks.length} renderBag={(i) => <Bag link={contactLinks[i]} i={i} />} />
       </div>
 
-      <footer className="mx-auto mt-16 max-w-6xl px-4 text-center md:px-6">
+      <footer className="mx-auto mt-12 max-w-[75rem] px-4 text-center md:px-6">
         <p className="font-sign text-xl font-bold text-flap md:text-2xl">Thank you for flying with Vivek.</p>
       </footer>
     </section>

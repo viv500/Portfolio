@@ -40,19 +40,20 @@ export const stamps: Record<string, Stamp> = {
 };
 
 // Three-letter "airport codes" for the boarding passes.
-export const passCodes: Record<string, { from: string; to: string; seat: string }> = {
-  allocator: { from: "SSO", to: "EC2", seat: "1A" },
-  "internship-bot": { from: "GHA", to: "TLG", seat: "2C" },
-  ecg: { from: "ECG", to: "XAI", seat: "3F" },
-  wat2eat: { from: "UWO", to: "EAT", seat: "4D" },
+/** Each boarding pass's "route": the problem it starts from and the result it lands on. */
+export const passCodes: Record<string, { from: string; fromCap: string; to: string; toCap: string; seat: string }> = {
+  allocator: { from: "MANUAL", fromCap: "retrying by hand", to: "AUTO", toCap: "host allocated", seat: "1A" },
+  "internship-bot": { from: "6 LISTS", fromCap: "checked by hand", to: "1 FEED", toCap: "alerts on Telegram", seat: "2C" },
+  ecg: { from: "BLACK BOX", fromCap: "opaque model", to: "XAI", toCap: "explained predictions", seat: "3F" },
+  wat2eat: { from: "HUNGRY", fromCap: "can't decide", to: "MATCHED", toCap: "where to eat", seat: "4D" },
 };
 
 // Project images: shown through the window on each boarding pass, and as the polaroid
 // tucked behind each hackathon stamp. Items without one show sky instead.
 export const previews: Record<string, string> = {
-  "internship-bot": "/media/internship-bot/telegram-alert.jpg",
-  ecg: "/media/ecg/capacity-vs-interpretability.png",
-  wat2eat: "/media/wat2eat/match.png",
+  "internship-bot": "/media/internship-bot/window.jpg",
+  ecg: "/media/ecg/window.jpg",
+  wat2eat: "/media/wat2eat/window.jpg",
   canify: "/media/thumbs/canify.jpg",
   datafest: "/media/thumbs/datafest.jpg",
   watchdog: "/media/thumbs/watchdog.jpg",
@@ -62,16 +63,11 @@ export const previews: Record<string, string> = {
 };
 
 /**
- * Short lines for the EICAS "shipped" screen, keyed by story title: the key number first, then
- * a few plain words. Stories without an entry here aren't listed.
+ * Short lines for the EICAS "also shipped" screen, keyed by story title: the key number first,
+ * then a few plain words. Only results that aren't already in the impact stat grid are listed.
  */
 export const shipped: Record<string, { n: string; text: string }> = {
-  "AWS Dedicated Host Allocator": { n: "~5 hrs", text: "saved per AWS host allocation" },
   "macOS CI build nodes": { n: "5+", text: "macOS CI build nodes" },
-  "Bazel caching for ARM64 builds": { n: "~40%", text: "faster ARM64 builds" },
-  "CI security hardening": { n: "20+", text: "pipelines hardened, zero downtime" },
-  "MCP DevOps agent": { n: "~20 hrs/wk", text: "saved with an MCP agent (est.)" },
-  "API performance and Rocket Homes features": { n: "35%", text: "lower API latency" },
   "Class Profile 2024": { n: "2,500+", text: "users on Class Profile 2024" },
   "Kubernetes deployments": { n: "2 hrs → 10 min", text: "deploys across 12+ services" },
   "C++ gRPC service": { n: "35%", text: "less gRPC serialization overhead" },

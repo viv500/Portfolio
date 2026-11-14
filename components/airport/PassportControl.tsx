@@ -1,11 +1,14 @@
 "use client";
 
 import React from "react";
-import { motion } from "framer-motion";
-import { hackathons, wins, type Project } from "@/components/data";
-import { previews, stamps, type Stamp } from "@/components/data/airport";
 import Image from "next/image";
+import { hackathons, type Project } from "@/components/data";
+import { previews, stamps, type Stamp } from "@/components/data/airport";
 import { GateHeader } from "./GateHeader";
+
+// Hackathons as a card grid: screenshot, project name, event + year, and the award. Winners lead
+// in a larger row; the rest follow in a smaller one. A small ink stamp in the corner is pure
+// decoration (the card text carries the information). Every card opens the project.
 
 export const INK: Record<Stamp["ink"], string> = {
   blue: "#2b4c9b",
@@ -15,7 +18,7 @@ export const INK: Record<Stamp["ink"], string> = {
   teal: "#1f6f78",
 };
 
-/** Roughens stamp edges so they read as ink, not vector shapes. Render once per page. */
+/** Roughens stamp edges so they read as ink, not vector shapes. Render once per page (the logbook stamps use it too). */
 export const InkFilter = () => (
   <svg width="0" height="0" className="absolute" aria-hidden="true">
     <filter id="ink-rough">
@@ -25,92 +28,134 @@ export const InkFilter = () => (
   </svg>
 );
 
+const WINNERS = ["watchdog", "canify", "datafest"];
+
 const split = (context: string) => {
   const m = context.match(/^(.*?)\s*(\d{4})$/);
   return m ? { event: m[1], year: m[2] } : { event: context, year: "" };
 };
 
-export const InkStamp = ({ project, stamp, size = "md" }: { project: Project; stamp: Stamp; size?: "sm" | "md" }) => {
+/** Small ink stamp ("Admitted", event, year): decoration, always bottom-right of the text area. */
+const CornerStamp = ({ project, size }: { project: Project; size: "lg" | "sm" }) => {
+  const stamp = stamps[project.slug] ?? { ink: "blue", shape: "round", rotate: -6 };
   const color = INK[stamp.ink];
   const { event, year } = split(project.context);
-  const dims = size === "sm" ? "w-32 h-32 text-[9px]" : "w-40 h-40 md:w-44 md:h-44 text-[10px]";
-  const shape =
-    stamp.shape === "round" ? "rounded-full" : stamp.shape === "oval" ? "rounded-[50%] !h-28 md:!h-32 !w-44 md:!w-52" : "rounded-[6px] !h-32 md:!h-36";
+  const dims = size === "lg" ? "h-[63px] w-[63px] text-[6px]" : "h-[49px] w-[49px] text-[5px]";
   return (
-    <div className={`ink relative flex ${dims} ${shape} flex-col items-center justify-center border-[3px] p-2 text-center font-mono font-bold uppercase leading-tight`} style={{ borderColor: color, color }}>
-      <div className={`absolute inset-[5px] ${stamp.shape === "rect" ? "rounded-[3px]" : "rounded-[inherit]"} border`} style={{ borderColor: color }} />
-      <span className="tracking-[0.2em] opacity-80">Admitted</span>
-      <span className="mt-1 font-sign text-[15px] font-extrabold leading-none tracking-tight md:text-[17px]">{project.title}</span>
-      <span className="mt-1 max-w-[90%] truncate">{event}</span>
-      <span className="mt-0.5 rounded-[2px] border px-1.5 tracking-[0.2em]" style={{ borderColor: color }}>
+    <span
+      aria-hidden="true"
+      className={`pointer-events-none flex shrink-0 ${dims} ${stamp.shape === "rect" ? "rounded-[5px]" : "rounded-full"} flex-col items-center justify-center border-2 p-1 text-center font-mono font-bold uppercase leading-tight opacity-90`}
+      style={{ borderColor: color, color, rotate: `${Math.max(-7, Math.min(7, stamp.rotate || -5))}deg` }}
+    >
+      <span className="tracking-[0.12em] opacity-80">Admitted</span>
+      <span className="mt-0.5 max-w-full truncate">{event}</span>
+      <span className="mt-0.5 rounded-[2px] border px-1 tracking-[0.12em]" style={{ borderColor: color }}>
         {year}
       </span>
-    </div>
+    </span>
+  );
+};
+
+/** How each card image sits in its frame: "contain" shows a chart whole; otherwise a crop focus. */
+const FIT: Record<string, string> = { datafest: "contain", canify: "50% 70%" };
+
+/** Winners' pin: small metallic gold pilot wings, top-left of the image. */
+const WingsPin = () => (
+  <svg aria-hidden="true" viewBox="0 0 80 28" className="absolute left-2.5 top-2.5 z-10 w-10 drop-shadow-[0_2px_2px_rgba(0,0,0,0.45)]">
+    <defs>
+      <linearGradient id="wings-gold" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0" stopColor="#fbe7a1" />
+        <stop offset="0.45" stopColor="#e2b44a" />
+        <stop offset="1" stopColor="#9c6f1a" />
+      </linearGradient>
+    </defs>
+    {/* Feathered wings either side of a round shield with a star. */}
+    {[1, -1].map((d) => (
+      <g key={d} transform={d === -1 ? "translate(80 0) scale(-1 1)" : undefined}>
+        <path d="M30 10 C 22 6, 10 5, 1 7 C 6 9, 10 10, 14 11 C 9 12, 6 13, 3 15 C 10 15, 15 15, 19 14 C 15 16, 12 18, 10 20 C 18 19, 25 17, 31 15 Z" fill="url(#wings-gold)" stroke="#7a5512" strokeWidth="0.6" />
+      </g>
+    ))}
+    <circle cx="40" cy="13" r="10" fill="url(#wings-gold)" stroke="#7a5512" strokeWidth="0.8" />
+    <path d="M40 6.8l1.9 3.9 4.3.6-3.1 3 .7 4.3-3.8-2-3.8 2 .7-4.3-3.1-3 4.3-.6z" fill="#8a5f14" />
+  </svg>
+);
+
+/** For a project with no screenshot: its name as a small logo on passport paper. */
+const Placeholder = ({ title }: { title: string }) => (
+  <span className="passport-paper absolute inset-0 flex flex-col items-center justify-center gap-2">
+    <span aria-hidden="true" className="grid grid-cols-3 gap-[3px]">
+      {["#2b4c9b", "#b8322a", "#2f7a4f", "#e0a33a", "#2b4c9b", "#5b3f8f", "#1f6f78", "#b8322a", "#2b4c9b"].map((c, i) => (
+        <span key={i} className="h-2.5 w-2.5 rounded-[2px]" style={{ background: c }} />
+      ))}
+    </span>
+    <span className="font-sign text-xl font-extrabold tracking-tight text-[#1c2636]">{title}</span>
+  </span>
+);
+
+const Card = ({ project, size }: { project: Project; size: "lg" | "sm" }) => {
+  const { event, year } = split(project.context);
+  const img = previews[project.slug];
+  const lg = size === "lg";
+  return (
+    <a
+      href={`#hackathons/${project.slug}`}
+      className={`clickable on-paper flex h-full flex-col overflow-hidden rounded-xl pass-stock text-[#1a1a1a] elev-2 ${lg ? "winner" : ""}`}
+      aria-label={`${project.title}, ${project.context}${project.badge ? `, ${project.badge}` : ""}${lg ? ", winner" : ""}. Details`}
+    >
+      <div className={`relative shrink-0 ${lg ? "aspect-[2.35/1]" : "aspect-[2.8/1]"} bg-[#e9dcc4]`}>
+        {img ? (
+          <Image src={img} alt="" fill sizes={lg ? "(min-width: 768px) 360px, 100vw" : "(min-width: 768px) 260px, 50vw"} className={FIT[project.slug] === "contain" ? "object-contain" : "object-cover"} style={FIT[project.slug] && FIT[project.slug] !== "contain" ? { objectPosition: FIT[project.slug] } : undefined} />
+        ) : (
+          <Placeholder title={project.title} />
+        )}
+        {lg && <WingsPin />}
+      </div>
+      <div className={`relative flex flex-1 flex-col ${lg ? "px-3.5 py-3" : "px-3 py-2.5"}`}>
+        <div className={`font-sign font-extrabold leading-tight ${lg ? "text-[17px]" : "text-[14px]"}`}>{project.title}</div>
+        <div className={`mt-0.5 text-black/65 ${lg ? "text-[13.5px]" : "text-[12.5px]"}`}>
+          {event} · {year}
+        </div>
+        {project.badge && (
+          <div className="mt-2">
+            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-b from-[#f1d27a] to-[#d4a033] px-2.5 py-1 text-[12.5px] font-bold leading-tight text-[#3b2a05] shadow-sm ring-1 ring-[#a8842b]">
+              ★ {project.badge}
+            </span>
+          </div>
+        )}
+        {/* The affordance bottom-left; the stamp overlays the bottom-right of the text area (never the screenshot). */}
+        <div className="mt-auto pt-2">
+          <span className="affordance">Details →</span>
+        </div>
+        <span className={`absolute ${lg ? "bottom-3 right-3.5" : "bottom-2.5 right-3"}`}>
+          <CornerStamp project={project} size={size} />
+        </span>
+      </div>
+    </a>
   );
 };
 
 export const PassportControl = () => {
-  const ordered = [...wins.map((s) => hackathons.find((h) => h.slug === s)!), ...hackathons.filter((h) => !wins.includes(h.slug))];
+  const winners = WINNERS.map((slug) => hackathons.find((h) => h.slug === slug)).filter(Boolean) as Project[];
+  const rest = hackathons.filter((h) => !WINNERS.includes(h.slug));
   return (
-    <section id="hackathons" className="amb-desk scroll-mt-14 px-4 py-16 md:px-6 md:py-24">
+    <section id="hackathons" className="amb-desk scroll-mt-14 px-4 py-10 md:px-6 md:py-12">
       <InkFilter />
       <div className="mx-auto max-w-6xl">
-        <GateHeader letter="D" en="Passport Control" label="Hackathons" intro="Seven hackathons, three wins, $3,500 in prizes." hint="Each stamp opens the project" />
-
-        <div className="relative rounded-lg bg-cover p-2 elev-4 md:p-2.5">
-        <div className="passport-paper spread-curve relative overflow-hidden rounded-md px-4 py-8 md:px-10 md:py-12">
-          {/* Centre fold of the open passport. */}
-          <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-1/3 -translate-x-1/2 bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.18)_30%,rgba(60,40,20,0.1)_44%,rgba(60,40,20,0.26)_50%,rgba(60,40,20,0.1)_56%,rgba(255,255,255,0.18)_70%,transparent_100%)] md:block" />
-          <div aria-hidden="true" className="pointer-events-none absolute left-5 top-4 font-mono text-[10px] uppercase tracking-[0.3em] text-black/60">Visas · Entries</div>
-          <div aria-hidden="true" className="pointer-events-none absolute right-5 top-4 font-mono text-[10px] text-black/60">07</div>
-
-          <ul className="grid grid-cols-1 place-items-center gap-x-4 gap-y-24 pt-20 min-[480px]:grid-cols-2 md:grid-cols-4">
-            {ordered.map((project, i) => {
-              const stamp = stamps[project.slug] ?? { ink: "blue", shape: "round", rotate: 0 };
-              const win = wins.includes(project.slug);
-              return (
-                <li key={project.slug} className={i === 3 ? "md:col-start-1" : ""}>
-                  <motion.a
-                    href={`#hackathons/${project.slug}`}
-                    aria-label={`${project.title}, ${project.context}${project.badge ? `, ${project.badge}` : ""}`}
-                    initial={{ opacity: 0, scale: 1.7, rotate: stamp.rotate - 10 }}
-                    whileInView={{ opacity: 0.92, scale: 1, rotate: stamp.rotate }}
-                    viewport={{ once: true, amount: 0.6 }}
-                    transition={{ type: "spring", stiffness: 380, damping: 18, delay: (i % 4) * 0.12 }}
-                    whileHover={{ scale: 1.05, opacity: 1 }}
-                    className="group relative block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-black/60"
-                  >
-                    {previews[project.slug] && (
-                      <span
-                        aria-hidden="true"
-                        className="absolute left-1/2 top-1/2 z-0 w-28 bg-white p-1.5 pb-5 shadow-[0_8px_18px_-6px_rgba(0,0,0,0.55)] transition-transform duration-500 ease-out [transform:translate(22%,-102%)_rotate(9deg)_scale(0.82)] group-hover:[transform:translate(28%,-118%)_rotate(12deg)_scale(1.05)] group-focus-visible:[transform:translate(28%,-118%)_rotate(12deg)_scale(1.05)] md:w-32"
-                      >
-                        <span className="relative block aspect-[4/3] overflow-hidden bg-black/10">
-                          <Image src={previews[project.slug]} alt="" fill sizes="128px" className="object-cover" />
-                        </span>
-                      </span>
-                    )}
-                    <span className="relative z-10 block">
-                      <InkStamp project={project} stamp={stamp} />
-                    </span>
-                    {win && (
-                      <span
-                        className="absolute -bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-[2px] bg-gradient-to-b from-[#f1d27a] to-[#c9a23f] px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-[#3b2a05] shadow ring-1 ring-[#a8842b]"
-                        style={{ rotate: `${-stamp.rotate}deg` }}
-                      >
-                        <svg viewBox="0 0 24 24" className="h-3 w-3 fill-current" aria-hidden="true">
-                          <path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z" />
-                        </svg>
-                        {project.badge}
-                      </span>
-                    )}
-                  </motion.a>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-        </div>
+        <GateHeader letter="D" en="Passport Control" label="Hackathons" intro="Seven hackathons, three wins, $3,500 in prizes." hint="Each card opens the project" />
+        <ul className="grid gap-5 md:grid-cols-3">
+          {winners.map((p) => (
+            <li key={p.slug}>
+              <Card project={p} size="lg" />
+            </li>
+          ))}
+        </ul>
+        <ul className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-4">
+          {rest.map((p) => (
+            <li key={p.slug}>
+              <Card project={p} size="sm" />
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );

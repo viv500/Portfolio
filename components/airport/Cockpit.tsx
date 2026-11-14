@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
-import { impact, roles, techGroups } from "@/components/data";
+import { impact, roles } from "@/components/data";
+import { SystemsChecklist } from "./Checklist";
 import { shipped } from "@/components/data/airport";
 import { GateHeader } from "./GateHeader";
-import { Airspeed, Altimeter, Attitude, Bezel, Heading, TurnCoordinator, VerticalSpeed, useInstrumentProgress } from "./instruments";
+import { Airspeed, Altimeter, Bezel, useInstrumentProgress } from "./instruments";
 
 const Screws = () => (
   <>
@@ -21,87 +22,41 @@ const PanelLabel = ({ children, className = "" }: { children: React.ReactNode; c
   <span className={`font-mono text-[9px] uppercase tracking-[0.25em] text-ink/70 [text-shadow:0_0_6px_rgb(var(--ink)/0.35)] ${className}`}>{children}</span>
 );
 
-// ── Overhead panel: the tech stack as rows of switches ──────────────────
-const Switch = ({ label, i }: { label: string; i: number }) => {
-  const [on, setOn] = useState(true);
-  return (
-    <button type="button" aria-pressed={on} onClick={() => setOn((v) => !v)} className="group flex items-center gap-1.5 pr-2 focus-visible:outline-none" title={label}>
-      <span className="relative flex h-5 w-3.5 shrink-0 items-center justify-center rounded-[4px] bg-gradient-to-b from-raised to-floor shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_2px_3px_rgba(0,0,0,0.7)] group-focus-visible:ring-2 group-focus-visible:ring-sign">
-        <span className="h-2 w-2 rounded-full bg-[#050607] shadow-[inset_0_1px_2px_rgba(0,0,0,0.9)]" />
-        <span
-          className={`absolute left-1/2 h-3 w-1.5 -translate-x-1/2 rounded-full bg-gradient-to-r from-[#8d929b] via-[#e7e9ed] to-[#7a7f88] shadow-[0_2px_3px_rgba(0,0,0,0.6)] transition-all duration-150 ${on ? "top-0" : "top-[0.5rem]"}`}
-        />
-      </span>
-      <span className="whitespace-nowrap font-mono text-[10px] uppercase leading-none text-ink/80 [text-shadow:0_0_6px_rgb(var(--ink)/0.25)]">{label}</span>
-    </button>
-  );
-};
+// ── Impact: a stat grid ──────────────────────────────────────────────────
+// The numbers are the content, so they're the primary element: big, bold, in the accent colour,
+// with the label and the company under them. Two stats keep a gauge whose metaphor fits
+// (airspeed -> faster builds; a clock-style dial -> hours saved); the rest are numbers only.
+const COMPANY: Record<string, string> = Object.fromEntries(roles.map((r) => [r.slug, r.company.replace("Rocket Mortgage", "Rocket")]));
+const GAUGE: Partial<Record<number, "asi" | "clock">> = { 0: "asi", 1: "clock" };
 
-const Overhead = () => (
-  <div className="overhead-panel metal relative rounded-t-[22px] px-4 pb-3.5 pt-5 md:px-6">
-    <Screws />
-    <div className="mb-2.5 flex items-center justify-between">
-      <PanelLabel>Stack · Overhead panel</PanelLabel>
-      <PanelLabel className="hidden text-ink/70 sm:inline">Systems</PanelLabel>
-    </div>
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-      {techGroups.map((g) => (
-        <div key={g.name} className="recessed rounded-md bg-wall/70 px-2.5 py-2">
-          <div className="mb-1.5 flex items-baseline justify-between gap-2 border-b border-white/[0.06] pb-1">
-            <span className="font-sign text-[11px] font-bold uppercase tracking-wide text-ink">{g.name}</span>
-          </div>
-          <div className="flex flex-wrap gap-x-1.5 gap-y-1.5">
-            {g.items.map((item, i) => (
-              <Switch key={item} label={item} i={i} />
-            ))}
-          </div>
+const StatCard = ({ i }: { i: number }) => {
+  const s = impact[i];
+  const gauge = GAUGE[i];
+  const { ref, p } = useInstrumentProgress(i * 0.1);
+  const slug = s.route.split("/")[1] ?? "";
+  return (
+    <a
+      ref={ref}
+      href={`#${s.route}`}
+      className="clickable device flex h-full flex-col gap-3 rounded-xl bg-gradient-to-b from-panel to-floor p-3.5 sm:flex-row sm:items-center md:p-4"
+      aria-label={`${s.prefix ?? ""}${s.value}${s.suffix ?? ""} ${s.label}, at ${COMPANY[slug] ?? ""}. Details`}
+    >
+      {gauge && (
+        <div className="w-[4.5rem] shrink-0 self-center sm:w-[5.5rem] md:w-[6.25rem]">
+          <Bezel label={s.label}>{gauge === "asi" ? <Airspeed p={p} value={s.value} bare /> : <Altimeter p={p} value={s.value} bare />}</Bezel>
         </div>
-      ))}
-    </div>
-  </div>
-);
-
-// ── Glareshield: the dark padded lip between the overhead and main panels ─
-const GlareshieldLip = () => (
-  <div aria-hidden="true" className="relative z-10 -mx-1 h-7 rounded-b-[28px] bg-[linear-gradient(180deg,rgb(var(--cabin)),rgb(var(--cabin-dark)))] shadow-[0_18px_30px_-10px_rgb(var(--sh)/0.6),inset_0_1px_0_rgba(255,255,255,0.08)]" />
-);
-
-// ── The six-pack ────────────────────────────────────────────────────────
-// Instruments in their real positions: ASI, ATT, ALT on top; TC, HDG, VSI below.
-// Each is matched to one stat in `impact` by index.
-const SIX = [
-  { stat: 0, kind: "asi" },
-  { stat: 3, kind: "att" },
-  { stat: 1, kind: "alt" },
-  { stat: 4, kind: "tc" },
-  { stat: 2, kind: "hdg" },
-  { stat: 5, kind: "vsi" },
-] as const;
-
-const Instrument = ({ stat, kind, index }: { stat: number; kind: (typeof SIX)[number]["kind"]; index: number }) => {
-  const s = impact[stat];
-  const { ref, p } = useInstrumentProgress(index * 0.12);
-  const face =
-    kind === "asi" ? <Airspeed p={p} value={s.value} /> :
-    kind === "att" ? <Attitude p={p} /> :
-    kind === "alt" ? <Altimeter p={p} value={s.value} /> :
-    kind === "tc" ? <TurnCoordinator p={p} /> :
-    kind === "hdg" ? <Heading p={p} value={s.value} /> :
-    <VerticalSpeed p={p} value={s.value} />;
-  return (
-    <a ref={ref} href={`#${s.route}`} className="group flex flex-col items-center gap-2 focus-visible:outline-none" aria-label={`${s.prefix ?? ""}${s.value}${s.suffix ?? ""} ${s.label}. ${s.detail}`}>
-      <div className="w-full max-w-[10rem] transition-transform duration-300 group-hover:-translate-y-0.5 group-focus-visible:ring-2 group-focus-visible:ring-sign">
-        <Bezel label={s.label}>{face}</Bezel>
-      </div>
-      {/* Backlit placard. */}
-      <div className="device w-full max-w-[11.5rem] rounded-[3px] border border-black bg-gradient-to-b from-panel to-floor px-2 py-1.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-        {/* The number is the headline: big, bold, in the accent colour; units are smaller. */}
-        <div className="font-sign text-[30px] font-extrabold leading-none text-sign [text-shadow:0_0_10px_rgb(var(--sign)/0.35)]">
-          {s.prefix && <span className="text-[20px]">{s.prefix}</span>}
+      )}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="font-sign text-[31px] font-extrabold leading-none text-sign [text-shadow:0_0_12px_rgb(var(--sign)/0.3)] md:text-[40px]">
+          {s.prefix && <span className="text-[0.6em]">{s.prefix}</span>}
           {s.value}
-          <span className="ml-0.5 text-[16px] font-bold">{(s.suffix ?? "").trim()}</span>
+          <span className="ml-1 text-[0.45em] font-bold">{(s.suffix ?? "").trim()}</span>
         </div>
-        <div className="mt-1 font-sign text-[12.5px] font-semibold leading-tight text-ink/75 group-hover:text-ink">{s.label}</div>
+        <div className="mt-2 text-[14.5px] font-medium leading-snug text-ink/90">{s.label}</div>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
+          <span className="whitespace-nowrap rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[11.5px] font-medium text-ink/80">{COMPANY[slug]}</span>
+          <span className="affordance">Details →</span>
+        </div>
       </div>
     </a>
   );
@@ -127,6 +82,10 @@ const NavDisplay = () => {
   return (
     <div className="metal relative flex h-full flex-col rounded-xl p-3">
       <Screws />
+      <div className="mb-2 flex items-baseline justify-between px-1">
+        <span className="font-sign text-[15px] font-bold text-ink">Career route</span>
+        <PanelLabel>Nav display</PanelLabel>
+      </div>
       <div className="device glass recessed relative flex-1 overflow-hidden rounded-md bg-screen">
         <svg viewBox="0 0 300 260" className="h-full w-full" role="img" aria-label="Navigation display showing my career route from Dubai to Shopify">
           {/* Compass arc. */}
@@ -161,16 +120,18 @@ const NavDisplay = () => {
           {ROUTE.map((w, i) => {
             const active = i === ROUTE.length - 1;
             return (
-              <a key={w.label} href={w.href}>
+              <a key={w.label} href={w.href} className="waypoint">
                 <g className="cursor-pointer">
+                  {/* Hit box: a subtle outline that turns gold on hover/focus (the shared clickable look, in SVG). */}
+                  <rect className="waypoint-box" x={w.x - 10} y={w.y - 12} width={Math.max(w.label.length * 5.6 + 8, (w.id.length + w.sub.length + 1) * 4.6) + 24} height="25" rx="4" fill="transparent" />
                   <path d={`M${w.x} ${w.y - 6} L${w.x + 6} ${w.y} L${w.x} ${w.y + 6} L${w.x - 6} ${w.y} Z`} fill="none" stroke={active ? "rgb(var(--magenta))" : "rgb(var(--ink))"} strokeWidth="1.5" />
                   <text x={w.x + 10} y={w.y - 1} fill={active ? "rgb(var(--magenta))" : "rgb(var(--ink))"} fontSize="9" fontWeight="700" fontFamily="var(--font-mono), monospace">
                     {w.label}
+                    <tspan fill="rgb(var(--sign))" dx="3">↗</tspan>
                   </text>
                   <text x={w.x + 10} y={w.y + 9} fill="rgb(var(--cyan))" fontSize="7.5" fontFamily="var(--font-mono), monospace">
                     {w.id} {w.sub}
                   </text>
-                  <rect x={w.x - 10} y={w.y - 12} width="90" height="26" fill="transparent" />
                 </g>
               </a>
             );
@@ -181,10 +142,7 @@ const NavDisplay = () => {
           </g>
         </svg>
       </div>
-      <div className="mt-2 flex justify-between px-1">
-        <PanelLabel>Career route · Nav display</PanelLabel>
-        <PanelLabel className="text-ink/70">Select a waypoint</PanelLabel>
-      </div>
+      <div className="mt-2 px-1 text-[12px] text-ink/70">Each waypoint opens that role.</div>
     </div>
   );
 };
@@ -197,59 +155,71 @@ const LOG = roles.flatMap((role) =>
     .map((s) => ({ sys: role.company.replace("Rocket Mortgage", "Rocket").replace("UW Computer Science Club", "UW CS Club"), ...shipped[s.title], href: `#experience/${role.slug}` }))
 );
 
+/** Where things stand, at the bottom of the EICAS screen. */
+const STATUS: [string, string][] = [
+  ["Status", "Open to Summer 2027 SWE internships"],
+  ["Next", "Shopify · Backend & Infra · Winter 2027"],
+  ["Focus", "Cloud infra, CI/build systems, AI developer tooling"],
+];
+
+// Stretches to the height of the career-route panel beside it (desktop); the status block sits at
+// the bottom of the screen, below a thin rule.
 const Eicas = () => (
-  <div className="metal relative rounded-xl p-3">
+  <div className="metal relative flex h-full flex-col rounded-xl p-3">
     <Screws />
-    <div className="device glass recessed relative rounded-md bg-screen px-4 py-3 text-[14px] leading-snug md:text-[15px]">
-      <div className="mb-2 flex justify-between border-b border-white/10 pb-1.5 font-mono text-[10px]">
-        <span className="text-ink/80">SHIPPED · EICAS</span>
+    <div className="device glass recessed relative flex flex-1 flex-col rounded-md bg-screen px-4 py-3 text-[14px] leading-snug md:px-5 md:text-[15px]">
+      <div className="mb-1 flex justify-between border-b border-white/10 pb-1.5 font-mono text-[10px]">
+        <span className="text-ink/80">EICAS · ALSO SHIPPED</span>
         <span className="text-ops">NORMAL</span>
       </div>
-      <ol className="grid gap-y-1 lg:grid-cols-2 lg:gap-x-8">
-        {LOG.map((e, i) => (
-          <motion.li key={e.n + e.text} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.12 * i }}>
-            <a href={e.href} className="block rounded px-1 py-1 text-ink/90 transition hover:bg-white/[0.05]">
-              <span className="whitespace-nowrap font-semibold text-cyan">{e.n}</span> {e.text}{" "}
-              <span className="whitespace-nowrap pl-1 text-[12px] text-live/90">{e.sys}</span>
-            </a>
-          </motion.li>
+      <ol className="flex flex-1 flex-col justify-center">
+        {LOG.map((e) => (
+          <li key={e.n + e.text} className="flex items-baseline justify-between gap-4 border-b border-white/[0.06] py-2 last:border-b-0">
+            <span className="text-ink/90">
+              <span className="whitespace-nowrap font-semibold text-cyan">{e.n}</span> {e.text}
+            </span>
+            <span className="shrink-0 whitespace-nowrap text-right text-[12px] text-live/90">{e.sys}</span>
+          </li>
         ))}
       </ol>
+      <dl className="mt-3 grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-2.5 border-t border-white/15 pt-4">
+        {STATUS.map(([k, v]) => (
+          <React.Fragment key={k}>
+            <dt className="pt-[3px] font-mono text-[10px] uppercase tracking-[0.18em] text-ink/60">{k}</dt>
+            <dd className="text-[14px] leading-snug text-ink/90">{v}</dd>
+          </React.Fragment>
+        ))}
+      </dl>
     </div>
     <div className="mt-2 px-1">
-      <PanelLabel>Shipped · Lower EICAS</PanelLabel>
+      <PanelLabel>Also shipped · Lower EICAS</PanelLabel>
     </div>
   </div>
 );
 
 export const Cockpit = () => (
-  <section id="ops" className="amb-cockpit scroll-mt-14 px-4 pb-16 pt-10 md:px-6 md:pb-24">
+  <section id="ops" className="amb-cockpit scroll-mt-14 px-4 py-10 md:px-6 md:py-12">
     <div className="mx-auto max-w-6xl">
-      <GateHeader letter="B" en="Flight deck" label="Impact" intro="Results from my internships, on the instruments." hint="Select any instrument or waypoint for details" />
-      {/* The instruments come first; the overhead (stack) panel follows. */}
+      <GateHeader letter="B" en="Flight deck" label="Impact" intro="Results from my internships, on the instruments." hint="Select any result or waypoint for details" />
+      {/* The instruments come first; the stack checklist follows. */}
       <div className="flex flex-col">
-      <div className="order-3 mt-4">
-        <Overhead />
+      {/* The stack, as a checklist card, below the panels. */}
+      <div className="order-3 mt-10">
+        <SystemsChecklist />
       </div>
-      <div className="order-1">
-        <GlareshieldLip />
-      </div>
-      <div className="device metal relative order-2 -mt-3 rounded-b-[22px] px-4 pb-8 pt-10 md:px-8">
+      <div className="device metal relative order-2 rounded-[22px] px-4 pb-8 pt-10 md:px-8">
         <Screws />
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-          <div>
-            <PanelLabel className="mb-4 block">Impact · Primary flight instruments</PanelLabel>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3">
-              {SIX.map((it, i) => (
-                <Instrument key={it.kind} stat={it.stat} kind={it.kind} index={i} />
-              ))}
-            </div>
-          </div>
+        <PanelLabel className="mb-4 block">Impact · Key results</PanelLabel>
+        <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-3">
+          {impact.map((_, i) => (
+            <StatCard key={i} i={i} />
+          ))}
+        </div>
+        {/* Secondary visuals: the career route and the shipped list. */}
+        <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <div className="flex min-h-[20rem] flex-col">
             <NavDisplay />
           </div>
-        </div>
-        <div className="mt-8">
           <Eicas />
         </div>
       </div>

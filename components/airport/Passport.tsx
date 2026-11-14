@@ -18,11 +18,11 @@ const MRZ = [mrz(`P<VJM${SURNAME}<<${GIVEN.replace(/ /g, "<")}`), mrz("INFRA<DEV
 
 // ── Page parts ───────────────────────────────────────────────────────────
 const PageFrame = ({ n, side, children }: { n: number; side: "left" | "right"; children: React.ReactNode }) => (
-  <div className={`passport-paper relative flex h-full min-h-[33rem] flex-col p-5 sm:p-7 ${side === "left" ? "md:rounded-l-md page-curve-left" : "md:rounded-r-md page-curve-right"} rounded-md md:rounded-none`}>
+  <div className={`passport-paper relative flex h-full flex-col p-5 sm:px-7 sm:py-5 ${side === "left" ? "md:rounded-l-md page-curve-left" : "md:rounded-r-md page-curve-right"} rounded-md md:rounded-none`}>
     {/* The paper curves down into the gutter: darker and slightly narrower near the spine. */}
     <span aria-hidden="true" className={`pointer-events-none absolute inset-y-0 hidden w-1/3 md:block ${side === "left" ? "right-0 bg-[linear-gradient(270deg,rgba(60,40,20,0.22)_0%,rgba(60,40,20,0.08)_10%,rgba(255,255,255,0.18)_22%,transparent_60%)]" : "left-0 bg-[linear-gradient(90deg,rgba(60,40,20,0.22)_0%,rgba(60,40,20,0.08)_10%,rgba(255,255,255,0.18)_22%,transparent_60%)]"}`} />
     <div className="flex-1">{children}</div>
-    <div className={`mt-4 font-mono text-[10px] text-black/60 ${side === "left" ? "text-left" : "text-right"}`}>{String(n).padStart(2, "0")}</div>
+    <div className={`mt-2 font-mono text-[10px] text-black/60 ${side === "left" ? "text-left" : "text-right"}`}>{String(n).padStart(2, "0")}</div>
     {/* Page curl on the outer bottom corner; it lifts a little more on hover. */}
     <span
       aria-hidden="true"
@@ -103,6 +103,19 @@ const WhatIDoPage = () => (
         </a>
       ))}
     </div>
+    {/* A few interests here too, so the first spread is full (the rest are on page 4). */}
+    <div className="mt-5 font-mono text-[9px] uppercase tracking-[0.18em] text-black/60">Luggage stickers · A few interests</div>
+    <ul className="mt-2.5 flex flex-wrap gap-2">
+      {profile.interests.slice(0, 4).map((interest, i) => (
+        <li
+          key={interest}
+          style={{ rotate: `${TILT[i % TILT.length]}deg` }}
+          className={`px-2.5 py-1 font-sign text-[12px] font-bold uppercase tracking-wide shadow-sm ring-1 ${STICKERS[i % STICKERS.length]} ${SHAPES[i % SHAPES.length]}`}
+        >
+          {interest}
+        </li>
+      ))}
+    </ul>
   </PageFrame>
 );
 
@@ -135,7 +148,7 @@ const VisaPage = () => (
         <div key={g.name}>
           <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-black/60">{g.name}</div>
           <ul className="mt-1 space-y-0.5 text-[11.5px] leading-snug text-[#2a2620]">
-            {g.courses.slice(0, 4).map((c) => (
+            {g.courses.slice(0, 3).map((c) => (
               <li key={c}>{c.split(":")[1]?.trim() ?? c}</li>
             ))}
           </ul>
@@ -215,11 +228,11 @@ const PhotoPage = ({ n, side, from }: { n: number; side: "left" | "right"; from:
   return (
     <PageFrame n={n} side={side}>
       <PageTitle en={side === "left" ? "Moments" : "Moments, cont."} />
-      <ul className="grid grid-cols-2 gap-x-4 gap-y-5 pt-1">
+      <ul className="grid grid-cols-2 gap-x-4 gap-y-4 pt-1">
         {shown.map((m, i) => (
           <li
             key={m.src}
-            className={`relative bg-white p-1.5 pb-1 shadow-md ${i === 2 ? "col-span-2 mx-auto w-[72%]" : ""}`}
+            className={`relative bg-white p-1.5 pb-1 shadow-md ${i === 2 ? "col-span-2 mx-auto w-[46%]" : ""}`}
             style={{ rotate: `${[-2.5, 2, -1][i]}deg` }}
           >
             <span aria-hidden="true" className="absolute -top-2 left-1/2 z-10 h-4 w-12 -translate-x-1/2 rotate-[-3deg] bg-[#f3e7b5]/85" />
@@ -240,15 +253,24 @@ const SPREADS: [React.ReactNode, React.ReactNode][] = [
   [<PhotoPage key="p1" n={5} side="left" from={0} />, <PhotoPage key="p2" n={6} side="right" from={3} />],
 ];
 const PAGES = SPREADS.flat();
+/** What the next spread holds, for the "Next: …" label. */
+const NEXT_LABEL = ["Interests", "Moments"];
+/** Phones show a whole spread at a time, its two pages stacked, so nothing important needs a page turn. */
+const STACKS = SPREADS.map(([a, b], i) => (
+  <div key={i} className="grid gap-1.5">
+    {a}
+    {b}
+  </div>
+));
 
 /**
  * Keeps the passport one size on every page: all pages sit invisibly in the same grid cell as
  * the visible one, so the book is always as tall as its tallest page and never resizes as you
  * turn. The copies are hidden from screen readers and the keyboard.
  */
-const Sized = ({ children }: { children: React.ReactNode }) => (
+const Sized = ({ children, all = PAGES }: { children: React.ReactNode; all?: React.ReactNode[] }) => (
   <div className="grid h-full">
-    {PAGES.map((pg, i) => (
+    {all.map((pg, i) => (
       <div key={i} aria-hidden="true" className="pointer-events-none invisible [grid-area:1/1]">
         {pg}
       </div>
@@ -288,10 +310,25 @@ const NavArrow = ({ side, label, onClick, small }: { side: "left" | "right"; lab
       onClick();
     }}
     className={`btn-gold pointer-events-auto absolute z-30 flex items-center justify-center rounded-full font-sign text-xl font-extrabold ${
-      small ? "top-[calc(50%_-_1.375rem)] h-11 w-11" : "top-[calc(50%_-_1.75rem)] h-14 w-14"
+      // Phones stack a whole spread, so their arrows sit at the bottom (beside the page count), clear of the text.
+      small ? "bottom-1.5 h-11 w-11" : "top-[calc(50%_-_1.75rem)] h-14 w-14"
     } ${side === "left" ? (small ? "left-1" : "-left-7") : small ? "right-1" : "-right-7"}`}
   >
     {side === "left" ? "←" : "→"}
+  </button>
+);
+
+/** "Next: Interests →" under the book, so it's clear what turning the page gives you. */
+const NextLabel = ({ text, onClick }: { text: string; onClick: () => void }) => (
+  <button
+    type="button"
+    onClick={(e) => {
+      e.stopPropagation();
+      onClick();
+    }}
+    className="pointer-events-auto absolute -bottom-10 right-0 z-30 font-mono text-[12px] font-bold text-sign transition hover:underline md:bottom-3 md:left-[calc(50%+5.5rem)] md:right-auto md:rounded-full md:bg-black/65 md:px-3 md:py-1 md:text-[10px] md:!text-[#f6d77e] md:hover:no-underline"
+  >
+    Next: {text} →
   </button>
 );
 
@@ -343,11 +380,11 @@ export const Passport = () => {
       ([e]) => {
         if (e.isIntersecting && !autoOpened.current) {
           autoOpened.current = true;
-          window.setTimeout(openCover, 350);
+          window.setTimeout(openCover, 150);
           io.disconnect();
         }
       },
-      { threshold: 0.55 }
+      { threshold: 0.3 }
     );
     io.observe(el);
     return () => io.disconnect();
@@ -375,7 +412,7 @@ export const Passport = () => {
   }, [spread, turning, open, go, closeCover]);
   const forward = useCallback(() => (open ? go(1) : openCover()), [open, go, openCover]);
   const pageBack = () => (page === 0 ? closeCover() : setPage((p) => p - 1));
-  const pageNext = () => (open ? setPage((p) => Math.min(PAGES.length - 1, p + 1)) : openCover());
+  const pageNext = () => (open ? setPage((p) => Math.min(STACKS.length - 1, p + 1)) : openCover());
   const lastSpread = spread === SPREADS.length - 1;
 
   /** Clicking empty space on a page turns it; links and buttons inside the page don't. */
@@ -408,11 +445,11 @@ export const Passport = () => {
   const pageWrap = "group/page relative h-full transition-transform duration-300 hover:-translate-y-1 hover:drop-shadow-[0_10px_12px_rgba(0,0,0,0.25)]";
 
   return (
-    <section id="about" className="amb-desk scroll-mt-14 overflow-hidden px-4 py-16 md:px-6 md:py-24">
+    <section id="about" className="amb-desk scroll-mt-14 overflow-hidden px-4 py-10 md:px-6 md:py-12">
       <div className="mx-auto max-w-6xl">
-        <GateHeader letter="E" en="Passport" label="About" intro="Who I am, where I'm from and what I'm into." hint="Open the passport and turn the pages" />
+        <GateHeader letter="E" en="Passport" label="About" intro="Who I am, where I'm from and what I'm into." hint="Turn the page for interests and photos" />
 
-        <div ref={book}>
+        <div ref={book} className="pb-10 md:pb-0">
           {/* Desktop. Closed, only the front cover shows, centred; as it swings open the book slides
               across so the open spread ends up centred. Each half tilts slightly into the spine. */}
           <div className="hidden md:block" style={{ perspective: 2200 }}>
@@ -496,6 +533,7 @@ export const Passport = () => {
               {open && <NavArrow side="left" label={spread === 0 ? "Close passport" : "Previous page"} onClick={back} />}
               {(!open || !lastSpread) && <NavArrow side="right" label={open ? "Next page" : "Open passport"} onClick={forward} />}
               {settled && <PageCount text={`Pages ${spread * 2 + 1}–${spread * 2 + 2} of ${PAGES.length}`} />}
+              {settled && !lastSpread && <NextLabel text={NEXT_LABEL[spread]} onClick={forward} />}
             </motion.div>
           </div>
 
@@ -522,7 +560,7 @@ export const Passport = () => {
                 style={{ transformOrigin: "left center" }}
                 className="group/page relative rounded-lg bg-cover p-1.5"
               >
-                <Sized>{PAGES[page]}</Sized>
+                <Sized all={STACKS}>{STACKS[page]}</Sized>
               </motion.div>
             </AnimatePresence>
             {!settled && (
@@ -547,8 +585,9 @@ export const Passport = () => {
             )}
             <div className="pointer-events-none absolute inset-0">
               {open && <NavArrow side="left" label={page === 0 ? "Close passport" : "Previous page"} onClick={pageBack} small />}
-              {(!open || page < PAGES.length - 1) && <NavArrow side="right" label={open ? "Next page" : "Open passport"} onClick={pageNext} small />}
-              <PageCount text={open ? `Page ${page + 1} of ${PAGES.length}` : "Cover"} />
+              {(!open || page < STACKS.length - 1) && <NavArrow side="right" label={open ? "Next page" : "Open passport"} onClick={pageNext} small />}
+              <PageCount text={open ? `Pages ${page * 2 + 1}–${page * 2 + 2} of ${PAGES.length}` : "Cover"} />
+              {open && page < STACKS.length - 1 && <NextLabel text={NEXT_LABEL[page]} onClick={pageNext} />}
             </div>
           </div>
         </div>

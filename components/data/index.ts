@@ -17,7 +17,9 @@ export type Media = {
 
 export type Stat = { value: number; prefix?: string; suffix?: string; label: string; detail: string; route: string };
 
-export type Section = { heading: string; body?: string; bullets?: string[] };
+/** A figure inside a write-up section: an image with a one-line caption, shown above or below it. */
+export type Figure = { src: string; alt: string; caption: string; captionAbove?: boolean };
+export type Section = { heading: string; body?: string; bullets?: string[]; figure?: Figure };
 
 export type DiagramName = "allocator" | "bazel" | "migration" | "mcp" | "bot" | "macnode" | "ecg" | "datafest";
 
@@ -317,13 +319,16 @@ export const projects: Project[] = [
       { label: "Report (PDF)", href: "/reports/ecg-explainability-cs686.pdf", platform: "pdf" },
     ],
     diagram: "ecg",
-    media: [
-      { kind: "image", src: "/media/ecg/capacity-vs-interpretability.png", alt: "Capacity vs. interpretability: macro-F1 rises as explanation plausibility and faithfulness fall" },
-    ],
+    media: [],
     sections: [
       {
         heading: "The question",
         body: "Accuracy alone hides a trade-off. A clinical tool that can't explain why it flagged a heartbeat can't be audited, so we measured how explanation quality changes as model capacity grows.",
+        figure: {
+          src: "/media/ecg/compare.png",
+          alt: "The same heartbeat explained two ways: the decision tree's importance sits on the QRS spike; the attention model's is spread across the rest of the beat",
+          caption: "The decision tree's explanation lands on the QRS spike; the attention model's is spread elsewhere.",
+        },
       },
       {
         heading: "What we built",
@@ -339,6 +344,12 @@ export const projects: Project[] = [
           "As capacity rose, macro-F1 improved (0.18 → 0.29 → 0.35) while plausibility (0.87 → 0.50 → 0.29) and faithfulness (0.68 → 0.50 → 0.24) fell, using the same SHAP method for all three.",
           "Cost-sensitive thresholding lifted the MLP's rare-class recall from 0.14 to 0.84. The tree had only 36 distinct probability outputs, so the same rule could barely move it.",
         ],
+        figure: {
+          src: "/media/ecg/capacity-vs-interpretability.png",
+          alt: "Capacity vs. interpretability: macro-F1 rises as explanation plausibility and faithfulness fall",
+          caption: "More accurate models gave less trustworthy explanations.",
+          captionAbove: true,
+        },
       },
       {
         heading: "Treating ML like infrastructure",
@@ -347,6 +358,11 @@ export const projects: Project[] = [
           "make inflation-gap measures what leakage would hide: the attention model's macro-F1 jumps from 0.345 to 0.716.",
           "Built with Sanah Sarin.",
         ],
+        figure: {
+          src: "/media/ecg/leakage.png",
+          alt: "Accuracy inflation from patient leakage: inter-patient vs intra-patient scores for accuracy, macro-F1 and macro-AUPRC",
+          caption: "Patient leakage nearly doubles macro-F1 (0.35 → 0.72), which is why the split is enforced by a test.",
+        },
       },
     ],
   },
