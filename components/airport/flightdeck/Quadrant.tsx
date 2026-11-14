@@ -20,7 +20,10 @@ const THRUST_X = [-0.027, 0.027] as const;
 const SPEEDBRAKE_X = -0.094;
 const FLAP_X = 0.086;
 const SLOT = [0.79, 0.995] as const;
-const LEVER_Z = [0.81, 0.93] as const; // thrust lever travel along the arc, idle → take-off
+// The thrust levers pivot about a point inside the housing (below the top surface): the grip
+// swings on an arc from the aft end of its slot (idle) to the forward end (take-off thrust).
+const PIVOT = { Y: -0.675, z: 0.885, R: 0.11 } as const;
+const SWING = [-0.72, 0.33] as const; // lever angle from vertical (radians), idle → take-off
 // On the near half of the arc: past its crest the surface falls away and compresses everything.
 const FLAP_DETENTS: [string, number][] = [["UP", 0.905], ["1", 0.889], ["5", 0.873], ["15", 0.857], ["20", 0.841], ["25", 0.825], ["30", 0.809]];
 
@@ -74,20 +77,21 @@ const Defs = memo(function Defs() {
         <stop offset="0" stopColor="#e3e5e9" />
         <stop offset="1" stopColor="#6d7178" />
       </radialGradient>
-      {/* The thrust lever, drawn once at depth 1 (scene units × 440); origin where it leaves the slot. */}
+      {/* The thrust lever, drawn once at depth 1 (scene units × 440), origin at the middle of the
+          grip; the shaft runs down from it into the slot. */}
       <g id="q-thrust-lever">
-        <ellipse cx="0" cy="0" rx="7" ry="2" fill="#050506" />
+        <ellipse cx="0" cy="16.5" rx="6" ry="1.8" fill="#050506" />
         {/* Tapered shaft: front face and a darker side face. */}
-        <path d="M-4.6 0 L2.4 0 L1.8 -38 L-3.4 -38 Z" fill="url(#q-shaft)" />
-        <path d="M2.4 0 L4.6 0 L3.4 -38 L1.8 -38 Z" fill="#0e0f11" />
+        <path d="M-3.4 3 L1.8 3 L2.4 16.5 L-4.4 16.5 Z" fill="url(#q-shaft)" />
+        <path d="M1.8 3 L3.4 3 L4.4 16.5 L2.4 16.5 Z" fill="#0e0f11" />
         {/* Reverse-thrust lever, folded against the front of the main lever. */}
-        <rect x="-2.6" y="-29" width="4.4" height="19" rx="1.2" fill="#18191c" stroke="#3d4046" strokeWidth="0.5" />
-        <rect x="-4.2" y="-32" width="7.6" height="4" rx="1.4" fill="#8e9298" />
+        <rect x="-1.9" y="7.5" width="3.8" height="8" rx="1" fill="#18191c" stroke="#3d4046" strokeWidth="0.5" />
+        <rect x="-3.4" y="5.6" width="6.8" height="3" rx="1.2" fill="#8e9298" />
         {/* Grip: a wide rounded block, top face and front face. */}
-        <rect x="-11.5" y="-50" width="23" height="7" rx="3" fill="url(#q-grip-top)" />
-        <rect x="-11.5" y="-46" width="23" height="10" rx="3.4" fill="url(#q-grip)" stroke="#8d8a83" strokeWidth="0.5" />
+        <rect x="-11.5" y="-9" width="23" height="7" rx="3" fill="url(#q-grip-top)" />
+        <rect x="-11.5" y="-5" width="23" height="10" rx="3.4" fill="url(#q-grip)" stroke="#8d8a83" strokeWidth="0.5" />
         {/* TO/GA button on the front of the grip. */}
-        <rect x="-2.4" y="-40.5" width="4.8" height="2.6" rx="1" fill="#0b0b0c" />
+        <rect x="-2.4" y="0.6" width="4.8" height="2.6" rx="1" fill="#0b0b0c" />
       </g>
     </defs>
   );
@@ -150,8 +154,7 @@ const Housing = memo(function Housing() {
       </g>
       {/* Flap lever in the gate at 15: rectangular grip. */}
       <g transform={placed(FLAP_X, 0.857)}>
-        <rect x="-1.8" y="-5" width="3.6" height="5" fill="url(#q-shaft)" />
-        <rect x="-6" y="-10" width="12" height="6.5" rx="1.4" fill="url(#q-grip)" stroke="#8d8a83" strokeWidth="0.5" />
+        <rect x="-6" y="-3.2" width="12" height="6" rx="1.4" fill="url(#q-grip)" stroke="#8d8a83" strokeWidth="0.5" />
       </g>
       {/* Aft face: fuel control toggles (metal collar, small dark lever) and PARK BRAKE. */}
       {THRUST_X.map((X, i) => {
@@ -173,8 +176,15 @@ const Housing = memo(function Housing() {
   );
 });
 
-/** Thrust lever placement at travel v (0 idle → 1 take-off): along the arc, tilting forward a little. */
-const leverAt = (X: number, v: number) => placed(X, LEVER_Z[0] + (LEVER_Z[1] - LEVER_Z[0]) * v, 1 + 0.07 * v);
+/** Thrust lever placement at travel v (0 idle → 1 take-off): the grip's point on the swing arc,
+ *  scaled for distance (≈1.2 → 1.07), with a slight forward tilt; the drawn shaft length is fixed. */
+const leverAt = (X: number, v: number) => {
+  const th = SWING[0] + (SWING[1] - SWING[0]) * v;
+  const z = PIVOT.z + PIVOT.R * Math.sin(th);
+  const [x, y] = P(X, PIVOT.Y + PIVOT.R * Math.cos(th), z);
+  const k = 1 / z;
+  return `translate(${r1(x)} ${r1(y)}) scale(${k.toFixed(4)} ${(k * (1 - 0.06 * v)).toFixed(4)})`;
+};
 
 // The transform attribute is written straight from the motion value: no re-render as it moves.
 const Lever = ({ X, t }: { X: number; t: MotionValue<number> }) => {
