@@ -990,7 +990,7 @@ export const Takeoff = () => {
   return (
     // Rendered in the page markup, but shown only while html[data-takeoff] is set (CSS), so a
     // first visit gets the cockpit on the very first paint and later visits never see it.
-    <div className="takeoff-overlay fixed inset-0 z-[39]">
+    <div className="takeoff-overlay fixed inset-0 z-[39] select-none">
       <motion.div className="absolute inset-0" style={{ opacity: clear }}>
         {/* The camera moves forward through the captain's window: each layer scales by its depth. */}
         <div className="absolute inset-0 overflow-hidden bg-floor">
