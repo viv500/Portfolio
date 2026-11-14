@@ -26,7 +26,7 @@ const PageFrame = ({ n, side, children }: { n: number; side: "left" | "right"; c
     {/* Page curl on the outer bottom corner; it lifts a little more on hover. */}
     <span
       aria-hidden="true"
-      className={`pointer-events-none absolute bottom-0 h-7 w-7 transition-all duration-300 group-hover/page:h-10 group-hover/page:w-10 ${
+      className={`pointer-events-none absolute bottom-0 hidden h-7 w-7 transition-all md:block duration-300 group-hover/page:h-10 group-hover/page:w-10 ${
         side === "left"
           ? "left-0 rounded-tr-[10px] bg-[linear-gradient(45deg,rgb(var(--cover))_0%,rgb(var(--cover))_48%,rgba(0,0,0,0.18)_50%,rgb(var(--paper-shade))_62%,rgb(var(--paper))_100%)] md:rounded-bl-md"
           : "right-0 rounded-tl-[10px] bg-[linear-gradient(315deg,rgb(var(--cover))_0%,rgb(var(--cover))_48%,rgba(0,0,0,0.18)_50%,rgb(var(--paper-shade))_62%,rgb(var(--paper))_100%)] md:rounded-br-md"
@@ -255,13 +255,7 @@ const SPREADS: [React.ReactNode, React.ReactNode][] = [
 const PAGES = SPREADS.flat();
 /** What the next spread holds, for the "Next: …" label. */
 const NEXT_LABEL = ["Interests", "Moments"];
-/** Phones show a whole spread at a time, its two pages stacked, so nothing important needs a page turn. */
-const STACKS = SPREADS.map(([a, b], i) => (
-  <div key={i} className="grid gap-1.5">
-    {a}
-    {b}
-  </div>
-));
+
 
 /**
  * Keeps the passport one size on every page: all pages sit invisibly in the same grid cell as
@@ -310,8 +304,8 @@ const NavArrow = ({ side, label, onClick, small }: { side: "left" | "right"; lab
       onClick();
     }}
     className={`btn-gold pointer-events-auto absolute z-30 flex items-center justify-center rounded-full font-sign text-xl font-extrabold ${
-      // Phones stack a whole spread, so their arrows sit at the bottom (beside the page count), clear of the text.
-      small ? "bottom-1.5 h-11 w-11" : "top-[calc(50%_-_1.75rem)] h-14 w-14"
+      // Phones: at the bottom corners, beside the page count, so they never cover the text.
+      small ? "bottom-2 h-11 w-11" : "top-[calc(50%_-_1.75rem)] h-14 w-14"
     } ${side === "left" ? (small ? "left-1" : "-left-7") : small ? "right-1" : "-right-7"}`}
   >
     {side === "left" ? "←" : "→"}
@@ -412,7 +406,7 @@ export const Passport = () => {
   }, [spread, turning, open, go, closeCover]);
   const forward = useCallback(() => (open ? go(1) : openCover()), [open, go, openCover]);
   const pageBack = () => (page === 0 ? closeCover() : setPage((p) => p - 1));
-  const pageNext = () => (open ? setPage((p) => Math.min(STACKS.length - 1, p + 1)) : openCover());
+  const pageNext = () => (open ? setPage((p) => Math.min(PAGES.length - 1, p + 1)) : openCover());
   const lastSpread = spread === SPREADS.length - 1;
 
   /** Clicking empty space on a page turns it; links and buttons inside the page don't. */
@@ -560,7 +554,7 @@ export const Passport = () => {
                 style={{ transformOrigin: "left center" }}
                 className="group/page relative rounded-lg bg-cover p-1.5"
               >
-                <Sized all={STACKS}>{STACKS[page]}</Sized>
+                <Sized>{PAGES[page]}</Sized>
               </motion.div>
             </AnimatePresence>
             {!settled && (
@@ -585,9 +579,10 @@ export const Passport = () => {
             )}
             <div className="pointer-events-none absolute inset-0">
               {open && <NavArrow side="left" label={page === 0 ? "Close passport" : "Previous page"} onClick={pageBack} small />}
-              {(!open || page < STACKS.length - 1) && <NavArrow side="right" label={open ? "Next page" : "Open passport"} onClick={pageNext} small />}
-              <PageCount text={open ? `Pages ${page * 2 + 1}–${page * 2 + 2} of ${PAGES.length}` : "Cover"} />
-              {open && page < STACKS.length - 1 && <NextLabel text={NEXT_LABEL[page]} onClick={pageNext} />}
+              {(!open || page < PAGES.length - 1) && <NavArrow side="right" label={open ? "Next page" : "Open passport"} onClick={pageNext} small />}
+              <PageCount text={open ? `Page ${page + 1} of ${PAGES.length}` : "Cover"} />
+              {/* "Next: …" at the end of each spread's worth of pages, as on desktop. */}
+              {open && page % 2 === 1 && page < PAGES.length - 1 && <NextLabel text={NEXT_LABEL[(page - 1) / 2]} onClick={pageNext} />}
             </div>
           </div>
         </div>
