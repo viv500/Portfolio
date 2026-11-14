@@ -658,6 +658,7 @@ export const Takeoff = () => {
   const p = useMotionValue(0); // scene time
   const dusk = useMotionValue(0); // the dusk sweeping down the sky, 0 → 1
   const dolly = useMotionValue(0); // the move through the windscreen, 0 → 1
+  const lever = useMotionValue(0); // thrust levers, idle → take-off thrust
   // The dusk layer is 3× the screen tall; it starts already part-way in, so the zenith is
   // brownish from the start, and sweeps down until it covers everything.
   // Ends when the flat page colour (the top half of the layer) just reaches the screen's bottom
@@ -732,6 +733,8 @@ export const Takeoff = () => {
         const frozen = process.env.NODE_ENV !== "production" ? (window as unknown as { __takeoffAt?: number }).__takeoffAt : undefined;
         const ms = frozen ?? now - start;
         p.set(sceneAt(ms));
+        // THRUST SET: the levers slide forward over 0.5 s (ease-out) and stay there.
+        lever.set(1 - (1 - clamp01((ms - 80) / 500)) ** 3);
         takeoffClimb.set(clamp01((ms - T.roll) / (T.dusk - T.roll)));
         // Eases in: the sky holds its amber longer, then the dusk sweeps down fast, crossing the
         // windows during the camera's final rush and clearing just as the pane fills the screen.
@@ -759,6 +762,7 @@ export const Takeoff = () => {
       posthog.capture("takeoff_skipped", { ms: Math.round(now - start) });
       p.set(1);
       dusk.set(1);
+      lever.set(1);
       takeoffClimb.set(1);
     };
     skipRef.current = skip;
@@ -766,6 +770,7 @@ export const Takeoff = () => {
       p.set(0);
       dusk.set(0);
       dolly.set(0);
+      lever.set(0);
       clear.set(1);
       handedAt = 0;
       takeoffClimb.set(0);
@@ -808,7 +813,7 @@ export const Takeoff = () => {
       window.removeEventListener("pointerdown", onInput);
       window.removeEventListener("takeoff:replay", onReplay);
     };
-  }, [p, dusk, dolly, clear, shellScale]);
+  }, [p, dusk, dolly, clear, shellScale, lever]);
 
   // ── Scene state from the scene time ─────────────────────────────────────
   const [s, setS] = useState({ t: 0, d: 0, h: 1, kt: 0, alt: 0, call: CALLOUTS[0][1], thrust: 0, pitch: 0, horizon: 0 });
@@ -942,7 +947,7 @@ export const Takeoff = () => {
             </motion.div>
             <motion.div className="absolute inset-0 will-change-transform" style={{ scale: panelScale, opacity: panelFade, transformOrigin: camOrigin, x: camX }}>
               <Layer ref={panelRef}>
-                <Panel ias={s.kt} alt={s.alt} pitch={s.pitch} n1={22 + s.thrust * 72} egt={420 + s.thrust * 360} ff={600 + s.thrust * 2240} thrust={s.thrust} airborne={airborne} fma={fma} pull={pull} jitter={jitter} detail={!compact} />
+                <Panel ias={s.kt} alt={s.alt} pitch={s.pitch} n1={22 + s.thrust * 72} egt={420 + s.thrust * 360} ff={600 + s.thrust * 2240} thrust={s.thrust} airborne={airborne} fma={fma} pull={pull} jitter={jitter} detail={!compact} lever={lever} />
               </Layer>
             </motion.div>
           </motion.div>

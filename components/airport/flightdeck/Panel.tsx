@@ -2,6 +2,8 @@ import React, { memo } from "react";
 import { P, SILL, affine, col, poly, ps, r1, type V3 } from "./geometry";
 import { Eicas, Isfd, Nd, Pfd, SCREEN_H, SCREEN_W } from "./Displays";
 import { Yoke } from "./Yoke";
+import { Quadrant } from "./Quadrant";
+import type { MotionValue } from "framer-motion";
 
 // Glareshield, main instrument panel, pedestal and side consoles, all in perspective.
 
@@ -239,6 +241,7 @@ export const Panel = ({
   pull,
   jitter,
   detail,
+  lever,
 }: {
   ias: number;
   alt: number;
@@ -252,6 +255,8 @@ export const Panel = ({
   pull: number;
   jitter: number;
   detail: boolean;
+  /** Thrust lever position, 0 idle → 1 take-off thrust (a motion value: the levers move by transform). */
+  lever: MotionValue<number>;
 }) => {
   const pfdL = affine(wingL(0.88, -0.35), wingL(0.52, -0.35), wingL(0.88, -0.54), SCREEN_W, SCREEN_H);
   const ndL = affine(wingL(0.44, -0.35), wingL(0.08, -0.35), wingL(0.44, -0.54), SCREEN_W, SCREEN_H);
@@ -261,13 +266,6 @@ export const Panel = ({
   const isfd = affine([0.15, -0.37, PANEL_Z], [0.255, -0.37, PANEL_Z], [0.15, -0.475, PANEL_Z], SCREEN_W, SCREEN_H);
   const gs = Math.round(ias);
   const nm = 6153 - Math.round(alt / 600);
-  // Throttles: two large handles that advance as thrust is set.
-  const lever = (X: number, zTop: number, Ytop: number) => {
-    const [bx, by] = P(X, -0.66, 0.84);
-    const [hx, hy] = P(X, Ytop, zTop);
-    return { bx, by, hx, hy, s: 440 / zTop };
-  };
-  const throttles = [-0.045, 0.045].map((X) => lever(X, 0.74 + thrust * 0.18, -0.55));
   return (
     <g>
       <PanelDefs />
@@ -303,17 +301,7 @@ export const Panel = ({
       <Hood />
       <Wipers />
       <g transform={`translate(0 ${-SHIFT})`}>
-      {throttles.map((l, i) => (
-        <g key={i}>
-          <line x1={l.bx} y1={l.by} x2={l.hx} y2={l.hy} stroke="#1b1d21" strokeWidth={r1(0.022 * l.s)} strokeLinecap="round" />
-          {/* T-handle with a light grip, as on the 777. */}
-          <rect x={r1(l.hx - 0.05 * l.s)} y={r1(l.hy - 0.02 * l.s)} width={r1(0.1 * l.s)} height={r1(0.04 * l.s)} rx="6" fill="url(#lever)" stroke="rgba(255,255,255,0.18)" />
-          <rect x={r1(l.hx - 0.04 * l.s)} y={r1(l.hy - 0.016 * l.s)} width={r1(0.08 * l.s)} height={r1(0.01 * l.s)} rx="2" fill="rgba(255,255,255,0.35)" />
-          <text x={l.hx} y={r1(l.hy + 0.012 * l.s)} fontSize={r1(0.018 * l.s)} fill="#2a2d32" textAnchor="middle" fontFamily="var(--font-mono), monospace" fontWeight="700">
-            {i + 1}
-          </text>
-        </g>
-      ))}
+      <Quadrant thrust={lever} />
       {detail && <Yoke side="left" pull={pull} jitter={jitter} detail={detail} />}
       {detail && <Yoke side="right" pull={pull} jitter={-jitter} detail={detail} />}
       </g>
@@ -378,11 +366,6 @@ const PanelDefs = memo(function PanelDefs() {
         <stop offset="0" stopColor="#62676f" />
         <stop offset="1" stopColor="#16171a" />
       </radialGradient>
-      <linearGradient id="lever" x1="0" x2="0" y1="0" y2="1">
-        <stop offset="0" stopColor="#e4e6ea" />
-        <stop offset="0.5" stopColor="#b6bac1" />
-        <stop offset="1" stopColor="#6e737b" />
-      </linearGradient>
     </defs>
   );
 });
