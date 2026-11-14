@@ -119,10 +119,11 @@ export const CheckIn = () => {
             <span className="px-3 py-1.5">Captain&apos;s announcement</span>
           </div></div>
           <div className="flex items-center gap-3 font-mono text-xs text-flap/70">
+            {/* Replays use the immersive pacing: anyone pressing this wants to watch it again. */}
             <button
               type="button"
-              onClick={() => window.dispatchEvent(new CustomEvent("takeoff:replay"))}
-              className="replay-btn rounded-[3px] border border-white/15 px-2 py-1 text-[11px] text-flap/75 transition hover:border-sign/60 hover:text-flap"
+              onClick={() => window.dispatchEvent(new CustomEvent("takeoff:replay", { detail: { pacing: "immersive" } }))}
+              className="replay-btn rounded-[3px] border border-sign/40 bg-sign/20 px-2.5 py-1 text-[11px] font-semibold text-flap transition hover:border-sign/70 hover:bg-sign/30"
             >
               ↻ Replay take-off
             </button>
