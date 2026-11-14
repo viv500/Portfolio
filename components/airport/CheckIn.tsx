@@ -7,7 +7,7 @@ import { profile } from "@/components/data";
 import { CrewBadge } from "./CrewBadge";
 import { takeoffPlaying } from "./takeoffBus";
 
-const TYPE_MS = 700; // the ACARS line types in over this long
+const TYPE_MS = 1500; // the ACARS line types in over this long
 const acarsText = () =>
   `${document.documentElement.dataset.palette === "day" ? "Good afternoon" : "Good evening"} from the flight deck, this is Captain Vivek speaking. We’ve reached cruising altitude, so here’s a bit about what I do.`;
 

@@ -563,21 +563,21 @@ const Layer = React.forwardRef<HTMLDivElement, { children: React.ReactNode; labe
 });
 
 /** The intro, from first frame to removal. */
-export const TAKEOFF_TOTAL_MS = 9400;
+export const TAKEOFF_TOTAL_MS = 8600;
 // Timeline (ms), paced like a real departure:
 //  - hold (0–400): brakes on, thrust set.
-//  - roll (400–5200): the speed builds from walking pace (distance grows with time², so the
+//  - roll (400–4400): the speed builds from walking pace (distance grows with time², so the
 //    runway lights start slow and stream past faster and faster): 80 KNOTS, V1.
-//  - rotation and climb (5200–7600): ROTATE, a gradual nose-up to 15° over about 2 s, lift-off, V2,
+//  - rotation and climb (4400–6800): ROTATE, a gradual nose-up to 15° over about 2 s, lift-off, V2,
 //    POSITIVE RATE, GEAR UP.
-//  - dusk (6600–8600): the plane keeps climbing; the sky darkens from the zenith down (golden
+//  - dusk (5800–7800): the plane keeps climbing; the sky darkens from the zenith down (golden
 //    amber → deep amber → warm dark brown → the page colour) until every window shows flat page
 //    colour. In daylight it climbs through cloud to the page beige. The cockpit stays fully lit.
-//  - camera (5200–9400): from ROTATE, a slow forward drift through the middle of the windscreen,
+//  - camera (4400–8600): from ROTATE, a slow forward drift through the middle of the windscreen,
 //    running under the climb and the dusk; it only rushes, by perspective, at the end.
 //  - hand-off: the moment the frame has passed the camera (the screen is flat page colour), the
 //    page content appears and the overlay, now the same colour as the page, clears.
-const T = { hold: 400, roll: 5200, climb: 7600, duskFrom: 6600, dusk: 8600, dollyFrom: 5200, end: 9400 } as const;
+const T = { hold: 400, roll: 4400, climb: 6800, duskFrom: 5800, dusk: 7800, dollyFrom: 4400, end: 8600 } as const;
 const HANDOFF_MS = 350; // the overlay (pure page colour by then) clearing as the page content appears
 const SKIP_DOLLY_MS = 550;
 // The camera move, as a real forward move: each layer scales by its depth, 1 / (1 − travel / depth),
