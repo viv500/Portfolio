@@ -571,14 +571,15 @@ export const TAKEOFF_TOTAL_MS = 7400;
 //    late in the roll, V1 just before rotation.
 //  - rotation and climb (4000–6000): ROTATE, a gradual nose-up to 15° over about 2 s, lift-off, V2,
 //    POSITIVE RATE, GEAR UP.
-//  - dusk (4400–6200): the plane keeps climbing; the sky darkens from the zenith down (golden
+//  - dusk (4700–6450): runs into the camera's final rush, so the last of the glow sweeps away as
+//    the pane fills the screen; it completes just before the hand-off (never delays it): the plane keeps climbing; the sky darkens from the zenith down (golden
 //    amber → deep amber → warm dark brown → the page colour) until every window shows flat page
 //    colour. In daylight it climbs through cloud to the page beige. The cockpit stays fully lit.
 //  - camera (4000–7400): from ROTATE, a slow forward drift through the middle of the windscreen,
 //    running under the climb and the dusk; it only rushes, by perspective, at the end.
 //  - hand-off: the moment the frame has passed the camera (the screen is flat page colour), the
 //    page content appears and the overlay, now the same colour as the page, clears.
-const T = { hold: 400, roll: 4000, climb: 6000, duskFrom: 4400, dusk: 6200, dollyFrom: 4000, end: 7400 } as const;
+const T = { hold: 400, roll: 4000, climb: 6000, duskFrom: 4700, dusk: 6450, dollyFrom: 4000, end: 7400 } as const;
 /** Roll acceleration curve: speed grows as time^ROLL_POW, so it creeps after thrust-up, then builds hard. */
 const ROLL_POW = 1.7;
 const HANDOFF_MS = 350; // the overlay (pure page colour by then) clearing as the page content appears
@@ -659,7 +660,9 @@ export const Takeoff = () => {
   const dolly = useMotionValue(0); // the move through the windscreen, 0 → 1
   // The dusk layer is 3× the screen tall; it starts already part-way in, so the zenith is
   // brownish from the start, and sweeps down until it covers everything.
-  const duskY = useTransform(dusk, (v) => `${-82 + 82 * v}%`);
+  // Ends when the flat page colour (the top half of the layer) just reaches the screen's bottom
+  // edge, so the last of the glow is still sweeping down the screen during the final rush.
+  const duskY = useTransform(dusk, (v) => `${-82 + 65.3 * v}%`);
   const shellScale = useTransform(dolly, (v) => depthScale(v, DEPTH.shell));
   const panelScale = useTransform(dolly, (v) => Math.min(30, depthScale(v, DEPTH.panel)));
   // Fade a layer only as it gets very close (huge, so it never smears): the panel as the camera
@@ -730,9 +733,13 @@ export const Takeoff = () => {
         const ms = frozen ?? now - start;
         p.set(sceneAt(ms));
         takeoffClimb.set(clamp01((ms - T.roll) / (T.dusk - T.roll)));
-        dusk.set(ease((ms - T.duskFrom) / (T.dusk - T.duskFrom)));
+        // Eases in: the sky holds its amber longer, then the dusk sweeps down fast, crossing the
+        // windows during the camera's final rush and clearing just as the pane fills the screen.
+        const dx = clamp01((ms - T.duskFrom) / (T.dusk - T.duskFrom));
+        dusk.set(dx ** 2.5);
         dolly.set(dollyAt(ms - T.dollyFrom, T.end - T.dollyFrom));
-        if (shellScale.get() >= HANDOFF_SCALE || ms >= T.end) handOff(now);
+        // Hand off once the pane fills the screen and the dusk is complete (flat page colour).
+        if ((shellScale.get() >= HANDOFF_SCALE && dusk.get() >= 0.999) || ms >= T.end) handOff(now);
         if (handedAt && clearing(now, false, ms)) return;
       }
       raf = requestAnimationFrame(tick);
