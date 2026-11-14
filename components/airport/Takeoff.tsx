@@ -679,9 +679,6 @@ export const Takeoff = () => {
   // ── The controller ───────────────────────────────────────────────────────
   useEffect(() => {
     const html = document.documentElement;
-    // From here on, input is handled below; the pre-paint script stops recording early skips
-    // (otherwise its one-time listeners could fire on a later click, e.g. the first Replay).
-    html.dataset.takeoffReady = "1";
     let raf = 0;
     let start = 0;
     let skipAt = 0;
@@ -709,6 +706,7 @@ export const Takeoff = () => {
       }
       delete html.dataset.takeoff;
       setActive(false);
+      window.dispatchEvent(new CustomEvent("takeoff:finished"));
       if (!skipped) posthog.capture("takeoff_completed", { ms: Math.round(elapsed) });
     };
     // Once handed off: clear the overlay, then remove it.
@@ -785,33 +783,104 @@ export const Takeoff = () => {
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
       waiting = false;
       if (!alive) return;
-      // Input before this script loaded (caught by the pre-paint script in app/layout.tsx) counts as a skip.
-      if (html.dataset.takeoffSkip) skipQueued = true;
-      delete html.dataset.takeoffSkip;
       start = performance.now();
       running = true;
       if (skipQueued) skip();
       raf = requestAnimationFrame(tick);
     };
-    const onInput = () => skip();
-    const onReplay = () => {
-      if (!running && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) play();
+    // ── What skips, and what doesn't ──────────────────────────────────────
+    // Skips: a deliberate scroll (wheel/trackpad ≥30px accumulated), a swipe ≥30px or a tap on
+    // touch, navigation keys without modifiers, or the Skip button. Doesn't: mouse clicks or
+    // movement, modifier keys or shortcuts, focus changes, or anything in the first 300 ms
+    // (momentum from the previous page). After a skip, downward scrolling is swallowed until it
+    // has paused for 400 ms (capped at 1.2 s after the intro ends), so a hard flick's momentum
+    // lands on the Captain's announcement instead of carrying past it.
+    const IGNORE_MS = 300;
+    const SWALLOW_MS = 400;
+    const SWALLOW_CAP_MS = 1200;
+    let swallowCap = 0;
+    const SKIP_KEYS = new Set([" ", "Enter", "Escape", "ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End"]);
+    let wheelSum = 0;
+    let wheelAt = 0;
+    let skippedByInput = false;
+    let swallowUntil = 0;
+    const settling = () => performance.now() - start < IGNORE_MS;
+    const userSkip = () => {
+      if (!running || waiting || settling()) return;
+      skippedByInput = true;
+      skip();
     };
-    window.addEventListener("wheel", onInput, { passive: true });
-    window.addEventListener("touchstart", onInput, { passive: true });
-    window.addEventListener("keydown", onInput);
-    window.addEventListener("pointerdown", onInput);
+    const onWheel = (e: WheelEvent) => {
+      const now = performance.now();
+      if (skippedByInput && e.deltaY > 0 && (running || (now < swallowUntil && now < swallowCap))) {
+        e.preventDefault();
+        swallowUntil = now + SWALLOW_MS; // keep swallowing while the momentum continues
+        return;
+      }
+      if (!running) return;
+      if (now - wheelAt > 300) wheelSum = 0;
+      wheelAt = now;
+      wheelSum += Math.abs(e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? window.innerHeight : 1));
+      if (wheelSum > 30) userSkip();
+    };
+    let touch: { x: number; y: number; t: number; moved: boolean } | null = null;
+    const onTouchStart = (e: TouchEvent) => {
+      const p0 = e.touches[0];
+      if (p0) touch = { x: p0.clientX, y: p0.clientY, t: performance.now(), moved: false };
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      const p0 = e.touches[0];
+      if (!p0 || !touch) return;
+      const dy = touch.y - p0.clientY;
+      if (skippedByInput && dy > 0 && (running || (performance.now() < swallowUntil && performance.now() < swallowCap))) {
+        e.preventDefault();
+        return;
+      }
+      if (Math.hypot(p0.clientX - touch.x, dy) > 30) {
+        touch.moved = true;
+        userSkip();
+      }
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+      if (touch && !touch.moved && performance.now() - touch.t < 500 && !(e.target as HTMLElement)?.closest?.("a, button")) userSkip();
+      touch = null;
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || !SKIP_KEYS.has(e.key)) return;
+      if ((e.target as HTMLElement)?.closest?.("a, button, input, textarea, [contenteditable]")) return;
+      userSkip();
+    };
+    const onDone = () => {
+      if (skippedByInput) {
+        swallowUntil = performance.now() + SWALLOW_MS;
+        swallowCap = performance.now() + SWALLOW_CAP_MS;
+      }
+    };
+    const onReplay = () => {
+      if (!running && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        skippedByInput = false;
+        play();
+      }
+    };
+    window.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    window.addEventListener("keydown", onKey);
     window.addEventListener("takeoff:replay", onReplay);
+    window.addEventListener("takeoff:finished", onDone);
     if (html.dataset.takeoff) play();
     return () => {
       alive = false;
       running = false;
       cancelAnimationFrame(raf);
-      window.removeEventListener("wheel", onInput);
-      window.removeEventListener("touchstart", onInput);
-      window.removeEventListener("keydown", onInput);
-      window.removeEventListener("pointerdown", onInput);
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("keydown", onKey);
       window.removeEventListener("takeoff:replay", onReplay);
+      window.removeEventListener("takeoff:finished", onDone);
     };
   }, [p, dusk, dolly, clear, shellScale, lever]);
 
