@@ -456,10 +456,8 @@ html.light .text-neutral-300:not(.keep-dark, .keep-dark *) { color: rgb(21 18 36
 }
 
 /* Section ambience: each area is lit differently. */
-.amb-terminal { background:
-  radial-gradient(60% 40% at 20% 0%, rgb(var(--ambient-warm) / 0.08), transparent 70%),
-  radial-gradient(60% 40% at 80% 0%, rgb(var(--ambient-warm) / 0.06), transparent 70%),
-  linear-gradient(180deg, rgb(var(--wall)) 0%, rgb(var(--floor)) 100%); }
+/* Flat page colour across the top (where the intro's push-through lands), then into the floor. */
+.amb-terminal { background: linear-gradient(180deg, rgb(var(--wall)) 0%, rgb(var(--wall)) 60%, rgb(var(--floor)) 100%); }
 .amb-hall { background:
   radial-gradient(50% 30% at 50% 0%, rgb(var(--ambient-warm) / 0.06), transparent 75%),
   linear-gradient(180deg, rgb(var(--floor)) 0%, rgb(var(--wall)) 18%, rgb(var(--wall)) 82%, rgb(var(--floor)) 100%); }
@@ -608,37 +606,86 @@ svg.foil { -webkit-text-fill-color: initial; background: none; color: #d8b65e; }
 .badge-sway:hover { animation: badge-sway 1.8s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .badge-sway:hover { animation: none; } }
 
+/* One shared "this opens something" treatment for every interactive item (logbook entries,
+   impact stats, project passes, hackathon cards): a subtle border, a lift and a gold ring on
+   hover/focus, and a pointer. The lift uses the `translate` property, so it composes with any
+   transform framer-motion sets; the ring fades in with opacity. Nothing non-clickable uses it. */
+.clickable { position: relative; cursor: pointer; border: 1px solid rgb(var(--sign) / 0.32); transition: translate 0.2s ease; }
+/* The ring sits on the inside edge, so cards that clip their content (overflow: hidden) still show it. */
+.clickable::after {
+  content: ""; position: absolute; inset: 0; z-index: 20; border-radius: inherit; pointer-events: none;
+  box-shadow: inset 0 0 0 2px rgb(var(--sign));
+  opacity: 0; transition: opacity 0.2s ease;
+}
+.clickable:hover, .clickable:focus-visible { translate: 0 -3px; }
+.clickable:hover::after, .clickable:focus-visible::after { opacity: 1; }
+.clickable:focus-visible { outline: none; }
+@media (prefers-reduced-motion: reduce) { .clickable:hover, .clickable:focus-visible { translate: none; } }
+/* The always-visible "Details →" on clickable items: gold on dark, deep gold on paper/day. */
+.affordance { font-family: var(--font-mono), monospace; font-size: 11.5px; font-weight: 700; white-space: nowrap; color: rgb(var(--sign)); }
+.on-paper .affordance, :root[data-palette="day"] .affordance:not(.device *) { color: #7a4e0c; }
+
+/* Winning hackathon cards: a gold border and a soft gold glow. */
+.clickable.winner { border: 2px solid #d4a033; box-shadow: 0 0 22px -2px rgba(232, 180, 60, 0.45), 0 10px 24px -14px rgba(0, 0, 0, 0.6); }
+
+/* Logbook: a deeper cream page; entries are ledger rows (square, ruled, no gaps). Hover is a
+   highlighter: a warm fill across the row plus a 3px gold left edge. */
+.logbook-paper.logbook-deep { background-color: rgb(236 222 192); }
+/* Faint ledger rules across the whole page, behind the entry cards. */
+.logbook-paper.logbook-ruled {
+  background-image:
+    repeating-linear-gradient(180deg, transparent 0 31px, rgba(110, 70, 30, 0.08) 31px 32px),
+    radial-gradient(90% 70% at 50% 35%, rgba(255,255,255,0.4), transparent 70%),
+    radial-gradient(140% 120% at 50% 50%, transparent 62%, rgb(var(--paper-shade) / 0.6) 100%);
+}
+.ledger-row { transition: background-color 0.15s ease, box-shadow 0.15s ease; }
+.ledger-row:hover, .ledger-row:focus-visible { background-color: rgba(240, 196, 92, 0.38); box-shadow: inset 3px 0 0 #c9921f; outline: none; }
+/* The row's "Details →" button fills gold when the row (or the button) is hovered. */
+.ledger-row:hover .details-btn, .ledger-row:focus-visible .details-btn { background: #e2a93a; border-color: #b07a16; color: #2a1a04; }
+
+/* Nav-display waypoints: the clickable look in SVG. */
+.waypoint .waypoint-box { stroke: rgb(var(--sign) / 0.3); stroke-width: 1; transition: stroke 0.2s ease; }
+.waypoint:hover .waypoint-box, .waypoint:focus-visible .waypoint-box { stroke: rgb(var(--sign)); stroke-width: 2; }
+.waypoint:focus-visible { outline: none; }
+
 /* Section subtitles: high contrast, ~85% of the heading colour; a dark brown in daylight. */
 .section-sub { color: rgb(var(--ink) / 0.9); }
 :root[data-palette="day"] .section-sub { color: #3f2a19; }
+
+/* Intro take-off: the overlay only shows while html[data-takeoff] is set (before first paint, by
+   the script in app/layout.tsx). Meanwhile the page sits at the top, underneath, with its content
+   hidden (the intro section keeps its background, so the push-through lands on it seamlessly). */
+.takeoff-overlay { display: none; }
+html[data-takeoff] .takeoff-overlay { display: block; }
+html[data-takeoff], html[data-takeoff] body { overflow: hidden; overscroll-behavior: none; }
+html[data-takeoff] main.aviation > :not(.takeoff-overlay):not(#top):not(.flight-strip),
+html[data-takeoff] #top > * { visibility: hidden; }
+/* The sky through the windscreen on the way to the page: amber then deep amber at golden hour;
+   cloud then whiteout in daylight. The last layer is the page background itself (bg-wall). */
+.to-sky-a { background: linear-gradient(180deg, #f6c071 0%, #e99a45 55%, #d87d33 100%); }
+.to-sky-b { background: linear-gradient(180deg, #7a3d15 0%, #4a2610 60%, rgb(var(--wall)) 100%); }
+:root[data-palette="day"] .to-sky-a {
+  background:
+    radial-gradient(40% 30% at 25% 40%, rgba(255,255,255,0.95), transparent 70%),
+    radial-gradient(45% 35% at 70% 55%, rgba(255,255,255,0.9), transparent 70%),
+    linear-gradient(180deg, #e9edf2, #f4f2ec);
+}
+:root[data-palette="day"] .to-sky-b { background: #fbfaf6; }
+
+/* Intro reveal (after the take-off): the ACARS line types in, then the rest fades in (≤400 ms). */
+#top .reveal-item { transition: opacity 0.3s ease; }
+#top .reveal-item + .reveal-item { transition-delay: 0.1s; }
+#top[data-reveal="hidden"] .reveal-item, #top[data-reveal="typing"] .reveal-item { opacity: 0; transition: none; }
+/* The sky at the top of the page: an amber horizon glow and dim stars at golden hour, white haze in daylight. */
+.horizon-glow { background: radial-gradient(70% 100% at 50% 0%, rgba(232, 150, 70, 0.14), transparent 70%); }
+:root[data-palette="day"] .horizon-glow { background: radial-gradient(80% 100% at 50% 0%, rgba(255, 255, 255, 0.55), transparent 70%); }
+:root[data-palette="day"] .horizon-stars { display: none; }
+@media (prefers-reduced-motion: reduce) { .replay-btn { display: none; } }
 
 /* Captain's greeting: "Good evening" at golden hour, "Good afternoon" in daylight. */
 .greet-afternoon { display: none; }
 :root[data-palette="day"] .greet-afternoon { display: inline; }
 :root[data-palette="day"] .greet-evening { display: none; }
-
-/* Take-off prompt: a gold highlight runs round the pill's border, and its glow pulses. */
-@property --cue-spin { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
-@keyframes cue-spin { to { --cue-spin: 360deg; } }
-@keyframes cue-pulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.65; } }
-.cue-ring {
-  position: absolute; inset: 0; border-radius: 9999px; padding: 1.5px;
-  background: conic-gradient(from var(--cue-spin), rgb(var(--sign) / 0.4) 0deg, rgb(var(--sign) / 0.4) 240deg, rgb(var(--sign)) 290deg, #fff6d2 320deg, rgb(var(--sign)) 340deg, rgb(var(--sign) / 0.4) 360deg);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  animation: cue-spin 2.8s linear infinite;
-}
-.cue-glow { position: absolute; inset: 0; border-radius: 9999px; box-shadow: 0 0 14px 0 rgb(var(--sign) / 0.4); animation: cue-pulse 2.6s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) {
-  .cue-ring { animation: none; background: rgb(var(--sign)); }
-  .cue-glow { animation: none; opacity: 0.4; }
-}
-
-/* Gentle bob on the "scroll to take off" cue. */
-@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
-.bob { animation: bob 2.2s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .bob { animation: none; } }
 
 /* Daylight: bright gold text on cream fails contrast, so outside dark devices it uses the deep gold. */
 :root[data-palette="day"] .text-sign:not(.device *),
@@ -689,17 +736,6 @@ svg.foil { -webkit-text-fill-color: initial; background: none; color: #d8b65e; }
   .page-curve-left { clip-path: polygon(0 0, 70% 0, 84% 0.3%, 92% 0.8%, 97% 1.5%, 100% 2.4%, 100% 97.6%, 97% 98.5%, 92% 99.2%, 84% 99.7%, 70% 100%, 0 100%); }
   .page-curve-right { clip-path: polygon(0 2.4%, 3% 1.5%, 8% 0.8%, 16% 0.3%, 30% 0, 100% 0, 100% 100%, 30% 100%, 16% 99.7%, 8% 99.2%, 3% 98.5%, 0 97.6%); }
 }
-
-/* Daylight overhead panel: light warm grey like a real Airbus overhead, dark labels. */
-:root[data-palette="day"] .overhead-panel {
-  --raised: 214 208 198;
-  --panel: 196 190 180;
-  --wall: 176 170 160;
-  --floor: 150 144 134;
-  --edge: 232 228 220;
-  --ink: 34 30 26;
-}
-:root[data-palette="day"] .overhead-panel .screw { background: radial-gradient(circle at 35% 30%, #f3f1ec 0%, #a9a49b 60%, #6e6a63 100%); }
 
 /* Daylight cards and frames: a lighter beige than the page, with a soft shadow. */
 :root[data-palette="day"] .pass-stock { box-shadow: 0 10px 24px -12px rgba(90, 64, 30, 0.45); }

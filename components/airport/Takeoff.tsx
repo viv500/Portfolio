@@ -2,6 +2,8 @@
 
 import React, { memo, useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useMotionValueEvent, useTransform } from "framer-motion";
+import posthog from "posthog-js";
+import { TAKEOFF_SEEN_KEY, takeoffClimb } from "./takeoffBus";
 import { HZ, P, VIEW_H, VIEW_W, VP, col, r1 } from "./flightdeck/geometry";
 import { Shell } from "./flightdeck/Shell";
 import { Panel } from "./flightdeck/Panel";
@@ -560,207 +562,178 @@ const Layer = React.forwardRef<HTMLDivElement, { children: React.ReactNode; labe
   );
 });
 
-export const Takeoff = () => {
-  const ref = useRef<HTMLDivElement>(null);
-  const outsideRef = useRef<HTMLDivElement>(null);
-  const stickyRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
+/** The intro, from first frame to removal. */
+export const TAKEOFF_TOTAL_MS = 4000;
+// Timeline (ms): hold, roll (THRUST SET, 80 KNOTS, V1), rotate and climb (ROTATE, POSITIVE
+// RATE, GEAR UP), the sky turning into the page, then the push through the windscreen.
+const T = { hold: 300, roll: 1900, climb: 2700, sky: 3300, push: 3900 } as const;
+const SKIP_PUSH_MS = 300;
+const SCENE_END = 0.76;
+const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
+const easeIn = (x: number) => x * x * x;
+/** Scene time (0 → SCENE_END, rotation at 0.5) at `ms` into the intro. */
+const sceneAt = (ms: number) =>
+  ms < T.hold ? 0 : ms < T.roll ? ((ms - T.hold) / (T.roll - T.hold)) * 0.5 : ms < T.climb ? 0.5 + ((ms - T.roll) / (T.climb - T.roll)) * (SCENE_END - 0.5) : SCENE_END;
 
-  // Reduced motion: a still frame of the climb, no parallax, no shake.
-  const [reduced, setReduced] = useState(false);
+/**
+ * The take-off: a one-time autoplay intro, as a fixed overlay above the page (which sits at the
+ * top, underneath, its content hidden until the overlay is gone). The plane rolls, rotates and
+ * climbs; the sky through the windscreen turns into the page background; the camera pushes
+ * through the windscreen; the overlay goes and the page is revealed. It never scrolls the page.
+ * Any wheel, touch, key or click (or Skip) jumps to the sky-matched frame and pushes through in
+ * 300 ms. Plays once per session (and never with reduced motion); "Replay take-off" plays it again.
+ */
+export const Takeoff = () => {
+  const outsideRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const [compact, setCompact] = useState(false);
-  const [touch, setTouch] = useState(false);
-  const reducedRef = useRef(false);
+  const [active, setActive] = useState(false);
+  const compactRef = useRef(false);
   useEffect(() => {
-    reducedRef.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    setReduced(reducedRef.current);
     const mq = window.matchMedia("(max-width: 767px)");
     const update = () => {
       setCompact(mq.matches);
       compactRef.current = mq.matches;
     };
-    setTouch(window.matchMedia("(hover: none) and (pointer: coarse)").matches);
     update();
     mq.addEventListener("change", update);
     return () => mq.removeEventListener("change", update);
   }, []);
-  const progress = useMotionValue(0);
-  // Scroll progress → scene timeline (rotation at 0.5). The roll keeps its length; the climb is
-  // cut short so the sequence ends soon after GEAR UP, while the airport is still in view.
-  const SCENE_END = 0.76;
-  const ROLL_SHARE = 0.66;
-  const p = useTransform(progress, (u) =>
-    reducedRef.current ? 0.72 : u < ROLL_SHARE ? (u / ROLL_SHARE) * 0.5 : 0.5 + ((u - ROLL_SHARE) / (1 - ROLL_SHARE)) * (SCENE_END - 0.5)
-  );
 
-  // One gesture plays the whole take-off: any scroll, swipe or key down (or a click/tap on the
-  // scene) runs it start to finish at its intended pace (MIN_MS), however much or little you
-  // scroll; input during the run is absorbed. Scrolling back up rewinds it the same way. The page
-  // scroll follows the progress, so the hero stays pinned until the take-off is done.
+  // Everything the timeline drives, as motion values (transform and opacity only).
+  const p = useMotionValue(0); // scene time
+  const skyA = useMotionValue(0); // amber (golden hour) / cloud (day)
+  const skyB = useMotionValue(0); // deep amber / whiteout
+  const skyC = useMotionValue(0); // the page background
+  const push = useMotionValue(0); // push through the windscreen, 0 → 1
+  const scale = useTransform(push, (v) => 1 + 3 * easeIn(v));
+  const fade = useTransform(push, [0.7, 1], [1, 0]);
+  const skipRef = useRef<() => void>(() => {});
+
+  // ── The controller ───────────────────────────────────────────────────────
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    // Phones and tablets: the hero is a single screen, and the page is never moved by script
-    // during the run (that fights native scrolling and stutters on iOS and Android).
-    const touchMode = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
-    const MIN_MS = 3000; // the whole take-off
-    const LEAD = 0.3;
-    const GLIDE = 6; // 1/s: eases the last stretch into the end
-    let dir: 0 | 1 | -1 = 0; // playing forward, backward, or idle
-    // Hand-off: when the take-off completes, glide to the next section and swallow the burst of
-    // scrolling still coming in, so people land on the next section instead of shooting past it.
-    // A short pause releases normal scrolling; HANDOFF_MAX_MS caps it so spam can't hold it.
-    let guard = false;
-    let lastGuarded = 0;
-    let guardEnd = 0;
-    const HANDOFF_QUIET_MS = 250;
-    const HANDOFF_MAX_MS = 1000;
-    const handoff = () => {
-      guard = true;
-      lastGuarded = performance.now();
-      guardEnd = lastGuarded + HANDOFF_MAX_MS;
-      const el = document.getElementById("top");
-      if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: "smooth" });
-    };
+    const html = document.documentElement;
     let raf = 0;
-    let lastInput = 0;
-    let last = 0;
-    // Measured against the pinned hero rather than the window: mobile browser toolbars change
-    // innerHeight mid-scroll, which would make progress jump.
-    const range = () => Math.max(1, (ref.current?.offsetHeight ?? 0) - (stickyRef.current?.offsetHeight ?? window.innerHeight));
-    const inZone = () => (touchMode ? window.scrollY <= 2 : window.scrollY <= range() + 2);
+    let start = 0;
+    let skipAt = 0;
+    let running = false;
+    let waiting = false; // overlay up, timeline not started yet (fonts loading)
+    let skipQueued = false;
+    let alive = true;
+    const finish = (skipped: boolean, elapsed: number) => {
+      running = false;
+      try {
+        sessionStorage.setItem(TAKEOFF_SEEN_KEY, "1");
+      } catch {
+        // Storage blocked: it'll just play again next time.
+      }
+      takeoffClimb.set(1);
+      delete html.dataset.takeoff;
+      setActive(false);
+      window.dispatchEvent(new CustomEvent("takeoff:done"));
+      if (!skipped) posthog.capture("takeoff_completed", { ms: Math.round(elapsed) });
+    };
     const tick = (now: number) => {
-      const dt = last ? Math.min(0.05, (now - last) / 1000) : 1 / 60;
-      last = now;
-      const cur = progress.get();
-      const target = dir > 0 ? Math.min(1, cur + LEAD) : Math.max(0, cur - LEAD);
-      const gap = target - cur;
-      const maxStep = dt / (MIN_MS / 1000);
-      const step = Math.max(-maxStep, Math.min(maxStep, gap * Math.min(1, GLIDE * dt) + Math.sign(gap) * Math.min(Math.abs(gap), maxStep * 0.15)));
-      // Never step past the end (an overshoot would hide the moment the run finishes).
-      const end = dir > 0 ? 1 : 0;
-      const next = Math.abs(end - cur) < 0.0005 || Math.abs(step) >= Math.abs(end - cur) ? end : cur + step;
-      progress.set(next);
-      if (!touchMode) window.scrollTo({ top: next * range(), behavior: "instant" as ScrollBehavior });
-      if (next !== end) {
-        raf = requestAnimationFrame(tick);
+      if (!running) return;
+      if (skipAt) {
+        const k = clamp01((now - skipAt) / SKIP_PUSH_MS);
+        push.set(k);
+        if (k >= 1) return finish(true, skipAt - start);
+      } else {
+        // Dev-only test hook: window.__takeoffAt freezes the timeline at that many ms.
+        const frozen = process.env.NODE_ENV !== "production" ? (window as unknown as { __takeoffAt?: number }).__takeoffAt : undefined;
+        const ms = frozen ?? now - start;
+        p.set(sceneAt(ms));
+        takeoffClimb.set(clamp01((ms - T.roll) / (T.push - T.roll)));
+        skyA.set(clamp01((ms - T.climb) / 200));
+        skyB.set(clamp01((ms - T.climb - 200) / 200));
+        skyC.set(clamp01((ms - T.climb - 400) / 200));
+        push.set(clamp01((ms - T.sky) / (T.push - T.sky)));
+        if (ms >= T.push) return finish(false, ms);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    // Skip: straight to the sky-matched frame, then push through in 300 ms. Never blocks input.
+    const skip = () => {
+      if (waiting) {
+        skipQueued = true;
         return;
       }
-      raf = 0;
-      last = 0;
-      const finished = dir > 0;
-      dir = 0;
-      if (finished) handoff();
-    };
-    const play = (d: 1 | -1) => {
-      dir = d;
-      if (!raf) raf = requestAnimationFrame(tick);
-    };
-    const push = (px: number, e: Event) => {
+      if (!running || skipAt) return;
       const now = performance.now();
-      if (guard) {
-        if (now > guardEnd || now - lastGuarded > HANDOFF_QUIET_MS) guard = false;
-        else if (px > 0) {
-          e.preventDefault();
-          lastGuarded = now;
-          return;
-        }
-      }
-      lastInput = now;
-      if (!inZone() || px === 0) return;
-      const cur = progress.get();
-      // Done and still going down (or at the start going up): let the page scroll normally.
-      if ((px > 0 && cur >= 1 && dir === 0) || (px < 0 && cur <= 0 && dir === 0)) return;
-      e.preventDefault();
-      play(px > 0 ? 1 : -1);
+      if (now - start >= T.sky) return; // already pushing through
+      skipAt = now;
+      posthog.capture("takeoff_skipped", { ms: Math.round(now - start) });
+      p.set(SCENE_END);
+      skyA.set(1);
+      skyB.set(1);
+      skyC.set(1);
+      push.set(0);
+      takeoffClimb.set(1);
     };
-    const onWheel = (e: WheelEvent) => push(e.deltaY, e);
-    let touchY = 0;
-    const onTouchStart = (e: TouchEvent) => {
-      touchY = e.touches[0]?.clientY ?? 0;
+    skipRef.current = skip;
+    const play = async () => {
+      p.set(0);
+      skyA.set(0);
+      skyB.set(0);
+      skyC.set(0);
+      push.set(0);
+      takeoffClimb.set(0);
+      skipAt = 0;
+      skipQueued = false;
+      waiting = true;
+      html.dataset.takeoff = "on";
+      setActive(true);
+      window.dispatchEvent(new CustomEvent("takeoff:start"));
+      // Start after first paint, once the fonts are in (capped, so a slow font never stalls it).
+      await Promise.race([document.fonts?.ready, new Promise((r) => setTimeout(r, 1200))]);
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      waiting = false;
+      if (!alive) return;
+      // Input before this script loaded (caught by the pre-paint script in app/layout.tsx) counts as a skip.
+      if (html.dataset.takeoffSkip) skipQueued = true;
+      delete html.dataset.takeoffSkip;
+      start = performance.now();
+      running = true;
+      if (skipQueued) skip();
+      raf = requestAnimationFrame(tick);
     };
-    const onTouchMove = (e: TouchEvent) => {
-      const y = e.touches[0]?.clientY ?? touchY;
-      // Ignore tiny jitters so a tap isn't read as a swipe.
-      if (Math.abs(touchY - y) < 2) return;
-      push(touchY - y, e);
-      touchY = y;
+    const onInput = () => skip();
+    const onReplay = () => {
+      if (!running && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) play();
     };
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement)?.closest?.("input, textarea, [contenteditable]")) return;
-      const map: Record<string, number> = { ArrowDown: 1, ArrowUp: -1, PageDown: 1, PageUp: -1, " ": e.shiftKey ? -1 : 1 };
-      if (e.key in map) push(map[e.key], e);
-    };
-    // Scrolling that bypasses the handlers (scrollbar drag, links, Skip) re-syncs the take-off.
-    const onScroll = () => {
-      if (touchMode || guard || raf) return;
-      if (!inZone()) {
-        if (progress.get() < 1) progress.set(1);
-        return;
-      }
-      const cur = progress.get();
-      const t = Math.min(1, Math.max(0, window.scrollY / range()));
-      if (Math.abs(t - cur) <= 0.01) return;
-      // Scrolled back up into the hero: rewind the whole take-off. Otherwise (links, scrollbar
-      // drags) just follow the page.
-      if (performance.now() - lastInput < 300) play(t < cur ? -1 : 1);
-      else progress.set(t);
-    };
-    // Clicking or tapping the scene (not a button or link) plays it too.
-    const onClick = (e: MouseEvent) => {
-      if ((e.target as HTMLElement)?.closest?.("a, button, nav, input, label")) return;
-      if (!ref.current?.contains(e.target as Node) || progress.get() >= 1) return;
-      lastInput = performance.now();
-      play(1);
-    };
-    ref.current?.addEventListener("click", onClick);
-    const host = ref.current;
-    window.addEventListener("wheel", onWheel, { passive: false });
-    window.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchmove", onTouchMove, { passive: false });
-    window.addEventListener("keydown", onKey);
-    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("wheel", onInput, { passive: true });
+    window.addEventListener("touchstart", onInput, { passive: true });
+    window.addEventListener("keydown", onInput);
+    window.addEventListener("pointerdown", onInput);
+    window.addEventListener("takeoff:replay", onReplay);
+    if (html.dataset.takeoff) play();
     return () => {
+      alive = false;
+      running = false;
       cancelAnimationFrame(raf);
-      host?.removeEventListener("click", onClick);
-      window.removeEventListener("wheel", onWheel);
-      window.removeEventListener("touchstart", onTouchStart);
-      window.removeEventListener("touchmove", onTouchMove);
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("wheel", onInput);
+      window.removeEventListener("touchstart", onInput);
+      window.removeEventListener("keydown", onInput);
+      window.removeEventListener("pointerdown", onInput);
+      window.removeEventListener("takeoff:replay", onReplay);
     };
-  }, [progress]);
-  useMotionValueEvent(progress, "change", (t) => ref.current?.setAttribute("data-progress", t.toFixed(3)));
+  }, [p, skyA, skyB, skyC, push]);
 
+  // ── Scene state from the scene time ─────────────────────────────────────
   const [s, setS] = useState({ t: 0, d: 0, h: 1, kt: 0, alt: 0, call: CALLOUTS[0][1], thrust: 0, pitch: 0, horizon: 0 });
   const pending = useRef<number | null>(null);
-  const compactRef = useRef(false);
   const frame = useRef(0);
-  const drawn = useRef(-1);
-  const trailing = useRef<number | null>(null);
   const latest = useRef(0);
   useMotionValueEvent(p, "change", (t) => {
-    // Scroll events can outpace frames; render at most once per frame.
     latest.current = t;
     if (pending.current !== null) return;
     pending.current = requestAnimationFrame(() => {
       pending.current = null;
-      // Phones: redraw the scene at most every third frame, and only on a visible change.
-      // (The world motion and shake are motion values and still run every frame.)
-      if (compactRef.current) {
-        frame.current += 1;
-        const t = latest.current;
-        const settled = t === 0 || t >= 0.999;
-        if (!settled && (frame.current % 3 !== 0 || Math.abs(t - drawn.current) < 0.006)) {
-          // Make sure the final position is drawn once scrolling stops.
-          if (trailing.current) clearTimeout(trailing.current);
-          trailing.current = window.setTimeout(() => {
-            drawn.current = latest.current;
-            update(latest.current);
-          }, 90);
-          return;
-        }
-        drawn.current = t;
-      }
+      // Phones: redraw the SVG scene every other frame (the world motion and shake are motion
+      // values and still run every frame); always draw the last frame.
+      frame.current += 1;
+      if (compactRef.current && frame.current % 2 && latest.current < SCENE_END) return;
       update(latest.current);
     });
   });
@@ -776,43 +749,42 @@ export const Takeoff = () => {
       call: [...CALLOUTS].reverse().find(([at]) => t >= at)?.[1] ?? CALLOUTS[0][1],
       thrust: Math.min(1, t / 0.04),
       pitch: t < 0.5 ? 0 : Math.min(15, ((t - 0.5) / 0.12) * 15),
-      // Same curve as worldY below, as a number for the HUD.
-      horizon: t < 0.5 ? 0 : t < 0.64 ? ((t - 0.5) / 0.14) * 52 : 52 + ((t - 0.64) / 0.36) * 6,
+      horizon: t < 0.5 ? 0 : t < 0.64 ? ((t - 0.5) / 0.14) * 70 : 70 + ((t - 0.64) / 0.12) * 50,
     });
   };
 
-  // Rotation: the nose comes up about 15° and holds.
-  const worldY = useTransform(p, [0.5, 0.64, 1], [0, 52, 58]);
-  // Convert scene units to CSS pixels for the composited layer (the SVG is "slice"-scaled).
-  const [unit, setUnit] = useState({ k: 1, ox: "50%", oy: "34%" });
+  // Rotation and climb: the nose comes up and the world drops away, so the terminal and the
+  // skyline sink below the sill.
+  const worldY = useTransform(p, [0.5, 0.64, SCENE_END], [0, 70, 120]);
+  // Scene units → CSS pixels (the SVG is "slice"-scaled), and the push-through origin: the
+  // middle of the captain's front window (kept on screen on narrow phones).
+  const [unit, setUnit] = useState({ k: 1, ox: "50%", oy: "34%", px: "37%", py: "32%" });
   useEffect(() => {
     const measure = () => {
-      const el = outsideRef.current;
-      if (!el) return;
-      const w = el.offsetWidth;
-      const hgt = el.offsetHeight;
+      const w = window.innerWidth;
+      const hgt = window.innerHeight;
       const k = Math.max(w / VIEW_W, hgt / VIEW_H);
-      // Rotation pivots on the vanishing point (VP, HZ), wherever "slice" puts it on screen.
-      setUnit({ k, ox: `${w / 2 + (VP - VIEW_W / 2) * k}px`, oy: `${hgt / 2 + (HZ - VIEW_H / 2) * k}px` });
+      const visW = w / k;
+      const ux = Math.min(466, Math.max(370, VP - visW / 2 + visW * 0.25));
+      setUnit({
+        k,
+        ox: `${w / 2 + (VP - VIEW_W / 2) * k}px`,
+        oy: `${hgt / 2 + (HZ - VIEW_H / 2) * k}px`,
+        px: `${w / 2 + (ux - VIEW_W / 2) * k}px`,
+        py: `${hgt / 2 + (190 - VIEW_H / 2) * k}px`,
+      });
     };
     measure();
-    const ro = new ResizeObserver(measure);
-    if (outsideRef.current) ro.observe(outsideRef.current);
-    return () => ro.disconnect();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
   }, []);
   const worldYPx = useTransform(worldY, (v) => v * unit.k);
-  const worldOrigin = `${unit.ox} ${unit.oy}`;
-  const pitchRot = useTransform(p, [0.5, 0.66, 1], [0, -1.2, -0.4]);
-  const shake = useTransform(p, (t) => (t < 0.5 && !reducedRef.current ? Math.sin(t * 900) * 1.6 * (t / 0.5) : 0));
-  // The take-off prompt fades out as soon as the take-off starts.
-  const cue = useTransform(progress, [0, 0.03], [1, 0]);
+  const pitchRot = useTransform(p, [0.5, 0.66, SCENE_END], [0, -1.2, -0.6]);
+  const shake = useTransform(p, (t) => (t > 0 && t < 0.5 ? Math.sin(t * 900) * 1.6 * (t / 0.5) : 0));
 
-  // Mouse parallax: a few pixels between layers, only on desktop and while the scene is on screen.
+  // Mouse parallax: a few pixels between layers, desktop only, while the intro plays.
   useEffect(() => {
-    if (reduced || compact || !window.matchMedia("(pointer: fine)").matches) return;
-    const el = ref.current;
-    if (!el) return;
-    let visible = false;
+    if (!active || compact || !window.matchMedia("(pointer: fine)").matches) return;
     let raf = 0;
     let tx = 0;
     let ty = 0;
@@ -826,22 +798,16 @@ export const Takeoff = () => {
       raf = Math.abs(tx - cx) + Math.abs(ty - cy) > 0.001 ? requestAnimationFrame(tick) : 0;
     };
     const onMove = (e: MouseEvent) => {
-      if (!visible) return;
       tx = (e.clientX / window.innerWidth) * 2 - 1;
       ty = (e.clientY / window.innerHeight) * 2 - 1;
       if (!raf) raf = requestAnimationFrame(tick);
     };
-    const io = new IntersectionObserver(([entry]) => {
-      visible = entry.isIntersecting;
-    });
-    io.observe(el);
     window.addEventListener("mousemove", onMove, { passive: true });
     return () => {
-      io.disconnect();
       window.removeEventListener("mousemove", onMove);
       cancelAnimationFrame(raf);
     };
-  }, [reduced, compact]);
+  }, [active, compact]);
 
   const airborne = s.t > 0.56;
   const climbing = s.t >= 0.66; // POSITIVE RATE
@@ -849,35 +815,41 @@ export const Takeoff = () => {
   // Yokes: pulled back at ROTATE, easing to a gentle climb position after POSITIVE RATE.
   const ease = (x: number) => x * x * (3 - 2 * x);
   const pull = s.t < 0.5 ? 0 : s.t < 0.58 ? ease((s.t - 0.5) / 0.08) : 1 - 0.08 * ease(Math.min(1, (s.t - 0.58) / 0.42));
-  const jitter = s.t < 0.5 && !reduced ? Math.sin(s.t * 1300) * 0.8 * (s.t / 0.5) : 0;
+  const jitter = s.t > 0 && s.t < 0.5 ? Math.sin(s.t * 1300) * 0.8 * (s.t / 0.5) : 0;
 
   return (
-    <div ref={ref} className={reduced || touch ? "relative h-screen cursor-pointer" : "relative h-[140vh] cursor-pointer"}>
-      <div ref={stickyRef} className="sticky top-0 h-screen overflow-hidden bg-floor">
-        {/* The scene. Only this part shakes. */}
-        <motion.div className="absolute inset-0" style={{ y: shake }}>
-          {/* The world outside. Its climb motion is a transform on an HTML layer (composited by
-              the GPU) rather than on an SVG group, which Chrome would repaint every frame. */}
-          <div ref={outsideRef} className="absolute inset-0 md:inset-[-12px] md:will-change-transform">
-            <motion.div className="absolute inset-0 will-change-transform" style={{ y: worldYPx, rotate: pitchRot, transformOrigin: worldOrigin }}>
-              <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} preserveAspectRatio="xMidYMid slice" className="h-full w-full overflow-visible" role="img" aria-label="View from an airliner flight deck during take-off">
-                <OutsideDefs />
-                <Backdrop />
-                <Surroundings d={s.d} h={s.h} lite={compact} />
-                <Ground d={s.d} h={s.h} lite={compact} />
-              </svg>
-            </motion.div>
-          </div>
-          <Layer>
-            <Shell compact={compact} fma={fma} call={s.call} kt={s.kt} alt={s.alt} horizon={s.horizon} climb={Math.min(1, Math.max(0, (s.t - 0.55) / 0.1)) * 8} />
-          </Layer>
-          <Layer ref={panelRef}>
-            <Panel ias={s.kt} alt={s.alt} pitch={s.pitch} n1={22 + s.thrust * 72} egt={420 + s.thrust * 360} ff={600 + s.thrust * 2240} thrust={s.thrust} airborne={airborne} fma={fma} pull={pull} jitter={jitter} detail={!compact} />
-          </Layer>
+    // Rendered in the page markup, but shown only while html[data-takeoff] is set (CSS), so a
+    // first visit gets the cockpit on the very first paint and later visits never see it.
+    <div className="takeoff-overlay fixed inset-0 z-[39]">
+      <motion.div className="absolute inset-0" style={{ opacity: fade }}>
+        {/* The camera: scales up around the captain's window for the push-through. */}
+        <motion.div className="absolute inset-0 overflow-hidden bg-floor will-change-transform" style={{ scale, transformOrigin: `${unit.px} ${unit.py}` }}>
+          <motion.div className="absolute inset-0" style={{ y: shake }}>
+            {/* The world outside, composited on its own layer; the sky layers over it turn the
+                view through the windows into the page background. */}
+            <div ref={outsideRef} className="absolute inset-0 md:inset-[-12px] md:will-change-transform">
+              <motion.div className="absolute inset-0 will-change-transform" style={{ y: worldYPx, rotate: pitchRot, transformOrigin: `${unit.ox} ${unit.oy}` }}>
+                <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} preserveAspectRatio="xMidYMid slice" className="h-full w-full overflow-visible" role="img" aria-label="View from an airliner flight deck during take-off">
+                  <OutsideDefs />
+                  <Backdrop />
+                  <Surroundings d={s.d} h={s.h} lite={compact} />
+                  <Ground d={s.d} h={s.h} lite={compact} />
+                </svg>
+              </motion.div>
+              <motion.div aria-hidden="true" className="to-sky-a absolute inset-0" style={{ opacity: skyA }} />
+              <motion.div aria-hidden="true" className="to-sky-b absolute inset-0" style={{ opacity: skyB }} />
+              <motion.div aria-hidden="true" className="absolute inset-0 bg-wall" style={{ opacity: skyC }} />
+            </div>
+            <Layer>
+              <Shell compact={compact} fma={fma} call={s.call} kt={s.kt} alt={s.alt} horizon={s.horizon} climb={Math.min(1, Math.max(0, (s.t - 0.55) / 0.1)) * 8} />
+            </Layer>
+            <Layer ref={panelRef}>
+              <Panel ias={s.kt} alt={s.alt} pitch={s.pitch} n1={22 + s.thrust * 72} egt={420 + s.thrust * 360} ff={600 + s.thrust * 2240} thrust={s.thrust} airborne={airborne} fma={fma} pull={pull} jitter={jitter} detail={!compact} />
+            </Layer>
+          </motion.div>
         </motion.div>
 
-        {/* Name card and actions: pinned at a fixed safe inset on their own layer, outside every
-            transformed (shaking, climbing, parallax) layer, so nothing can shift or clip them. */}
+        {/* Name card and actions: pinned at a fixed safe inset, outside the moving layers. */}
         <div
           className="absolute top-0 z-10 flex items-start justify-between gap-3 pt-4 [--inset:1rem] md:pt-6 md:[--inset:1.5rem]"
           style={{ left: "max(var(--inset), env(safe-area-inset-left))", right: "max(var(--inset), env(safe-area-inset-right))" }}
@@ -888,33 +860,21 @@ export const Takeoff = () => {
               <p className="text-xs font-semibold text-[#2a1d0a] md:text-sm">Backend &amp; Infrastructure Engineer</p>
             </div>
           </div>
-          {/* Résumé is the primary action (filled gold); Skip is secondary (gold outline). ~1.25x on desktop. */}
+          {/* Résumé is the primary action (filled gold); Skip is secondary (gold outline). */}
           <div className="flex shrink-0 items-start gap-2 pb-1 md:gap-2.5">
             <a href={resumePath} target="_blank" rel="noopener noreferrer" className="btn-gold whitespace-nowrap rounded-[4px] px-3 py-1.5 font-mono text-[11px] font-bold md:px-4 md:py-2 md:text-[14px]">
               Résumé ↗
             </a>
-            {/* Skip: 2px gold border, gold text (Résumé's fill colour) on a ~60% dark fill so it reads
-                over anything; turns solid gold on hover. Same height as Résumé. */}
-            <a
-              href="#top"
+            <button
+              type="button"
+              onClick={() => skipRef.current()}
               className="device inline-flex h-[31px] items-center whitespace-nowrap rounded-[4px] border-2 border-sign bg-black/60 px-3 font-mono text-[11px] font-semibold text-[rgb(var(--sign))] shadow-[0_4px_12px_-6px_rgba(0,0,0,0.8)] transition-colors hover:bg-sign hover:text-[#1a1206] focus-visible:bg-sign focus-visible:text-[#1a1206] focus-visible:outline-none md:h-[39px] md:px-4 md:text-[14px]"
             >
               Skip →
-            </a>
+            </button>
           </div>
         </div>
-        {/* Take-off prompt: a translucent dark pill (pre-baked, no backdrop blur), a gold border
-            with a highlight travelling round it, a softly pulsing glow and a bobbing arrow. */}
-        <motion.div style={{ opacity: cue }} className="pointer-events-none absolute inset-x-0 bottom-[23%] z-10 flex flex-col items-center gap-1.5">
-          <span className="font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-white/55 [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]">Ready for departure</span>
-          <span className="relative inline-flex items-center gap-2 rounded-full bg-[linear-gradient(180deg,rgba(28,22,12,0.62),rgba(8,6,3,0.72))] px-4 py-1.5 font-mono text-[12px] font-medium uppercase tracking-[0.15em] text-white shadow-[0_8px_24px_-10px_rgba(0,0,0,0.8)] md:text-[13px]">
-            <span aria-hidden="true" className="cue-glow" />
-            <span aria-hidden="true" className="cue-ring" />
-            <span className="relative">Scroll or tap to take off</span>
-            <span aria-hidden="true" className="bob relative text-sign">↓</span>
-          </span>
-        </motion.div>
-      </div>
+      </motion.div>
     </div>
   );
 };

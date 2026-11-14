@@ -58,7 +58,11 @@ const Caption = ({ y, children, size = 8 }: { y: number; children: React.ReactNo
 );
 
 // ── Airspeed: % faster builds ───────────────────────────────────────────
-export const Airspeed = ({ p, value }: { p: MotionValue<number>; value: number }) => {
+/**
+ * `bare`: for use beside a stat that already says what it measures. No inner captions, and the
+ * needle stops short of the numeral ring, so at no angle does it cover any text.
+ */
+export const Airspeed = ({ p, value, bare = false }: { p: MotionValue<number>; value: number; bare?: boolean }) => {
   const ang = (v: number) => -150 + v * 3; // 0..100 → -150..150
   const angle = useTransform(p, (t) => ang(value * t + Math.sin(t * Math.PI) * 6));
   return (
@@ -69,9 +73,9 @@ export const Airspeed = ({ p, value }: { p: MotionValue<number>; value: number }
       <line x1={polar(ang(90), 70)[0]} y1={polar(ang(90), 70)[1]} x2={polar(ang(90), 88)[0]} y2={polar(ang(90), 88)[1]} stroke="rgb(var(--alert))" strokeWidth="3.5" />
       <Ticks from={ang(0)} to={ang(100)} count={20} />
       <Numbers items={[0, 20, 40, 60, 80, 100].map((v) => ({ a: ang(v), t: String(v) }))} r={62} />
-      <Caption y={74}>BUILD SPEED</Caption>
-      <Caption y={136}>% FASTER</Caption>
-      <Needle angle={angle} />
+      {!bare && <Caption y={74}>BUILD SPEED</Caption>}
+      {!bare && <Caption y={136}>% FASTER</Caption>}
+      <Needle angle={angle} length={bare ? 46 : 74} />
       <Hub />
     </>
   );
@@ -122,7 +126,8 @@ export const Attitude = ({ p }: { p: MotionValue<number> }) => {
 };
 
 // ── Altimeter: hours saved per allocation ───────────────────────────────
-export const Altimeter = ({ p, value }: { p: MotionValue<number>; value: number }) => {
+/** `bare`: as for Airspeed: no captions or counter drum, and both hands stay inside the numerals. */
+export const Altimeter = ({ p, value, bare = false }: { p: MotionValue<number>; value: number; bare?: boolean }) => {
   const long = useTransform(p, (t) => value * t * 36 * 10); // the long hand sweeps the dial several times
   const short = useTransform(p, (t) => value * t * 36);
   const [drum, setDrum] = React.useState("00.0");
@@ -131,14 +136,18 @@ export const Altimeter = ({ p, value }: { p: MotionValue<number>; value: number 
     <>
       <Ticks from={0} to={360} count={50} major={5} />
       <Numbers items={Array.from({ length: 10 }).map((_, i) => ({ a: i * 36, t: String(i) }))} r={64} size={15} />
-      {/* Counter drum. */}
-      <rect x="80" y="128" width="40" height="18" rx="2" fill="#050607" stroke="rgb(var(--edge))" />
-      <text x="100" y="141.5" fill={INK} fontSize="11" textAnchor="middle" fontFamily="var(--font-mono), monospace">
-        {drum}
-      </text>
-      <Caption y={76}>HRS SAVED</Caption>
-      <Needle angle={short} length={46} width={7} />
-      <Needle angle={long} length={78} width={3.5} />
+      {!bare && (
+        <>
+          {/* Counter drum. */}
+          <rect x="80" y="128" width="40" height="18" rx="2" fill="#050607" stroke="rgb(var(--edge))" />
+          <text x="100" y="141.5" fill={INK} fontSize="11" textAnchor="middle" fontFamily="var(--font-mono), monospace">
+            {drum}
+          </text>
+          <Caption y={76}>HRS SAVED</Caption>
+        </>
+      )}
+      <Needle angle={short} length={bare ? 30 : 46} width={7} />
+      <Needle angle={long} length={bare ? 46 : 78} width={3.5} />
       <Hub />
     </>
   );

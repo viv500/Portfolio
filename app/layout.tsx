@@ -45,7 +45,8 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             // A saved choice wins; otherwise pick by the visitor's local time (daytime 6:00–17:00,
             // golden hour otherwise). The automatic pick isn't saved, so it follows the clock.
-            __html: `(function(){var d=document.documentElement,p=null;try{p=localStorage.getItem("palette")}catch(e){}if(p!=="day"&&p!=="golden"){var h=new Date().getHours();p=h>=6&&h<17?"day":"golden"}d.dataset.palette=p})()`,
+            // Also flags the intro take-off (home page, once per session, not with reduced motion).
+            __html: `(function(){var d=document.documentElement,p=null;try{p=localStorage.getItem("palette")}catch(e){}if(p!=="day"&&p!=="golden"){var h=new Date().getHours();p=h>=6&&h<17?"day":"golden"}d.dataset.palette=p;try{if(location.pathname==="/"&&!sessionStorage.getItem("takeoff-seen")&&!matchMedia("(prefers-reduced-motion: reduce)").matches){d.dataset.takeoff="on";var k=function(){d.dataset.takeoffSkip="1"};["pointerdown","touchstart","wheel","keydown"].forEach(function(t){addEventListener(t,k,{once:true,passive:true})})}}catch(e){}})()`,
           }}
         />
       </head>

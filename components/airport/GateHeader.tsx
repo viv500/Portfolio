@@ -20,13 +20,13 @@ export const GateHeader = ({
   hint?: string;
   tone?: "dark" | "light";
 }) => (
-  <div className="mb-8 md:mb-10">
+  <div className="mb-5 md:mb-6">
     <p className="flex items-center gap-2 font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-sign">
       <span aria-hidden="true" className="sign-letter flex h-[18px] w-[18px] items-center justify-center rounded-[2px] text-[10px]">{letter}</span>
       {en}
     </p>
-    <h2 className={`mt-2 font-sign text-3xl font-extrabold tracking-tight md:text-[44px] md:leading-[1.1] ${tone === "dark" ? "text-flap" : "text-black"}`}>{label}</h2>
-    {intro && <p className={`section-sub mt-3 max-w-[65ch] text-[1.1rem] font-normal leading-relaxed ${tone === "light" ? "!text-black/80" : ""}`}>{intro}</p>}
+    <h2 className={`mt-2 font-sign text-[27px] font-extrabold tracking-tight md:text-[40px] md:leading-[1.1] ${tone === "dark" ? "text-flap" : "text-black"}`}>{label}</h2>
+    {intro && <p className={`section-sub mt-2.5 max-w-[65ch] text-[1.03rem] font-normal leading-relaxed ${tone === "light" ? "!text-black/80" : ""}`}>{intro}</p>}
     {hint && (
       <p className="mt-1.5 flex max-w-[65ch] items-center gap-2 text-[0.95rem] font-medium text-sign">
         <PointerIcon />
