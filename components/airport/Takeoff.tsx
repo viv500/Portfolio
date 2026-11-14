@@ -563,24 +563,24 @@ const Layer = React.forwardRef<HTMLDivElement, { children: React.ReactNode; labe
 });
 
 /** The intro, from first frame to removal. */
-export const TAKEOFF_TOTAL_MS = 7600;
+export const TAKEOFF_TOTAL_MS = 7800;
 // Timeline (ms), paced like a real departure:
 //  - hold (0–400): brakes on, thrust set.
-//  - roll (400–3800): after thrust-up the plane creeps, then the speed builds hard (speed grows
+//  - roll (400–4000): after thrust-up the plane creeps, then the speed builds hard (speed grows
 //    as time^ROLL_POW), so the runway lights barely move at first and then stream past: 80 KNOTS
 //    late in the roll, V1 just before rotation.
-//  - rotation and climb (3800–5800): ROTATE, a gradual nose-up to 15° over about 2 s, lift-off, V2,
+//  - rotation and climb (4000–6000): ROTATE, a gradual nose-up to 15° over about 2 s, lift-off, V2,
 //    POSITIVE RATE, GEAR UP.
-//  - dusk (4800–6800): the plane keeps climbing; the sky darkens from the zenith down (golden
+//  - dusk (5000–7000): the plane keeps climbing; the sky darkens from the zenith down (golden
 //    amber → deep amber → warm dark brown → the page colour) until every window shows flat page
 //    colour. In daylight it climbs through cloud to the page beige. The cockpit stays fully lit.
-//  - camera (3800–7600): from ROTATE, a slow forward drift through the middle of the windscreen,
+//  - camera (4000–7800): from ROTATE, a slow forward drift through the middle of the windscreen,
 //    running under the climb and the dusk; it only rushes, by perspective, at the end.
 //  - hand-off: the moment the frame has passed the camera (the screen is flat page colour), the
 //    page content appears and the overlay, now the same colour as the page, clears.
-const T = { hold: 400, roll: 3800, climb: 5800, duskFrom: 4800, dusk: 6800, dollyFrom: 3800, end: 7600 } as const;
+const T = { hold: 400, roll: 4000, climb: 6000, duskFrom: 5000, dusk: 7000, dollyFrom: 4000, end: 7800 } as const;
 /** Roll acceleration curve: speed grows as time^ROLL_POW, so it creeps after thrust-up, then builds hard. */
-const ROLL_POW = 2.2;
+const ROLL_POW = 1.7;
 const HANDOFF_MS = 350; // the overlay (pure page colour by then) clearing as the page content appears
 const SKIP_DOLLY_MS = 550;
 // The camera move, as a real forward move: each layer scales by its depth, 1 / (1 − travel / depth),
