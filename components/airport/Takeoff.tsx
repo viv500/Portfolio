@@ -589,8 +589,13 @@ const TRAVEL = 0.93; // how far the camera moves, in shell depths (the frame end
 const travelAt = (v: number) => TRAVEL * (0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, v)))) ** 1.8;
 const depthScale = (v: number, depth: number) => 1 / Math.max(0.02, 1 - travelAt(v) / depth);
 const SCENE_END = 0.76; // scene time at GEAR UP; the dusk climb carries it on to 1
-/** The frame is fully faded at this scale: the hand-off point. */
-const HANDOFF_SCALE = 5;
+/** By this scale the first officer's pane covers the whole screen (desktop and phone): the hand-off point. */
+const HANDOFF_SCALE = 8.5;
+/** The camera's aim drifts from the centre post to the middle of the first officer's front pane,
+ *  so the post sweeps off the left edge like a passing pillar (scene units). */
+const AIM = { postX: VP, paneX: 630, y: 190 } as const;
+/** How far the aim has drifted at dolly progress v (0 → 1). */
+const drift = (v: number) => ease(clamp01((v - 0.25) / 0.6));
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
 /** Ease in and out (smoothstep). */
 const ease = (x: number) => {
@@ -644,7 +649,9 @@ export const Takeoff = () => {
   // Fade a layer only as it gets very close (huge, so it never smears): the panel as the camera
   // passes it, the frame over the last stretch. The page-colour outside never fades.
   const panelFade = useTransform(panelScale, [3, 7], [1, 0]);
-  const frame = useTransform(shellScale, [2.2, HANDOFF_SCALE], [1, 0]);
+  // The frame never visibly fades: only once the pane fills the screen (just its faint glass tint is
+  // left) does it go.
+  const frame = useTransform(shellScale, [HANDOFF_SCALE, HANDOFF_SCALE + 3.5], [1, 0]);
   const clear = useMotionValue(1); // the overlay's opacity during the hand-off (it's page colour by then)
   const cardFade = useTransform(dolly, [0, 0.35], [1, 0]);
   const skipRef = useRef<() => void>(() => {});
@@ -816,21 +823,22 @@ export const Takeoff = () => {
   // Rotation and climb: the nose comes up and the world drops away, so the terminal and the
   // skyline sink below the sill.
   const worldY = useTransform(p, [0.5, 0.64, SCENE_END, 1], [0, 70, 120, 230]);
-  // Scene units → CSS pixels (the SVG is "slice"-scaled), and the camera move's vanishing point.
-  const [unit, setUnit] = useState({ k: 1, ox: "50%", oy: "34%", px: "37%", py: "32%" });
+  // Scene units → CSS pixels (the SVG is "slice"-scaled), and the camera's aim points.
+  const [unit, setUnit] = useState({ k: 1, ox: "50%", oy: "34%", postX: 720, paneX: 900, aimY: 285, w: 1440 });
   useEffect(() => {
     const measure = () => {
       const w = window.innerWidth;
       const hgt = window.innerHeight;
       const k = Math.max(w / VIEW_W, hgt / VIEW_H);
-      // Straight ahead, through the middle of the windscreen.
-      const ux = VP;
+      const toX = (x: number) => w / 2 + (x - VIEW_W / 2) * k;
       setUnit({
         k,
-        ox: `${w / 2 + (VP - VIEW_W / 2) * k}px`,
+        ox: `${toX(VP)}px`,
         oy: `${hgt / 2 + (HZ - VIEW_H / 2) * k}px`,
-        px: `${w / 2 + (ux - VIEW_W / 2) * k}px`,
-        py: `${hgt / 2 + (195 - VIEW_H / 2) * k}px`,
+        postX: toX(AIM.postX),
+        paneX: toX(AIM.paneX),
+        aimY: hgt / 2 + (AIM.y - VIEW_H / 2) * k,
+        w,
       });
     };
     measure();
@@ -838,6 +846,13 @@ export const Takeoff = () => {
     return () => window.removeEventListener("resize", measure);
   }, []);
   const worldYPx = useTransform(worldY, (v) => v * unit.k);
+  // The camera: one moving aim point for every cockpit layer, plus a slight sideways drift of the
+  // camera itself, so the centre post slides past rather than growing in the middle.
+  const camOrigin = useTransform(dolly, (v) => `${unit.postX + (unit.paneX - unit.postX) * drift(v)}px ${unit.aimY}px`);
+  const camX = useTransform(dolly, (v) => -drift(v) * 0.03 * unit.w);
+  // As the camera moves and turns, the glare on the glass slides off its angle and is gone well
+  // before the pane fills the screen.
+  const glare = useTransform(dolly, (v) => String(1 - ease(clamp01((drift(v) - 0.2) / 0.5))));
   const pitchRot = useTransform(p, [0.5, 0.66, SCENE_END, 1], [0, -1.2, -0.6, -0.4]);
   const shake = useTransform(p, (t) => (t > 0 && t < 0.5 ? Math.sin(t * 900) * 1.6 * (t / 0.5) : 0));
 
@@ -897,12 +912,12 @@ export const Takeoff = () => {
               <motion.div aria-hidden="true" className="dusk-sweep absolute inset-x-0 top-0 h-[300%] will-change-transform" style={{ y: duskY }} />
             </div>
             {/* The cockpit: fully lit throughout. */}
-            <motion.div className="absolute inset-0 will-change-transform" style={{ scale: shellScale, opacity: frame, transformOrigin: `${unit.px} ${unit.py}` }}>
+            <motion.div className="absolute inset-0 will-change-transform" style={{ scale: shellScale, opacity: frame, transformOrigin: camOrigin, x: camX, ["--glare" as string]: glare }}>
               <Layer>
                 <Shell compact={compact} fma={fma} call={s.call} kt={s.kt} alt={s.alt} horizon={s.horizon} climb={Math.min(1, Math.max(0, (s.t - 0.55) / 0.1)) * 8} />
               </Layer>
             </motion.div>
-            <motion.div className="absolute inset-0 will-change-transform" style={{ scale: panelScale, opacity: panelFade, transformOrigin: `${unit.px} ${unit.py}` }}>
+            <motion.div className="absolute inset-0 will-change-transform" style={{ scale: panelScale, opacity: panelFade, transformOrigin: camOrigin, x: camX }}>
               <Layer ref={panelRef}>
                 <Panel ias={s.kt} alt={s.alt} pitch={s.pitch} n1={22 + s.thrust * 72} egt={420 + s.thrust * 360} ff={600 + s.thrust * 2240} thrust={s.thrust} airborne={airborne} fma={fma} pull={pull} jitter={jitter} detail={!compact} />
               </Layer>
