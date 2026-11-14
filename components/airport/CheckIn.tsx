@@ -99,17 +99,19 @@ export const CheckIn = () => {
       {/* The top of the sky the intro flew through: a faint horizon glow (white haze in daylight)
           and a few dim stars at golden hour. Fades out as you scroll. */}
       <div ref={sky} aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-48">
+        <div className="reveal-first absolute inset-0">
         <div className="horizon-glow absolute inset-0" />
         <div className="horizon-stars absolute inset-0">
           {STARS.map(([x, y, r]) => (
             <span key={`${x}-${y}`} className="absolute rounded-full bg-[#fff4dc]" style={{ left: `${x}%`, top: `${y}%`, width: r * 2, height: r * 2, opacity: 0.35 }} />
           ))}
         </div>
+        </div>
       </div>
 
       <div className="mx-auto max-w-6xl px-4 pb-10 pt-8 md:px-6 md:pb-14 md:pt-12">
         {/* Cabin sign: seatbelt off, we're at cruise. */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="reveal-first mb-6 flex flex-wrap items-center justify-between gap-3">
           <div className="sign-housing inline-flex"><div className="sign-plate inline-flex items-stretch overflow-hidden rounded-[3px] font-sign text-sm font-bold">
             <span className="sign-letter px-2.5">
               <PlaneIcon className="h-4 w-4" />
@@ -131,7 +133,7 @@ export const CheckIn = () => {
         </div>
 
         {/* The PA, as an ACARS message on a cockpit screen. */}
-        <div className="acars-bezel board-frame metal relative rounded-lg p-2 md:p-2.5">
+        <div className="reveal-first acars-bezel board-frame metal relative rounded-lg p-2 md:p-2.5">
           {["left-[5px] top-[5px]", "right-[5px] top-[5px]", "bottom-[5px] left-[5px]", "bottom-[5px] right-[5px]"].map((pos) => (
             <span key={pos} aria-hidden="true" className={`acars-screw screw absolute md:scale-110 ${pos}`} />
           ))}

@@ -543,8 +543,8 @@ const OutsideDefs = memo(function OutsideDefs() {
 
 const CALLOUTS: [number, string][] = [
   [0, "THRUST SET"],
-  [0.22, "80 KNOTS"],
-  [0.42, "V1"],
+  [0.267, "80 KNOTS"],
+  [0.465, "V1"],
   [0.5, "ROTATE"],
   [0.56, "V2"],
   [0.66, "POSITIVE RATE"],
@@ -563,34 +563,57 @@ const Layer = React.forwardRef<HTMLDivElement, { children: React.ReactNode; labe
 });
 
 /** The intro, from first frame to removal. */
-export const TAKEOFF_TOTAL_MS = 3900;
-// Timeline (ms): hold, roll (THRUST SET, 80 KNOTS, V1), rotate and climb (ROTATE, POSITIVE RATE,
-// GEAR UP), then the dip into the page: at golden hour the whole frame dims to the page's
-// near-black; in daylight the plane climbs into cloud, whites out, and settles to the page beige.
-// At `dim` the overlay is pure page colour; the page content appears under it and the overlay
-// fades away, so the page fades in.
-const T = { hold: 300, roll: 1900, climb: 2700, cloud: 3100, dim: 3400, end: 3900 } as const;
-const SKIP_DIM_MS = 150;
-const SKIP_OUT_MS = 250;
-const SCENE_END = 0.76;
+export const TAKEOFF_TOTAL_MS = 9400;
+// Timeline (ms), paced like a real departure:
+//  - hold (0–400): brakes on, thrust set.
+//  - roll (400–5200): the speed builds from walking pace (distance grows with time², so the
+//    runway lights start slow and stream past faster and faster): 80 KNOTS, V1.
+//  - rotation and climb (5200–7600): ROTATE, a gradual nose-up to 15° over about 2 s, lift-off, V2,
+//    POSITIVE RATE, GEAR UP.
+//  - dusk (6600–8600): the plane keeps climbing; the sky darkens from the zenith down (golden
+//    amber → deep amber → warm dark brown → the page colour) until every window shows flat page
+//    colour. In daylight it climbs through cloud to the page beige. The cockpit stays fully lit.
+//  - camera (5200–9400): from ROTATE, a slow forward drift through the middle of the windscreen,
+//    running under the climb and the dusk; it only rushes, by perspective, at the end.
+//  - hand-off: the moment the frame has passed the camera (the screen is flat page colour), the
+//    page content appears and the overlay, now the same colour as the page, clears.
+const T = { hold: 400, roll: 5200, climb: 7600, duskFrom: 6600, dusk: 8600, dollyFrom: 5200, end: 9400 } as const;
+const HANDOFF_MS = 350; // the overlay (pure page colour by then) clearing as the page content appears
+const SKIP_DOLLY_MS = 550;
+// The camera move, as a real forward move: each layer scales by its depth, 1 / (1 − travel / depth),
+// about the vanishing point in the middle of the windscreen. The panel and yokes are closest and rush past
+// first; the window frame next; outside is effectively at infinity and doesn't move.
+const DEPTH = { panel: 0.62, shell: 1 } as const;
+const TRAVEL = 0.93; // how far the camera moves, in shell depths (the frame ends ~14× larger)
+/** Camera travel at dolly progress v: a very gentle start (a slow drift under the climb); perspective does the rush. */
+const travelAt = (v: number) => TRAVEL * (0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, v)))) ** 1.8;
+const depthScale = (v: number, depth: number) => 1 / Math.max(0.02, 1 - travelAt(v) / depth);
+const SCENE_END = 0.76; // scene time at GEAR UP; the dusk climb carries it on to 1
+/** The frame is fully faded at this scale: the hand-off point. */
+const HANDOFF_SCALE = 5;
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
 /** Ease in and out (smoothstep). */
 const ease = (x: number) => {
   const t = clamp01(x);
   return t * t * (3 - 2 * t);
 };
-/** Scene time (0 → SCENE_END, rotation at 0.5) at `ms` into the intro. */
+/** Scene time (0 → 1, rotation at 0.5) at `ms` into the intro. */
 const sceneAt = (ms: number) =>
-  ms < T.hold ? 0 : ms < T.roll ? ((ms - T.hold) / (T.roll - T.hold)) * 0.5 : ms < T.climb ? 0.5 + ((ms - T.roll) / (T.climb - T.roll)) * (SCENE_END - 0.5) : SCENE_END;
+  ms < T.hold
+    ? 0
+    : ms < T.roll
+      ? ((ms - T.hold) / (T.roll - T.hold)) * 0.5
+      : ms < T.climb
+        ? 0.5 + ((ms - T.roll) / (T.climb - T.roll)) * (SCENE_END - 0.5)
+        : SCENE_END + (1 - SCENE_END) * ease((ms - T.climb) / (T.dusk - T.climb));
+
 
 /**
  * The take-off: a one-time autoplay intro, as a fixed overlay above the page (which sits at the
- * top, underneath, its content hidden until the hand-off). The plane rolls, rotates and climbs;
- * the frame dips to the page colour (dark at golden hour, through cloud in daylight); then the
- * overlay fades away as the page fades in. Only opacity animates in the transition, and the
- * cockpit is already still by then. It never scrolls the page. Any wheel, touch, key or click (or
- * Skip) dips in 150 ms and hands off in 250 ms. Once per session (never with reduced motion);
- * "Replay take-off" plays it again.
+ * top, underneath, its content hidden until the overlay is gone). See the timeline above. Never
+ * fades the screen to a colour and never scrolls the page. Any wheel, touch, key or click (or
+ * Skip) jumps to the end of the dusk climb and dollies through in 300 ms. Plays on every load
+ * (never with reduced motion); "Replay take-off" plays it again.
  */
 export const Takeoff = () => {
   const outsideRef = useRef<HTMLDivElement>(null);
@@ -611,9 +634,19 @@ export const Takeoff = () => {
 
   // Everything the timeline drives, as motion values.
   const p = useMotionValue(0); // scene time
-  const cloud = useMotionValue(0); // daylight: the cloud whiteout over the whole frame
-  const veil = useMotionValue(0); // the page colour over the whole frame
-  const out = useMotionValue(1); // the overlay's own opacity (fades it away at the hand-off)
+  const dusk = useMotionValue(0); // the dusk sweeping down the sky, 0 → 1
+  const dolly = useMotionValue(0); // the move through the windscreen, 0 → 1
+  // The dusk layer is 3× the screen tall; it starts already part-way in, so the zenith is
+  // brownish from the start, and sweeps down until it covers everything.
+  const duskY = useTransform(dusk, (v) => `${-82 + 82 * v}%`);
+  const shellScale = useTransform(dolly, (v) => depthScale(v, DEPTH.shell));
+  const panelScale = useTransform(dolly, (v) => Math.min(30, depthScale(v, DEPTH.panel)));
+  // Fade a layer only as it gets very close (huge, so it never smears): the panel as the camera
+  // passes it, the frame over the last stretch. The page-colour outside never fades.
+  const panelFade = useTransform(panelScale, [3, 7], [1, 0]);
+  const frame = useTransform(shellScale, [2.2, HANDOFF_SCALE], [1, 0]);
+  const clear = useMotionValue(1); // the overlay's opacity during the hand-off (it's page colour by then)
+  const cardFade = useTransform(dolly, [0, 0.35], [1, 0]);
   const skipRef = useRef<() => void>(() => {});
 
   // ── The controller ───────────────────────────────────────────────────────
@@ -622,17 +655,17 @@ export const Takeoff = () => {
     let raf = 0;
     let start = 0;
     let skipAt = 0;
-    let from = { cloud: 0, veil: 0 }; // where a skip starts its quick dip from
-    let handedOff = false;
+    let skipFrom = 0; // the camera move's progress when skipped
     let running = false;
     let waiting = false; // overlay up, timeline not started yet (fonts loading)
     let skipQueued = false;
     let alive = true;
-    const day = () => html.dataset.palette === "day";
-    // The overlay is pure page colour: show the page content under it and start the reveal.
-    const handOff = () => {
-      if (handedOff) return;
-      handedOff = true;
+    let handedAt = 0;
+    // The frame has passed the camera; the screen is flat page colour. Show the page content and
+    // start its reveal straight away; the overlay (the same colour) clears over HANDOFF_MS.
+    const handOff = (now: number) => {
+      if (handedAt) return;
+      handedAt = now;
       takeoffClimb.set(1);
       html.dataset.takeoff = "out";
       window.dispatchEvent(new CustomEvent("takeoff:done"));
@@ -648,59 +681,62 @@ export const Takeoff = () => {
       setActive(false);
       if (!skipped) posthog.capture("takeoff_completed", { ms: Math.round(elapsed) });
     };
+    // Once handed off: clear the overlay, then remove it.
+    const clearing = (now: number, skipped: boolean, elapsed: number) => {
+      const k = clamp01((now - handedAt) / HANDOFF_MS);
+      clear.set(1 - k);
+      if (k >= 1) {
+        finish(skipped, elapsed);
+        return true;
+      }
+      return false;
+    };
     const tick = (now: number) => {
       if (!running) return;
       if (skipAt) {
-        const e = now - skipAt;
-        const k = ease(e / SKIP_DIM_MS);
-        veil.set(from.veil + (1 - from.veil) * k);
-        if (day()) cloud.set(from.cloud + (1 - from.cloud) * k);
-        if (e >= SKIP_DIM_MS) {
-          handOff();
-          out.set(1 - ease((e - SKIP_DIM_MS) / SKIP_OUT_MS));
-          if (e >= SKIP_DIM_MS + SKIP_OUT_MS) return finish(true, skipAt - start);
-        }
+        const k = clamp01((now - skipAt) / SKIP_DOLLY_MS);
+        dolly.set(skipFrom + (1 - skipFrom) * k);
+        if (shellScale.get() >= HANDOFF_SCALE || k >= 1) handOff(now);
+        if (handedAt && clearing(now, true, skipAt - start)) return;
       } else {
         // Dev-only test hook: window.__takeoffAt freezes the timeline at that many ms.
         const frozen = process.env.NODE_ENV !== "production" ? (window as unknown as { __takeoffAt?: number }).__takeoffAt : undefined;
         const ms = frozen ?? now - start;
         p.set(sceneAt(ms));
-        takeoffClimb.set(clamp01((ms - T.roll) / (T.dim - T.roll)));
-        if (day()) {
-          cloud.set(ease((ms - T.climb) / (T.cloud - T.climb)));
-          veil.set(ease((ms - T.cloud) / (T.dim - T.cloud)));
-        } else {
-          cloud.set(0);
-          veil.set(ease((ms - T.climb) / (T.dim - T.climb)));
-        }
-        if (ms >= T.dim) {
-          handOff();
-          out.set(1 - ease((ms - T.dim) / (T.end - T.dim)));
-        } else out.set(1);
-        if (ms >= T.end) return finish(false, ms);
+        takeoffClimb.set(clamp01((ms - T.roll) / (T.dusk - T.roll)));
+        dusk.set(ease((ms - T.duskFrom) / (T.dusk - T.duskFrom)));
+        dolly.set(clamp01((ms - T.dollyFrom) / (T.end - T.dollyFrom)));
+        if (shellScale.get() >= HANDOFF_SCALE || ms >= T.end) handOff(now);
+        if (handedAt && clearing(now, false, ms)) return;
       }
       raf = requestAnimationFrame(tick);
     };
-    // Skip: a quick dip to the page colour, then the hand-off. Never blocks input.
+    // Skip: straight to the end of the dusk climb (windows all page colour), then the dolly in
+    // 300 ms. Never blocks input.
     const skip = () => {
       if (waiting) {
         skipQueued = true;
         return;
       }
-      if (!running || skipAt || handedOff) return;
-      skipAt = performance.now();
-      from = { cloud: cloud.get(), veil: veil.get() };
-      posthog.capture("takeoff_skipped", { ms: Math.round(skipAt - start) });
+      if (!running || skipAt) return;
+      const now = performance.now();
+      if (handedAt || now - start >= T.dusk) return; // already moving through
+      skipAt = now;
+      skipFrom = dolly.get();
+      posthog.capture("takeoff_skipped", { ms: Math.round(now - start) });
+      p.set(1);
+      dusk.set(1);
+      takeoffClimb.set(1);
     };
     skipRef.current = skip;
     const play = async () => {
       p.set(0);
-      cloud.set(0);
-      veil.set(0);
-      out.set(1);
+      dusk.set(0);
+      dolly.set(0);
+      clear.set(1);
+      handedAt = 0;
       takeoffClimb.set(0);
       skipAt = 0;
-      handedOff = false;
       skipQueued = false;
       waiting = true;
       html.dataset.takeoff = "on";
@@ -739,12 +775,12 @@ export const Takeoff = () => {
       window.removeEventListener("pointerdown", onInput);
       window.removeEventListener("takeoff:replay", onReplay);
     };
-  }, [p, cloud, veil, out]);
+  }, [p, dusk, dolly, clear, shellScale]);
 
   // ── Scene state from the scene time ─────────────────────────────────────
   const [s, setS] = useState({ t: 0, d: 0, h: 1, kt: 0, alt: 0, call: CALLOUTS[0][1], thrust: 0, pitch: 0, horizon: 0 });
   const pending = useRef<number | null>(null);
-  const frame = useRef(0);
+  const frameCount = useRef(0);
   const latest = useRef(0);
   useMotionValueEvent(p, "change", (t) => {
     latest.current = t;
@@ -753,13 +789,13 @@ export const Takeoff = () => {
       pending.current = null;
       // Phones: redraw the SVG scene every other frame (the world motion and shake are motion
       // values and still run every frame); always draw the last frame.
-      frame.current += 1;
-      if (compactRef.current && frame.current % 2 && latest.current < SCENE_END) return;
+      frameCount.current += 1;
+      if (compactRef.current && frameCount.current % 2 && latest.current < 1) return;
       update(latest.current);
     });
   });
   const update = (t: number) => {
-    const d = t < 0.5 ? (t / 0.5) ** 2 * 90 : 90 + (t - 0.5) * 2 * 190;
+    const d = t < 0.5 ? (t / 0.5) ** 2 * 120 : 120 + (t - 0.5) * 2 * 190;
     const climb = Math.max(0, (t - 0.52) / 0.48);
     setS({
       t,
@@ -769,25 +805,29 @@ export const Takeoff = () => {
       alt: Math.round((climb ** 1.4 * 3000) / 10) * 10,
       call: [...CALLOUTS].reverse().find(([at]) => t >= at)?.[1] ?? CALLOUTS[0][1],
       thrust: Math.min(1, t / 0.04),
-      pitch: t < 0.5 ? 0 : Math.min(15, ((t - 0.5) / 0.12) * 15),
-      horizon: t < 0.5 ? 0 : t < 0.64 ? ((t - 0.5) / 0.14) * 70 : 70 + ((t - 0.64) / 0.12) * 50,
+      pitch: t < 0.5 ? 0 : Math.min(15, ((t - 0.5) / 0.22) * 15),
+      horizon: t < 0.5 ? 0 : t < 0.64 ? ((t - 0.5) / 0.14) * 70 : t < SCENE_END ? 70 + ((t - 0.64) / 0.12) * 50 : 120 + ((t - SCENE_END) / (1 - SCENE_END)) * 110,
     });
   };
 
   // Rotation and climb: the nose comes up and the world drops away, so the terminal and the
   // skyline sink below the sill.
-  const worldY = useTransform(p, [0.5, 0.64, SCENE_END], [0, 70, 120]);
-  // Scene units → CSS pixels (the SVG is "slice"-scaled).
-  const [unit, setUnit] = useState({ k: 1, ox: "50%", oy: "34%" });
+  const worldY = useTransform(p, [0.5, 0.64, SCENE_END, 1], [0, 70, 120, 230]);
+  // Scene units → CSS pixels (the SVG is "slice"-scaled), and the camera move's vanishing point.
+  const [unit, setUnit] = useState({ k: 1, ox: "50%", oy: "34%", px: "37%", py: "32%" });
   useEffect(() => {
     const measure = () => {
       const w = window.innerWidth;
       const hgt = window.innerHeight;
       const k = Math.max(w / VIEW_W, hgt / VIEW_H);
+      // Straight ahead, through the middle of the windscreen.
+      const ux = VP;
       setUnit({
         k,
         ox: `${w / 2 + (VP - VIEW_W / 2) * k}px`,
         oy: `${hgt / 2 + (HZ - VIEW_H / 2) * k}px`,
+        px: `${w / 2 + (ux - VIEW_W / 2) * k}px`,
+        py: `${hgt / 2 + (195 - VIEW_H / 2) * k}px`,
       });
     };
     measure();
@@ -795,7 +835,7 @@ export const Takeoff = () => {
     return () => window.removeEventListener("resize", measure);
   }, []);
   const worldYPx = useTransform(worldY, (v) => v * unit.k);
-  const pitchRot = useTransform(p, [0.5, 0.66, SCENE_END], [0, -1.2, -0.6]);
+  const pitchRot = useTransform(p, [0.5, 0.66, SCENE_END, 1], [0, -1.2, -0.6, -0.4]);
   const shake = useTransform(p, (t) => (t > 0 && t < 0.5 ? Math.sin(t * 900) * 1.6 * (t / 0.5) : 0));
 
   // Mouse parallax: a few pixels between layers, desktop only, while the intro plays.
@@ -836,7 +876,8 @@ export const Takeoff = () => {
     // Rendered in the page markup, but shown only while html[data-takeoff] is set (CSS), so a
     // first visit gets the cockpit on the very first paint and later visits never see it.
     <div className="takeoff-overlay fixed inset-0 z-[39]">
-      <motion.div className="absolute inset-0 will-change-[opacity]" style={{ opacity: out }}>
+      <motion.div className="absolute inset-0" style={{ opacity: clear }}>
+        {/* The camera moves forward through the captain's window: each layer scales by its depth. */}
         <div className="absolute inset-0 overflow-hidden bg-floor">
           <motion.div className="absolute inset-0" style={{ y: shake }}>
             {/* The world outside, composited on its own layer. */}
@@ -849,20 +890,27 @@ export const Takeoff = () => {
                   <Ground d={s.d} h={s.h} lite={compact} />
                 </svg>
               </motion.div>
+              {/* The dusk, sweeping down from the zenith; it ends as flat page colour over every window. */}
+              <motion.div aria-hidden="true" className="dusk-sweep absolute inset-x-0 top-0 h-[300%] will-change-transform" style={{ y: duskY }} />
             </div>
-            <Layer>
-              <Shell compact={compact} fma={fma} call={s.call} kt={s.kt} alt={s.alt} horizon={s.horizon} climb={Math.min(1, Math.max(0, (s.t - 0.55) / 0.1)) * 8} />
-            </Layer>
-            <Layer ref={panelRef}>
-              <Panel ias={s.kt} alt={s.alt} pitch={s.pitch} n1={22 + s.thrust * 72} egt={420 + s.thrust * 360} ff={600 + s.thrust * 2240} thrust={s.thrust} airborne={airborne} fma={fma} pull={pull} jitter={jitter} detail={!compact} />
-            </Layer>
+            {/* The cockpit: fully lit throughout. */}
+            <motion.div className="absolute inset-0 will-change-transform" style={{ scale: shellScale, opacity: frame, transformOrigin: `${unit.px} ${unit.py}` }}>
+              <Layer>
+                <Shell compact={compact} fma={fma} call={s.call} kt={s.kt} alt={s.alt} horizon={s.horizon} climb={Math.min(1, Math.max(0, (s.t - 0.55) / 0.1)) * 8} />
+              </Layer>
+            </motion.div>
+            <motion.div className="absolute inset-0 will-change-transform" style={{ scale: panelScale, opacity: panelFade, transformOrigin: `${unit.px} ${unit.py}` }}>
+              <Layer ref={panelRef}>
+                <Panel ias={s.kt} alt={s.alt} pitch={s.pitch} n1={22 + s.thrust * 72} egt={420 + s.thrust * 360} ff={600 + s.thrust * 2240} thrust={s.thrust} airborne={airborne} fma={fma} pull={pull} jitter={jitter} detail={!compact} />
+              </Layer>
+            </motion.div>
           </motion.div>
         </div>
 
         {/* Name card and actions: pinned at a fixed safe inset, outside the moving layers. */}
-        <div
+        <motion.div
           className="absolute top-0 z-10 flex items-start justify-between gap-3 pt-4 [--inset:1rem] md:pt-6 md:[--inset:1.5rem]"
-          style={{ left: "max(var(--inset), env(safe-area-inset-left))", right: "max(var(--inset), env(safe-area-inset-right))" }}
+          style={{ left: "max(var(--inset), env(safe-area-inset-left))", right: "max(var(--inset), env(safe-area-inset-right))", opacity: cardFade }}
         >
           <div className="sign-housing inline-flex">
             <div className="lightbox rounded-[3px] px-4 py-2.5 font-sign text-[#1a1206]">
@@ -883,10 +931,7 @@ export const Takeoff = () => {
               Skip →
             </button>
           </div>
-        </div>
-        {/* The dip into the page: cloud (daylight only), then the page colour, over the whole frame. */}
-        <motion.div aria-hidden="true" className="to-cloud pointer-events-none absolute inset-0 z-20" style={{ opacity: cloud }} />
-        <motion.div aria-hidden="true" className="pointer-events-none absolute inset-0 z-20 bg-wall" style={{ opacity: veil }} />
+        </motion.div>
       </motion.div>
     </div>
   );
