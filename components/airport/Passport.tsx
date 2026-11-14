@@ -158,20 +158,20 @@ const VisaPage = () => (
   </PageFrame>
 );
 
-// Luggage-sticker colours for the interests: soft, distinct, never neon.
+// Luggage-sticker colours for the interests: soft, distinct, warm (no purple, pink or blue).
 const STICKERS = [
-  "bg-rose-200 text-rose-900 ring-rose-300",
-  "bg-sky-200 text-sky-900 ring-sky-300",
+  "bg-red-200 text-red-900 ring-red-300",
+  "bg-stone-200 text-stone-900 ring-stone-300",
   "bg-amber-200 text-amber-900 ring-amber-300",
-  "bg-violet-200 text-violet-900 ring-violet-300",
+  "bg-yellow-200 text-yellow-900 ring-yellow-300",
   "bg-emerald-200 text-emerald-900 ring-emerald-300",
-  "bg-pink-200 text-pink-900 ring-pink-300",
+  "bg-orange-100 text-orange-900 ring-orange-300",
   "bg-teal-200 text-teal-900 ring-teal-300",
   "bg-orange-200 text-orange-900 ring-orange-300",
-  "bg-indigo-200 text-indigo-900 ring-indigo-300",
+  "bg-neutral-200 text-neutral-900 ring-neutral-300",
   "bg-lime-200 text-lime-900 ring-lime-300",
-  "bg-fuchsia-200 text-fuchsia-900 ring-fuchsia-300",
-  "bg-cyan-200 text-cyan-900 ring-cyan-300",
+  "bg-amber-100 text-amber-900 ring-amber-300",
+  "bg-green-200 text-green-900 ring-green-300",
 ];
 const SHAPES = ["rounded-full", "rounded-[4px]", "rounded-[10px]"];
 const TILT = [-4, 3, -2, 5, -5, 2, -3, 4, -1, 3, -4, 1, 5, -2, 2];

@@ -10,7 +10,7 @@ export const SCREEN_H = 100;
 const GREEN = "#3dd68c";
 const CYAN = "#5fd4e8";
 const AMBER = "#ffb000";
-const MAGENTA = "#e05cc8";
+const MAGENTA = "rgb(var(--magenta))"; // the route colour token (amber)
 const WHITE = "#e8edf2";
 const font = { fontFamily: "var(--font-mono), monospace" } as const;
 

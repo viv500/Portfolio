@@ -38,7 +38,7 @@ const StatCard = ({ i }: { i: number }) => {
     <a
       ref={ref}
       href={`#${s.route}`}
-      className="clickable device flex h-full flex-col gap-3 rounded-xl bg-gradient-to-b from-panel to-floor p-3.5 sm:flex-row sm:items-center md:p-4"
+      className="stat-card clickable device flex h-full flex-col gap-3 rounded-xl p-3.5 sm:flex-row sm:items-center md:p-4"
       aria-label={`${s.prefix ?? ""}${s.value}${s.suffix ?? ""} ${s.label}, at ${COMPANY[slug] ?? ""}. Details`}
     >
       {gauge && (
@@ -80,7 +80,7 @@ const NavDisplay = () => {
   const ay = (last.y + next.y) / 2;
   const heading = (Math.atan2(next.x - last.x, last.y - next.y) * 180) / Math.PI;
   return (
-    <div className="metal relative flex h-full flex-col rounded-xl p-3">
+    <div className="display-bezel metal relative flex h-full flex-col rounded-xl p-3">
       <Screws />
       <div className="mb-2 flex items-baseline justify-between px-1">
         <span className="font-sign text-[15px] font-bold text-ink">Career route</span>
@@ -165,7 +165,7 @@ const STATUS: [string, string][] = [
 // Stretches to the height of the career-route panel beside it (desktop); the status block sits at
 // the bottom of the screen, below a thin rule.
 const Eicas = () => (
-  <div className="metal relative flex h-full flex-col rounded-xl p-3">
+  <div className="display-bezel metal relative flex h-full flex-col rounded-xl p-3">
     <Screws />
     <div className="device glass recessed relative flex flex-1 flex-col rounded-md bg-screen px-4 py-3 text-[14px] leading-snug md:px-5 md:text-[15px]">
       <div className="mb-1 flex justify-between border-b border-white/10 pb-1.5 font-mono text-[10px]">
@@ -207,7 +207,7 @@ export const Cockpit = () => (
       <div className="order-3 mt-10">
         <SystemsChecklist />
       </div>
-      <div className="device metal relative order-2 rounded-[22px] px-4 pb-8 pt-10 md:px-8">
+      <div className="impact-panel device metal relative order-2 rounded-[22px] px-4 pb-8 pt-10 md:px-8">
         <Screws />
         <PanelLabel className="mb-4 block">Impact · Key results</PanelLabel>
         <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-3">

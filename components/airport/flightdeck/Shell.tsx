@@ -277,7 +277,7 @@ const Hud = ({ call, kt, alt, horizon, climb, dx, fma }: { call: string; kt: num
       <path d={`M${CW * 0.62} ${-34} C ${CW * 0.62} ${-14}, ${CW * 0.5} ${-16}, ${CW * 0.5} 0`} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1.2" transform="translate(-2.5 0)" />
       <rect x={CW * 0.5 - 26} y="-5" width="52" height="9" rx="4.5" fill="#141519" />
 
-      {/* The glass: faint violet tint, a reflection and a thin edge. */}
+      {/* The glass: a faint grey tint, a reflection and a thin edge. */}
       <rect width={CW} height={CH} rx="34" fill="url(#combiner)" />
       <rect width={CW} height={CH} rx="34" fill="url(#combiner-sheen)" />
       <rect width={CW} height={CH} rx="34" fill="none" stroke="rgba(255,255,255,0.32)" strokeWidth="0.9" />
