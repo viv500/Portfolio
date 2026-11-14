@@ -1,5 +1,5 @@
 import React, { memo } from "react";
-import { P, SILL, affine, col, poly, ps, r1, type V3 } from "./geometry";
+import { P, SILL, affine, sillAt, col, poly, ps, r1, type V3 } from "./geometry";
 import { Eicas, Isfd, Nd, Pfd, SCREEN_H, SCREEN_W } from "./Displays";
 import { Yoke } from "./Yoke";
 import { Quadrant } from "./Quadrant";
@@ -79,9 +79,10 @@ const Hood = memo(function Hood() {
           <stop offset="0" style={{ stopColor: col("cabin-mid") }} />
           <stop offset="1" style={{ stopColor: col("cabin-dark") }} />
         </linearGradient>
+        {/* Hood-top strip: dark matte, darker toward the glass. */}
         <linearGradient id="gs-top" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" style={{ stopColor: col("cabin-mid") }} />
-          <stop offset="1" style={{ stopColor: col("cabin") }} />
+          <stop offset="0" style={{ stopColor: col("cabin-dark") }} />
+          <stop offset="1" style={{ stopColor: col("cabin-mid") }} />
         </linearGradient>
         {/* EFIS panel, used either side of the MCP. */}
         <g id="gs-efis">
@@ -147,7 +148,7 @@ const Wipers = memo(function Wipers() {
     </g>
   );
   // Pivots on the frame at the outer bottom corner of each pane, outside the glass.
-  return <g>{[wiper(250, 239, 1), wiper(750, 239, -1)]}</g>;
+  return <g>{[wiper(262, sillAt(262) - 3, 1), wiper(738, sillAt(738) - 3, -1)]}</g>;
 });
 
 /** Sidewalls below the side windows: a padded panel seam and a gasper vent. */
