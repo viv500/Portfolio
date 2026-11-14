@@ -681,6 +681,7 @@ export const Takeoff = () => {
     const html = document.documentElement;
     let raf = 0;
     let start = 0;
+    let speed = 1; // playback speed for a replay (1× normal … 2×), set from the replay control
     let skipAt = 0;
     let skipFrom = 0; // the camera move's progress when skipped
     let running = false;
@@ -729,7 +730,7 @@ export const Takeoff = () => {
       } else {
         // Dev-only test hook: window.__takeoffAt freezes the timeline at that many ms.
         const frozen = process.env.NODE_ENV !== "production" ? (window as unknown as { __takeoffAt?: number }).__takeoffAt : undefined;
-        const ms = frozen ?? now - start;
+        const ms = frozen ?? (now - start) * speed;
         p.set(sceneAt(ms));
         // THRUST SET: the levers slide forward over 0.5 s (ease-out) and stay there.
         lever.set(1 - (1 - clamp01((ms - 80) / 500)) ** 3);
@@ -856,8 +857,10 @@ export const Takeoff = () => {
         swallowCap = performance.now() + SWALLOW_CAP_MS;
       }
     };
-    const onReplay = () => {
+    const onReplay = (e: Event) => {
       if (!running && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        const s = Number((e as CustomEvent<{ speed?: number }>).detail?.speed);
+        speed = s >= 1 && s <= 2 ? s : 1;
         skippedByInput = false;
         play();
       }

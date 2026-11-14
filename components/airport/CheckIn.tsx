@@ -45,6 +45,7 @@ export const PlaneIcon = ({ className = "h-4 w-4" }: { className?: string }) => 
  */
 export const CheckIn = () => {
   const { local, zulu } = useClock();
+  const [replaySpeed, setReplaySpeed] = useState(1);
   // Reveal after the intro take-off: the ACARS line types in, then the rest fades in.
   const [stage, setStage] = useState<"shown" | "hidden" | "typing">("shown");
   const [typed, setTyped] = useState("");
@@ -119,9 +120,23 @@ export const CheckIn = () => {
             <span className="px-3 py-1.5">Captain&apos;s announcement</span>
           </div></div>
           <div className="flex items-center gap-3 font-mono text-xs text-flap/70">
+            {/* Replay speed, 1× to 2× in 0.1 steps (replays only; the first play is always 1×). */}
+            <label className="replay-btn flex items-center gap-1.5 text-[11px] text-flap/75">
+              <span className="sr-only">Replay speed</span>
+              <input
+                type="range"
+                min={1}
+                max={2}
+                step={0.1}
+                value={replaySpeed}
+                onChange={(e) => setReplaySpeed(Number(e.target.value))}
+                className="h-1 w-20 cursor-pointer accent-[rgb(var(--sign))]"
+              />
+              <span className="w-8 tabular-nums text-flap">{replaySpeed.toFixed(1)}×</span>
+            </label>
             <button
               type="button"
-              onClick={() => window.dispatchEvent(new CustomEvent("takeoff:replay"))}
+              onClick={() => window.dispatchEvent(new CustomEvent("takeoff:replay", { detail: { speed: replaySpeed } }))}
               className="replay-btn rounded-[3px] border border-white/15 px-2 py-1 text-[11px] text-flap/75 transition hover:border-sign/60 hover:text-flap"
             >
               ↻ Replay take-off
