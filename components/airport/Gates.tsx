@@ -56,10 +56,11 @@ const AllocatorWindow = () => (
   <svg viewBox="0 0 200 310" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full" role="img" aria-label="Notification: Host Allocator, mac2.metal allocated in us-east-1b after 3 days of retries">
     <defs>
       <linearGradient id="alloc-sky" x1="0" x2="0" y1="0" y2="1">
-        <stop offset="0" stopColor="#2c2a4a" />
-        <stop offset="0.38" stopColor="#57466b" />
-        <stop offset="0.62" stopColor="#a5786d" />
-        <stop offset="1" stopColor="#e7a96b" />
+        {/* The dusk sky tokens (warm in golden hour, blue by day). */}
+        <stop offset="0" style={{ stopColor: "rgb(var(--sky-0))" }} />
+        <stop offset="0.38" style={{ stopColor: "rgb(var(--sky-1))" }} />
+        <stop offset="0.62" style={{ stopColor: "rgb(var(--sky-2))" }} />
+        <stop offset="1" style={{ stopColor: "rgb(var(--sky-3))" }} />
       </linearGradient>
       <filter id="alloc-shadow" x="-20%" y="-40%" width="140%" height="190%">
         <feDropShadow dx="0" dy="6" stdDeviation="6" floodColor="#000" floodOpacity="0.45" />

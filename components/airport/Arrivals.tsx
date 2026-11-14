@@ -8,7 +8,8 @@ import { GateHeader } from "./GateHeader";
 import { PlaneIcon } from "./CheckIn";
 import { Carousel } from "./Carousel";
 
-const BAG_COLOURS = ["#2f4f6f", "#7a2e2e", "#3c5a3a", "#5a4632", "#30343b", "#5b3f6b"];
+// Leather luggage: cognac, oxblood, olive, tan, charcoal-brown, mustard (tokens in globals.css).
+const BAG_COLOURS = [1, 2, 3, 4, 5, 6].map((n) => `rgb(var(--bag-${n}))`);
 
 const Bag = ({ link, i }: { link: (typeof contactLinks)[number]; i: number }) => (
   <a
@@ -127,7 +128,7 @@ export const Arrivals = () => {
                       href={l.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 rounded-[3px] border border-white/10 bg-panel px-3 py-2.5 font-sign text-sm font-semibold text-flap transition hover:border-sign/60 hover:text-sign"
+                      className="contact-link flex items-center gap-2 rounded-[3px] border border-white/10 bg-panel px-3 py-2.5 font-sign text-sm font-semibold text-flap transition hover:border-sign/60 hover:text-sign"
                     >
                       <PlatformIcon platform={l.platform} className="h-4 w-4 shrink-0" />
                       <span className="truncate">{l.label}</span>

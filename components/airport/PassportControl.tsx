@@ -10,12 +10,14 @@ import { GateHeader } from "./GateHeader";
 // in a larger row; the rest follow in a smaller one. A small ink stamp in the corner is pure
 // decoration (the card text carries the information). Every card opens the project.
 
+// Stamp inks, as tokens (globals.css). "blue" and "violet" are drawn in warm inks: blue is kept
+// for the daytime sky and the logbook's COMPLETED stamp only.
 export const INK: Record<Stamp["ink"], string> = {
-  blue: "#2b4c9b",
-  red: "#b8322a",
-  green: "#2f7a4f",
-  violet: "#5b3f8f",
-  teal: "#1f6f78",
+  blue: "rgb(var(--stamp-brown))",
+  red: "rgb(var(--stamp-red))",
+  green: "rgb(var(--stamp-green))",
+  violet: "rgb(var(--stamp-olive))",
+  teal: "rgb(var(--stamp-teal))",
 };
 
 /** Roughens stamp edges so they read as ink, not vector shapes. Render once per page (the logbook stamps use it too). */
@@ -84,7 +86,7 @@ const WingsPin = () => (
 const Placeholder = ({ title }: { title: string }) => (
   <span className="passport-paper absolute inset-0 flex flex-col items-center justify-center gap-2">
     <span aria-hidden="true" className="grid grid-cols-3 gap-[3px]">
-      {["#2b4c9b", "#b8322a", "#2f7a4f", "#e0a33a", "#2b4c9b", "#5b3f8f", "#1f6f78", "#b8322a", "#2b4c9b"].map((c, i) => (
+      {["stamp-brown", "stamp-red", "stamp-green", "bag-6", "stamp-brown", "stamp-olive", "stamp-teal", "stamp-red", "bag-1"].map((t) => `rgb(var(--${t}))`).map((c, i) => (
         <span key={i} className="h-2.5 w-2.5 rounded-[2px]" style={{ background: c }} />
       ))}
     </span>
