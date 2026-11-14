@@ -563,7 +563,7 @@ const Layer = React.forwardRef<HTMLDivElement, { children: React.ReactNode; labe
 });
 
 /** The intro, from first frame to removal. */
-export const TAKEOFF_TOTAL_MS = 7800;
+export const TAKEOFF_TOTAL_MS = 7400;
 // Timeline (ms), paced like a real departure:
 //  - hold (0–400): brakes on, thrust set.
 //  - roll (400–4000): after thrust-up the plane creeps, then the speed builds hard (speed grows
@@ -571,14 +571,14 @@ export const TAKEOFF_TOTAL_MS = 7800;
 //    late in the roll, V1 just before rotation.
 //  - rotation and climb (4000–6000): ROTATE, a gradual nose-up to 15° over about 2 s, lift-off, V2,
 //    POSITIVE RATE, GEAR UP.
-//  - dusk (5000–7000): the plane keeps climbing; the sky darkens from the zenith down (golden
+//  - dusk (4400–6200): the plane keeps climbing; the sky darkens from the zenith down (golden
 //    amber → deep amber → warm dark brown → the page colour) until every window shows flat page
 //    colour. In daylight it climbs through cloud to the page beige. The cockpit stays fully lit.
-//  - camera (4000–7800): from ROTATE, a slow forward drift through the middle of the windscreen,
+//  - camera (4000–7400): from ROTATE, a slow forward drift through the middle of the windscreen,
 //    running under the climb and the dusk; it only rushes, by perspective, at the end.
 //  - hand-off: the moment the frame has passed the camera (the screen is flat page colour), the
 //    page content appears and the overlay, now the same colour as the page, clears.
-const T = { hold: 400, roll: 4000, climb: 6000, duskFrom: 5000, dusk: 7000, dollyFrom: 4000, end: 7800 } as const;
+const T = { hold: 400, roll: 4000, climb: 6000, duskFrom: 4400, dusk: 6200, dollyFrom: 4000, end: 7400 } as const;
 /** Roll acceleration curve: speed grows as time^ROLL_POW, so it creeps after thrust-up, then builds hard. */
 const ROLL_POW = 1.7;
 const HANDOFF_MS = 350; // the overlay (pure page colour by then) clearing as the page content appears
@@ -591,6 +591,19 @@ const TRAVEL = 0.93; // how far the camera moves, in shell depths (the frame end
 /** Camera travel at dolly progress v: a very gentle start (a slow drift under the climb); perspective does the rush. */
 const travelAt = (v: number) => TRAVEL * (0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, v)))) ** 1.8;
 const depthScale = (v: number, depth: number) => 1 / Math.max(0.02, 1 - travelAt(v) / depth);
+/** Once the instruments are mostly past the camera (the panel half faded, at 4.5×), it's mostly
+ *  frame and sky, so the rest of the move plays this many times faster. */
+const AFTER_PANEL_SPEED = 2.5;
+const PANEL_GONE_V = (() => {
+  let v = 0;
+  while (v < 1 && depthScale(v, DEPTH.panel) < 4.5) v += 0.001;
+  return v;
+})();
+/** Camera-move progress at `ms` into it (base duration `dur`), with the faster tail. */
+const dollyAt = (ms: number, dur: number) => {
+  const v = ms / dur;
+  return v <= PANEL_GONE_V ? Math.max(0, v) : Math.min(1, PANEL_GONE_V + (v - PANEL_GONE_V) * AFTER_PANEL_SPEED);
+};
 const SCENE_END = 0.76; // scene time at GEAR UP; the dusk climb carries it on to 1
 /** By this scale the first officer's pane covers the whole screen (desktop and phone): the hand-off point. */
 const HANDOFF_SCALE = 8.5;
@@ -718,7 +731,7 @@ export const Takeoff = () => {
         p.set(sceneAt(ms));
         takeoffClimb.set(clamp01((ms - T.roll) / (T.dusk - T.roll)));
         dusk.set(ease((ms - T.duskFrom) / (T.dusk - T.duskFrom)));
-        dolly.set(clamp01((ms - T.dollyFrom) / (T.end - T.dollyFrom)));
+        dolly.set(dollyAt(ms - T.dollyFrom, T.end - T.dollyFrom));
         if (shellScale.get() >= HANDOFF_SCALE || ms >= T.end) handOff(now);
         if (handedAt && clearing(now, false, ms)) return;
       }
