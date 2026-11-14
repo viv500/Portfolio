@@ -544,7 +544,7 @@ const OutsideDefs = memo(function OutsideDefs() {
 const CALLOUTS: [number, string][] = [
   [0, "THRUST SET"],
   [0.267, "80 KNOTS"],
-  [0.465, "V1"],
+  [0.42, "V1"], // a beat before ROTATE, so both read even in the quicker standard pacing
   [0.5, "ROTATE"],
   [0.56, "V2"],
   [0.66, "POSITIVE RATE"],
@@ -563,6 +563,7 @@ const Layer = React.forwardRef<HTMLDivElement, { children: React.ReactNode; labe
 });
 
 /** The intro, from first frame to removal. */
+/** Length of the master timeline (the pacings below play it faster or slower). */
 export const TAKEOFF_TOTAL_MS = 7400;
 // Timeline (ms), paced like a real departure:
 //  - hold (0–400): brakes on, thrust set.
@@ -580,6 +581,36 @@ export const TAKEOFF_TOTAL_MS = 7400;
 //  - hand-off: the moment the frame has passed the camera (the screen is flat page colour), the
 //    page content appears and the overlay, now the same colour as the page, clears.
 const T = { hold: 400, roll: 4000, climb: 6000, duskFrom: 4700, dusk: 6450, dollyFrom: 4000, end: 7400 } as const;
+
+// ── Pacing ───────────────────────────────────────────────────────────────
+// T above is the master timeline. A pacing plays each phase of it at its own rate (2 = twice as
+// fast), so the parts that carry the experience keep their time and the rest is quicker:
+//  - hold: the brakes-on moment before the roll; carries little.
+//  - roll: the slow creep after thrust-up and the surge to V1, the heart of it; kept close to real.
+//  - climb: rotation, lift-off and the climb-out; the payoff, a little quicker.
+//  - tail: the last of the dusk and the camera rushing into the window; a transition, so always quick.
+// `shake` scales the runway rumble; it builds with speed (`shakeCurve` > 1 makes it build later and harder).
+export type Pacing = { hold: number; roll: number; climb: number; tail: number; shake: number; shakeCurve: number };
+export const PACING = {
+  /** Every page load: about 4.5 s to the page. */
+  standard: { hold: 2, roll: 1.33, climb: 1.5, tail: 1.7, shake: 1, shakeCurve: 1 },
+  /** "Replay take-off": for the fans. A slower creep and surge, heavier, progressive shake and a
+   *  deliberate lift-off, about 10 s; the zoom at the end stays quick. */
+  immersive: { hold: 0.5, roll: 0.62, climb: 0.72, tail: 1.7, shake: 1.8, shakeCurve: 1.6 },
+} satisfies Record<string, Pacing>;
+export type PacingName = keyof typeof PACING;
+/** Master-timeline ms at `real` ms of playback under a pacing. */
+const timelineAt = (real: number, pace: Pacing) => {
+  const edges = [0, T.hold, T.roll, T.climb, Infinity];
+  const rates = [pace.hold, pace.roll, pace.climb, pace.tail];
+  let r = Math.max(0, real);
+  for (let i = 0; i < 4; i++) {
+    const realLen = (edges[i + 1] - edges[i]) / rates[i];
+    if (r <= realLen) return edges[i] + r * rates[i];
+    r -= realLen;
+  }
+  return T.end;
+};
 /** Roll acceleration curve: speed grows as time^ROLL_POW, so it creeps after thrust-up, then builds hard. */
 const ROLL_POW = 1.7;
 const HANDOFF_MS = 350; // the overlay (pure page colour by then) clearing as the page content appears
@@ -658,6 +689,7 @@ export const Takeoff = () => {
   const p = useMotionValue(0); // scene time
   const dusk = useMotionValue(0); // the dusk sweeping down the sky, 0 → 1
   const dolly = useMotionValue(0); // the move through the windscreen, 0 → 1
+  const rumble = useMotionValue(0); // runway rumble (px), set by the controller
   const lever = useMotionValue(0); // thrust levers, idle → take-off thrust
   // The dusk layer is 3× the screen tall; it starts already part-way in, so the zenith is
   // brownish from the start, and sweeps down until it covers everything.
@@ -681,7 +713,8 @@ export const Takeoff = () => {
     const html = document.documentElement;
     let raf = 0;
     let start = 0;
-    let speed = 1; // playback speed for a replay (1× normal … 2×), set from the replay control
+    let pace: Pacing = PACING.standard; // page load: standard; a replay picks its own
+    let lastMs = 0; // master-timeline position of the last frame
     let skipAt = 0;
     let skipFrom = 0; // the camera move's progress when skipped
     let running = false;
@@ -730,8 +763,13 @@ export const Takeoff = () => {
       } else {
         // Dev-only test hook: window.__takeoffAt freezes the timeline at that many ms.
         const frozen = process.env.NODE_ENV !== "production" ? (window as unknown as { __takeoffAt?: number }).__takeoffAt : undefined;
-        const ms = frozen ?? (now - start) * speed;
+        const ms = frozen ?? timelineAt(now - start, pace);
+        lastMs = ms;
         p.set(sceneAt(ms));
+        // Runway rumble, in real time (so a slower pacing doesn't slow the vibration itself):
+        // builds with speed through the roll, gone at lift-off.
+        const roll = clamp01((ms - T.hold) / (T.roll - T.hold));
+        rumble.set(ms < T.roll ? Math.sin(now * 0.125) * 1.6 * pace.shake * roll ** pace.shakeCurve : 0);
         // THRUST SET: the levers slide forward over 0.5 s (ease-out) and stay there.
         lever.set(1 - (1 - clamp01((ms - 80) / 500)) ** 3);
         takeoffClimb.set(clamp01((ms - T.roll) / (T.dusk - T.roll)));
@@ -755,7 +793,7 @@ export const Takeoff = () => {
       }
       if (!running || skipAt) return;
       const now = performance.now();
-      if (handedAt || now - start >= T.dusk) return; // already moving through
+      if (handedAt || lastMs >= T.dusk) return; // already moving through
       skipAt = now;
       skipFrom = dolly.get();
       posthog.capture("takeoff_skipped", { ms: Math.round(now - start) });
@@ -763,6 +801,7 @@ export const Takeoff = () => {
       dusk.set(1);
       lever.set(1);
       takeoffClimb.set(1);
+      rumble.set(0);
     };
     skipRef.current = skip;
     const play = async () => {
@@ -859,8 +898,8 @@ export const Takeoff = () => {
     };
     const onReplay = (e: Event) => {
       if (!running && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        const s = Number((e as CustomEvent<{ speed?: number }>).detail?.speed);
-        speed = s >= 1 && s <= 2 ? s : 1;
+        const name = (e as CustomEvent<{ pacing?: PacingName }>).detail?.pacing;
+        pace = name && name in PACING ? PACING[name] : PACING.immersive;
         skippedByInput = false;
         play();
       }
@@ -885,7 +924,7 @@ export const Takeoff = () => {
       window.removeEventListener("takeoff:replay", onReplay);
       window.removeEventListener("takeoff:finished", onDone);
     };
-  }, [p, dusk, dolly, clear, shellScale, lever]);
+  }, [p, dusk, dolly, clear, shellScale, lever, rumble]);
 
   // ── Scene state from the scene time ─────────────────────────────────────
   const [s, setS] = useState({ t: 0, d: 0, h: 1, kt: 0, alt: 0, call: CALLOUTS[0][1], thrust: 0, pitch: 0, horizon: 0 });
@@ -954,7 +993,7 @@ export const Takeoff = () => {
   // before the pane fills the screen.
   const glare = useTransform(dolly, (v) => String(1 - ease(clamp01((drift(v) - 0.2) / 0.5))));
   const pitchRot = useTransform(p, [0.5, 0.66, SCENE_END, 1], [0, -1.2, -0.6, -0.4]);
-  const shake = useTransform(p, (t) => (t > 0 && t < 0.5 ? Math.sin(t * 900) * 1.6 * (t / 0.5) : 0));
+  const shake = rumble;
 
   // Mouse parallax: a few pixels between layers, desktop only, while the intro plays.
   useEffect(() => {
