@@ -7,15 +7,19 @@ import type { MotionValue } from "framer-motion";
 
 // Glareshield, main instrument panel, pedestal and side consoles, all in perspective.
 
-const GS_Y = -0.24; // glareshield top
-const LIP_Y = -0.31; // bottom of the glareshield lip
-const LIP_Z = 1.12;
-const PANEL_Z = 1.14;
+const PANEL_Z = 1.14; // the instrument panel, back under the hood
+const PANEL_TOP = -0.3;
 const PANEL_BOTTOM = -0.66;
+const DISP_TOP = -0.355; // display tops sit just below the hood's underside
+const DISP_BOTTOM = -0.555;
+// The PFDs sit lower on the canted sections, tucked under the hood's angled ends.
+const PFD_TOP = -0.435;
+const PFD_BOTTOM = -0.625;
 
-// Points on the angled side sections ("wings") of the main panel, which turn in towards the pilots.
-const wingL = (u: number, Y: number): V3 => [-0.3 - 0.6 * u, Y, PANEL_Z - 0.28 * u];
-const wingR = (u: number, Y: number): V3 => [0.3 + 0.6 * u, Y, PANEL_Z - 0.28 * u];
+// The centre section (NDs, ISFD, EICAS) is flat to the camera; the outer sections, with the PFDs,
+// are canted slightly towards each pilot.
+const CENTRE_HALF = 0.475;
+const wingPt = (side: -1 | 1, u: number, Y: number): V3 => [side * (CENTRE_HALF + 0.6 * u), Y, PANEL_Z - 0.16 * u];
 
 /** A display in a recessed bezel, mapped onto the panel, with knobs, glow and glass sheen. */
 const Screen = ({ transform, children, knobs = "left" }: { transform: string; children: React.ReactNode; knobs?: "left" | "right" | "none" }) => (
@@ -38,16 +42,29 @@ const Screen = ({ transform, children, knobs = "left" }: { transform: string; ch
   </g>
 );
 
-// ── Glareshield hood (screen space) ─────────────────────────────────────
-// A thin hood: a narrow top surface from the window sill to a rounded front lip that overhangs
-// the displays. Flat across the front panes, wrapping down along the side-window sills.
-const SHIFT = 40; // the panel below sits this much higher than its 3D layout, tucked under the hood
-const LIP: [number, number][] = [[-220, 352], [-166, 346], [16, 330], [40, 324], [222, 288], [262, 280], [500, 280], [738, 280], [778, 288], [960, 324], [984, 330], [1166, 346], [1220, 352]];
-const LIP_DEPTH = 24;
-const line = (pts: [number, number][], dy = 0) => pts.map(([x, y]) => `${x} ${y + dy}`).join(" L");
-const LIP_TOP = `M${line(LIP)}`;
-const HOOD_TOP_MID = 280;
-/** Where the window sill is at x, along the front panes. */
+// ── Glareshield (screen space) ─────────────────────────────────────────
+// After a straight-on 777 flight deck: a thin matte hood top from the windscreen base, a vertical
+// hood face carrying the EFIS panels and MCP, with short end sections angled back towards the
+// viewer (their edges run to the vanishing point), and a deep shadowed underside with flood lights
+// over the instrument panel. Static: gradients only.
+const SHIFT = 40; // the pedestal, quadrant and yokes sit this much higher than their 3D layout
+const VPX = 500;
+const VPY = 205;
+const FACE_TOP = 270; // top of the hood face (centre run)
+const FACE_BOT = 315;
+const UNDER_BOT = 342; // where the underside meets the instrument panel
+const RUN = [311, 689] as const; // the straight centre run, over the inner edges of the PFDs
+const END = [196, 804] as const; // the end sections stop above the outer edges of the PFDs
+type XY = [number, number];
+/** y on the line from the vanishing point through (x0, y0), at x. */
+const toVp = (x0: number, y0: number) => (x: number) => VPY + ((y0 - VPY) * (x - VPX)) / (x0 - VPX);
+/** Where the end sections' undersides meet the canted panel: just above the outer PFD bezels. */
+const UNDER_END = 386;
+const lineThrough = (x0: number, y0: number, x1: number, y1: number) => (x: number) => y0 + ((y1 - y0) * (x - x0)) / (x1 - x0);
+const edgeL = { top: toVp(RUN[0], FACE_TOP), bot: toVp(RUN[0], FACE_BOT), under: lineThrough(RUN[0], UNDER_BOT, END[0], UNDER_END) };
+const edgeR = { top: toVp(RUN[1], FACE_TOP), bot: toVp(RUN[1], FACE_BOT), under: lineThrough(RUN[1], UNDER_BOT, END[1], UNDER_END) };
+const pts = (list: XY[]) => list.map(([x, y]) => `${r1(x)} ${r1(y)}`).join(" L");
+/** Where the window sill is at x. */
 const sillAt = (x: number) => {
   for (let i = 1; i < SILL.length; i++) {
     const [x0, y0] = SILL[i - 1];
@@ -56,44 +73,109 @@ const sillAt = (x: number) => {
   }
   return SILL[SILL.length - 1][1];
 };
+/** 2D affine placing a w×h drawing on the parallelogram tl, tr, bl. */
+const onto = (tl: XY, tr: XY, bl: XY, w: number, h: number) =>
+  `matrix(${((tr[0] - tl[0]) / w).toFixed(4)} ${((tr[1] - tl[1]) / w).toFixed(4)} ${((bl[0] - tl[0]) / h).toFixed(4)} ${((bl[1] - tl[1]) / h).toFixed(4)} ${r1(tl[0])} ${r1(tl[1])})`;
+/** A point on a hood end section: x across it, s from its top edge (0) to its bottom edge (1). */
+const onEnd = (e: typeof edgeL, x: number, s: number): XY => [x, e.top(x) + s * (e.bot(x) - e.top(x))];
+
+const HoodDefs = memo(function HoodDefs() {
+  return (
+    <defs>
+      <linearGradient id="hood-under" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0" stopColor="#0d0b0a" />
+        <stop offset="1" stopColor="#050404" />
+      </linearGradient>
+      <linearGradient id="hood-face" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0" stopColor="#2c2824" />
+        <stop offset="1" stopColor="#201d1a" />
+      </linearGradient>
+      <linearGradient id="flood-wash" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0" stopColor="#ffe8c0" stopOpacity="0.2" />
+        <stop offset="1" stopColor="#ffe8c0" stopOpacity="0" />
+      </linearGradient>
+      <linearGradient id="side-sill" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0" stopColor="#a8977c" />
+        <stop offset="1" stopColor="#6f6250" />
+      </linearGradient>
+      {/* EFIS control panel (one drawing, used left and right). */}
+      <g id="hood-efis">
+        <rect width="70" height="26" rx="1.5" fill="#1d1b19" stroke="rgba(0,0,0,0.7)" strokeWidth="1" />
+        <path d="M1 1 H69" stroke="rgba(255,255,255,0.06)" strokeWidth="0.8" />
+        {[14, 56].map((x) => (
+          <g key={x}>
+            <circle cx={x} cy="12" r="5.2" fill="#2d2b28" />
+            <circle cx={x} cy="12" r="3.6" fill="url(#knob)" />
+          </g>
+        ))}
+        {[25, 31, 37, 43].map((x) => (
+          <rect key={x} x={x - 2.4} y="8" width="4.8" height="3.6" rx="0.6" fill="#3a3734" />
+        ))}
+        {[25, 31, 37, 43].map((x) => (
+          <rect key={x} x={x - 2.4} y="15" width="4.8" height="3.6" rx="0.6" fill="#3a3734" />
+        ))}
+      </g>
+      {/* End panel: master WARNING (red) and CAUTION (amber), unlit, and a few small buttons. */}
+      <g id="hood-end">
+        <rect width="80" height="26" rx="1.5" fill="#1d1b19" stroke="rgba(0,0,0,0.7)" strokeWidth="1" />
+        <rect x="5" y="4" width="34" height="10" rx="1" fill="#5c1a15" />
+        <rect x="42" y="4" width="34" height="10" rx="1" fill="#5c4313" />
+        <text x="22" y="11" fontSize="4.4" fill="#d9a49c" textAnchor="middle" fontFamily="var(--font-mono), monospace" fontWeight="700">WARNING</text>
+        <text x="59" y="11" fontSize="4.4" fill="#e3c27e" textAnchor="middle" fontFamily="var(--font-mono), monospace" fontWeight="700">CAUTION</text>
+        {[12, 22, 32].map((x) => (
+          <rect key={x} x={x - 3} y="17.5" width="6" height="4" rx="0.6" fill="#3a3734" />
+        ))}
+      </g>
+    </defs>
+  );
+});
 
 const Hood = memo(function Hood() {
-  const sill = SILL.map((p) => p.join(" ")).join(" L");
-  const top = `M${sill} L${line([...LIP].reverse())} Z`;
-  const lip = `M${line(LIP)} L${line([...LIP].reverse(), LIP_DEPTH)} Z`;
-  // Defog vents: a row of small slots just in front of the windshield base.
-  const vents = Array.from({ length: 30 }, (_, i) => 262 + i * 16.4)
-    .filter((x) => Math.abs(x - 500) > 14)
-    .map((x) => {
-      const y = sillAt(x) + 6;
-      return `M${r1(x - 5)} ${r1(y)} h10 v2.2 h-10 Z`;
-    })
-    .join(" ");
+  const sillRun = SILL.filter(([x]) => x > END[0] && x < END[1]) as XY[];
+  const top: XY[] = [[END[0], sillAt(END[0])], ...sillRun, [END[1], sillAt(END[1])], [END[1], edgeR.top(END[1])], [RUN[1], FACE_TOP], [RUN[0], FACE_TOP], [END[0], edgeL.top(END[0])]];
+  const face: XY[] = [[END[0], edgeL.top(END[0])], [RUN[0], FACE_TOP], [RUN[1], FACE_TOP], [END[1], edgeR.top(END[1])], [END[1], edgeR.bot(END[1])], [RUN[1], FACE_BOT], [RUN[0], FACE_BOT], [END[0], edgeL.bot(END[0])]];
+  const endL: XY[] = [[END[0], edgeL.top(END[0])], [RUN[0], FACE_TOP], [RUN[0], FACE_BOT], [END[0], edgeL.bot(END[0])]];
+  const endR: XY[] = [[END[1], edgeR.top(END[1])], [RUN[1], FACE_TOP], [RUN[1], FACE_BOT], [END[1], edgeR.bot(END[1])]];
+  const under: XY[] = [[END[0], edgeL.bot(END[0])], [RUN[0], FACE_BOT], [RUN[1], FACE_BOT], [END[1], edgeR.bot(END[1])], [END[1], edgeR.under(END[1])], [RUN[1], UNDER_BOT], [RUN[0], UNDER_BOT], [END[0], edgeL.under(END[0])]];
+  const topEdge = `M${pts([[END[0], edgeL.top(END[0])], [RUN[0], FACE_TOP], [RUN[1], FACE_TOP], [END[1], edgeR.top(END[1])]])}`;
+  // Warm beige sills under the side windows, outboard of the hood ends, a little lower.
+  const sideSill = (from: number, to: number) => {
+    const xs = SILL.filter(([x]) => x > Math.min(from, to) && x < Math.max(from, to)).map(([x]) => x);
+    const line = [from, ...xs.sort((a, b) => (from < to ? a - b : b - a)), to];
+    const upper: XY[] = line.map((x) => [x, sillAt(x) + 4]);
+    const lower: XY[] = [...line].reverse().map((x) => [x, sillAt(x) + 18 + Math.abs(x - 500) * 0.012]);
+    return `M${pts([...upper, ...lower])} Z`;
+  };
+  const endPanel = (e: typeof edgeL, x0: number, x1: number) => onto(onEnd(e, x0, 0.22), onEnd(e, x1, 0.22), onEnd(e, x0, 0.8), 80, 26);
   return (
     <g>
-      {/* Soft shadow cast onto the displays below the lip. */}
-      <path d={`M${line(LIP, LIP_DEPTH)} L${line([...LIP].reverse(), LIP_DEPTH + 22)} Z`} fill="url(#under-gs)" />
-      {/* Top surface: dark matte, a faint texture, and a soft reflection of the sky near the glass. */}
-      <path d={top} fill="url(#gs-top)" />
-      <path d={top} fill="url(#gs-grain)" />
-      <path d={top} fill="url(#gs-reflect)" />
-      <path d={vents} fill="rgba(0,0,0,0.55)" />
-      <path d={`M${sill}`} fill="none" stroke={col("rim", 0.45)} strokeWidth="1.4" />
-      <path d={lip} fill="url(#gs-lip)" />
-      <path d={LIP_TOP} fill="none" stroke={col("rim", 0.35)} strokeWidth="1.6" />
-      {/* Sunlight through the front panes, with hard shadows from the pillars and centre post. */}
-      <g style={{ opacity: "var(--sunlight)" }}>
-        <path d="M262 239 L490 252 L500 280 L272 280 Z" style={{ fill: col("sunlit", 0.16) }} />
-        <path d="M510 252 L738 239 L728 280 L500 280 Z" style={{ fill: col("sunlit", 0.12) }} />
-        <path d="M244 236 L262 239 L272 280 L250 282 Z" fill="rgba(0,0,0,0.28)" />
-        <path d="M490 252 L510 252 L516 280 L496 280 Z" fill="rgba(0,0,0,0.3)" />
-        <path d={LIP_TOP} fill="none" style={{ stroke: col("sunlit", 0.5) }} strokeWidth="2" />
-      </g>
-      {/* Faint glow from the screens onto the underside of the lip. */}
-      <ellipse cx="500" cy={HOOD_TOP_MID + LIP_DEPTH + 2} rx="330" ry="8" fill="url(#lip-glow)" />
+      <HoodDefs />
+      <path d={sideSill(-220, END[0] + 30)} fill="url(#side-sill)" />
+      <path d={sideSill(1220, END[1] - 30)} fill="url(#side-sill)" />
+      {/* 3. Underside: a deep shadow receding to the panel, two flood strips and a small housing. */}
+      <path d={`M${pts(under)} Z`} fill="url(#hood-under)" />
+      <path d={`M362 ${UNDER_BOT - 6} H470 M530 ${UNDER_BOT - 6} H638`} stroke="#ffe8c0" strokeOpacity="0.7" strokeWidth="1.6" strokeLinecap="round" />
+      <rect x="489" y={FACE_BOT + 3} width="22" height="11" rx="1.5" fill="#15130f" stroke="rgba(255,255,255,0.08)" strokeWidth="0.6" />
+      {/* 1. Hood top: thin matte near-black, from the windscreen base to the face. */}
+      <path d={`M${pts(top)} Z`} fill="#1a1816" />
+      {/* 2. Hood face: centre run and the two angled end sections (lit a touch differently). */}
+      <path d={`M${pts(face)} Z`} fill="url(#hood-face)" />
+      <path d={`M${pts(endL)} Z`} fill="rgba(255,255,255,0.035)" />
+      <path d={`M${pts(endR)} Z`} fill="rgba(0,0,0,0.12)" />
+      <path d={`M${RUN[0]} ${FACE_TOP} V${FACE_BOT} M${RUN[1]} ${FACE_TOP} V${FACE_BOT}`} stroke="rgba(0,0,0,0.5)" strokeWidth="1" />
+      <path d={topEdge} fill="none" stroke="rgb(var(--sunlit))" strokeOpacity="0.45" strokeWidth="1.1" />
+      <path d={`M${pts([[END[0], edgeL.bot(END[0])], [RUN[0], FACE_BOT], [RUN[1], FACE_BOT], [END[1], edgeR.bot(END[1])]])}`} fill="none" stroke="rgba(0,0,0,0.55)" strokeWidth="1.2" />
+      {/* Recessed panels: EFIS either side of the MCP, warning/caution on the end sections. */}
+      <use href="#hood-efis" x={RUN[0] + 7} y={FACE_TOP + 9} />
+      <use href="#hood-efis" x={RUN[1] - 77} y={FACE_TOP + 9} />
+      <use href="#hood-end" transform={endPanel(edgeL, END[0] + 18, RUN[0] - 14)} />
+      <use href="#hood-end" transform={endPanel(edgeR, RUN[1] + 14, END[1] - 18)} />
     </g>
   );
 });
+
+/** Flood light from the underside, washing the top of the instrument panel and bezels. */
+const FloodWash = () => <rect x={RUN[0]} y={UNDER_BOT} width={RUN[1] - RUN[0]} height="30" fill="url(#flood-wash)" />;
 
 /** Parked windshield wipers, one at the base of each front pane. */
 const Wipers = memo(function Wipers() {
@@ -105,7 +187,8 @@ const Wipers = memo(function Wipers() {
       <circle cx={px} cy={py} r="4" fill="#1a1b1e" stroke="rgba(255,255,255,0.15)" strokeWidth="0.8" />
     </g>
   );
-  return <g>{[wiper(274, 241, 1), wiper(726, 241, -1)]}</g>;
+  // Pivots on the frame at the outer bottom corner of each pane, outside the glass.
+  return <g>{[wiper(250, 239, 1), wiper(750, 239, -1)]}</g>;
 });
 
 /** Sidewalls below the side windows: a padded panel seam and a gasper vent. */
@@ -122,11 +205,24 @@ const Sidewalls = memo(function Sidewalls() {
   return <g>{[side((x) => x, "l"), side((x) => 1000 - x, "r")]}</g>;
 });
 
+/** The instrument panel: a flat centre section and two slightly canted outer sections. */
+const PanelBody = memo(function PanelBody() {
+  const centre = poly([[-CENTRE_HALF, PANEL_TOP, PANEL_Z], [CENTRE_HALF, PANEL_TOP, PANEL_Z], [CENTRE_HALF, PANEL_BOTTOM, PANEL_Z], [-CENTRE_HALF, PANEL_BOTTOM, PANEL_Z]]);
+  const wing = (side: -1 | 1) => poly([wingPt(side, 0, PANEL_TOP), wingPt(side, 1, PANEL_TOP), wingPt(side, 1, PANEL_BOTTOM), wingPt(side, 0, PANEL_BOTTOM)]);
+  return (
+    <g>
+      <path d={wing(-1)} fill="url(#wing-l)" />
+      <path d={wing(1)} fill="url(#wing-r)" />
+      <path d={centre} fill="url(#panel-centre)" />
+      <path d={`M${ps(wingPt(-1, 0, PANEL_TOP))} L${ps(wingPt(-1, 0, PANEL_BOTTOM))} M${ps(wingPt(1, 0, PANEL_TOP))} L${ps(wingPt(1, 0, PANEL_BOTTOM))}`} stroke="rgba(0,0,0,0.5)" strokeWidth="1.2" />
+      {/* Small recessed panel right of the EICAS (gear/autobrake area). */}
+      <path d={poly([[0.15, -0.37, PANEL_Z], [0.215, -0.37, PANEL_Z], [0.215, -0.5, PANEL_Z], [0.15, -0.5, PANEL_Z]])} fill="#141518" stroke="rgba(0,0,0,0.6)" strokeWidth="1" />
+    </g>
+  );
+});
+
+/** Pedestal and side consoles (in the shifted group with the quadrant and yokes). */
 const Structure = memo(function Structure() {
-  // Glareshield top surface: from the base of the windscreen back to the lip.
-  const centre = poly([[-0.3, LIP_Y, PANEL_Z], [0.3, LIP_Y, PANEL_Z], [0.3, PANEL_BOTTOM, PANEL_Z], [-0.3, PANEL_BOTTOM, PANEL_Z]]);
-  const wingLeft = poly([wingL(0, LIP_Y), wingL(1, LIP_Y), wingL(1, PANEL_BOTTOM), wingL(0, PANEL_BOTTOM)]);
-  const wingRight = poly([wingR(0, LIP_Y), wingR(1, LIP_Y), wingR(1, PANEL_BOTTOM), wingR(0, PANEL_BOTTOM)]);
   // Pedestal between the seats, and the side consoles under the side windows.
   const pedestal = poly([[-0.17, -0.66, 1.12], [0.17, -0.66, 1.12], [0.19, -0.66, 0.45], [-0.19, -0.66, 0.45]]);
   const pedFrontL = poly([[-0.17, -0.66, 1.12], [-0.19, -0.66, 0.45], [-0.19, -1.2, 0.45], [-0.17, -1.2, 1.12]]);
@@ -142,14 +238,6 @@ const Structure = memo(function Structure() {
   const tillerR = (0.05 * 440) / 1.0;
   return (
     <g>
-      {/* Main panel. */}
-      <path d={wingLeft} fill="url(#wing-l)" />
-      <path d={wingRight} fill="url(#wing-r)" />
-      <path d={centre} fill="url(#panel-centre)" />
-      <path d={`M${ps(wingL(0, LIP_Y))} L${ps(wingL(0, PANEL_BOTTOM))} M${ps(wingR(0, LIP_Y))} L${ps(wingR(0, PANEL_BOTTOM))}`} stroke="rgba(0,0,0,0.6)" strokeWidth="1.6" />
-      {/* Shadow under the glareshield. */}
-      <path d={poly([wingL(1, LIP_Y), wingR(1, LIP_Y), wingR(1, LIP_Y - 0.07), wingL(1, LIP_Y - 0.07)])} fill="url(#under-gs)" />
-
       {/* Side consoles with the tiller and armrests. */}
       <path d={consoleWallL} style={{ fill: col("cabin-dark") }} />
       <path d={consoleWallR} style={{ fill: col("cabin-dark") }} />
@@ -168,8 +256,6 @@ const Structure = memo(function Structure() {
       <path d={pedFrontL} style={{ fill: col("cabin-dark") }} />
       <path d={pedFrontR} style={{ fill: col("cabin-dark") }} />
       <path d={pedestal} fill="url(#pedestal)" />
-
-
     </g>
   );
 });
@@ -177,8 +263,9 @@ const Structure = memo(function Structure() {
 /** Boeing mode control panel on the glareshield. Values are autopilot targets, labelled as such. */
 const Mcp = memo(function Mcp() {
   const W = 260;
-  const k = 0.82;
-  const t = `translate(${500 - (W * k) / 2} ${HOOD_TOP_MID + 4}) scale(${k})`;
+  // About 55% of the hood's centre run, recessed into the face.
+  const k = 0.8;
+  const t = `translate(${500 - (W * k) / 2} ${FACE_TOP + 11}) scale(${k})`;
   const windows = [
     { x: 40, label: "IAS/MACH", value: "160" },
     { x: 104, label: "HDG", value: "020" },
@@ -193,7 +280,8 @@ const Mcp = memo(function Mcp() {
   ];
   return (
     <g transform={t} style={{ fontFamily: "var(--font-mono), monospace" }}>
-      <rect width={W} height="28" rx="2" fill="#2a2e35" stroke="rgba(255,255,255,0.12)" strokeWidth="0.6" />
+      <rect width={W} height="28" rx="2" fill="#24272c" stroke="rgba(0,0,0,0.7)" strokeWidth="1.2" />
+      <path d={`M1 0.8 H${W - 1}`} stroke="rgba(255,255,255,0.08)" strokeWidth="0.8" />
       <text x="4" y="25.5" fontSize="3.4" fill="rgba(255,255,255,0.65)">
         MCP TARGETS
       </text>
@@ -258,21 +346,24 @@ export const Panel = ({
   /** Thrust lever position, 0 idle → 1 take-off thrust (a motion value: the levers move by transform). */
   lever: MotionValue<number>;
 }) => {
-  const pfdL = affine(wingL(0.88, -0.35), wingL(0.52, -0.35), wingL(0.88, -0.54), SCREEN_W, SCREEN_H);
-  const ndL = affine(wingL(0.44, -0.35), wingL(0.08, -0.35), wingL(0.44, -0.54), SCREEN_W, SCREEN_H);
-  const ndR = affine(wingR(0.08, -0.35), wingR(0.44, -0.35), wingR(0.08, -0.54), SCREEN_W, SCREEN_H);
-  const pfdR = affine(wingR(0.52, -0.35), wingR(0.88, -0.35), wingR(0.52, -0.54), SCREEN_W, SCREEN_H);
-  const eicas = affine([-0.13, -0.34, PANEL_Z], [0.13, -0.34, PANEL_Z], [-0.13, -0.545, PANEL_Z], SCREEN_W, SCREEN_H);
-  const isfd = affine([0.15, -0.37, PANEL_Z], [0.255, -0.37, PANEL_Z], [0.15, -0.475, PANEL_Z], SCREEN_W, SCREEN_H);
+  // Centre section, flat to the camera: ND, ISFD, EICAS, (gear panel), ND. PFDs on the canted outer sections.
+  const disp = (x0: number, x1: number, top = DISP_TOP, bottom = DISP_BOTTOM) =>
+    affine([x0, top, PANEL_Z], [x1, top, PANEL_Z], [x0, bottom, PANEL_Z], SCREEN_W, SCREEN_H);
+  const ndL = disp(-0.465, -0.225);
+  const isfd = disp(-0.21, -0.13, -0.37, -0.45);
+  const eicas = disp(-0.12, 0.12);
+  const ndR = disp(0.225, 0.465);
+  const pfdL = affine(wingPt(-1, 0.45, PFD_TOP), wingPt(-1, 0.03, PFD_TOP), wingPt(-1, 0.45, PFD_BOTTOM), SCREEN_W, SCREEN_H);
+  const pfdR = affine(wingPt(1, 0.03, PFD_TOP), wingPt(1, 0.45, PFD_TOP), wingPt(1, 0.03, PFD_BOTTOM), SCREEN_W, SCREEN_H);
   const gs = Math.round(ias);
   const nm = 6153 - Math.round(alt / 600);
   return (
     <g>
       <PanelDefs />
-      {/* Opaque backing from the glareshield down, so nothing outside ever shows behind the panel. */}
-      <path d={`M${line(LIP)} V700 H-220 Z`} style={{ fill: col("cabin-dark") }} />
-      <g transform={`translate(0 ${-SHIFT})`}>
-      <Structure />
+      {/* Opaque backing from the window sill down, so nothing outside ever shows behind the panel. */}
+      <path d={`M${SILL.map((q) => q.join(" ")).join(" L")} V700 H-220 Z`} style={{ fill: col("cabin-dark") }} />
+      {/* 4. Instrument panel, back under the hood. */}
+      <PanelBody />
       {/* On phones (detail off) the outboard PFDs and yokes are outside the crop, so skip them. */}
       {detail && (
         <Screen transform={pfdL}>
@@ -282,11 +373,11 @@ export const Panel = ({
       <Screen transform={ndL} knobs="none">
         <Nd gs={gs} nm={nm} />
       </Screen>
-      <Screen transform={eicas} knobs="none">
-        <Eicas n1={n1} egt={egt} ff={ff} airborne={airborne} />
-      </Screen>
       <Screen transform={isfd} knobs="none">
         <Isfd ias={ias} alt={alt} pitch={pitch} />
+      </Screen>
+      <Screen transform={eicas} knobs="none">
+        <Eicas n1={n1} egt={egt} ff={ff} airborne={airborne} />
       </Screen>
       <Screen transform={ndR} knobs="none">
         <Nd gs={gs} nm={nm} />
@@ -296,16 +387,20 @@ export const Panel = ({
           <Pfd ias={ias} alt={alt} pitch={pitch} fma={fma} />
         </Screen>
       )}
-      </g>
+      <FloodWash />
       <Sidewalls />
+      <g transform={`translate(0 ${-SHIFT})`}>
+        <Structure />
+      </g>
+      {/* Layers 1–3: hood top, face (with the MCP) and underside. */}
       <Hood />
+      <Mcp />
       <Wipers />
       <g transform={`translate(0 ${-SHIFT})`}>
-      <Quadrant thrust={lever} />
-      {detail && <Yoke side="left" pull={pull} jitter={jitter} detail={detail} />}
-      {detail && <Yoke side="right" pull={pull} jitter={-jitter} detail={detail} />}
+        <Quadrant thrust={lever} />
+        {detail && <Yoke side="left" pull={pull} jitter={jitter} detail={detail} />}
+        {detail && <Yoke side="right" pull={pull} jitter={-jitter} detail={detail} />}
       </g>
-      <Mcp />
     </g>
   );
 };
@@ -325,31 +420,6 @@ const PanelDefs = memo(function PanelDefs() {
         <stop offset="0" style={{ stopColor: col("cabin-mid") }} />
         <stop offset="1" style={{ stopColor: col("cabin-dark") }} />
       </linearGradient>
-      <linearGradient id="under-gs" x1="0" x2="0" y1="0" y2="1">
-        <stop offset="0" stopColor="#000" stopOpacity="0.6" />
-        <stop offset="1" stopColor="#000" stopOpacity="0" />
-      </linearGradient>
-      <linearGradient id="gs-top" x1="0" x2="0" y1="1" y2="0">
-        <stop offset="0" style={{ stopColor: col("cabin-dark") }} />
-        <stop offset="1" style={{ stopColor: col("cabin") }} />
-      </linearGradient>
-      <linearGradient id="gs-lip" x1="0" x2="0" y1="0" y2="1">
-        <stop offset="0" style={{ stopColor: col("cabin") }} />
-        <stop offset="0.35" style={{ stopColor: col("cabin-mid") }} />
-        <stop offset="1" style={{ stopColor: col("cabin-dark") }} />
-      </linearGradient>
-      <pattern id="gs-grain" width="3" height="3" patternUnits="userSpaceOnUse">
-        <rect width="1" height="1" fill="rgba(255,255,255,0.035)" />
-        <rect x="1.5" y="1.5" width="1" height="1" fill="rgba(0,0,0,0.12)" />
-      </pattern>
-      <linearGradient id="gs-reflect" x1="0" x2="0" y1="0" y2="1">
-        <stop offset="0" style={{ stopColor: col("sky-2"), stopOpacity: 0.16 }} />
-        <stop offset="0.6" style={{ stopColor: col("sky-2"), stopOpacity: 0 }} />
-      </linearGradient>
-      <radialGradient id="lip-glow">
-        <stop offset="0" stopColor="rgb(95,212,232)" stopOpacity="0.16" />
-        <stop offset="1" stopColor="rgb(95,212,232)" stopOpacity="0" />
-      </radialGradient>
       <linearGradient id="console-top" x1="0" x2="0" y1="0" y2="1">
         <stop offset="0" style={{ stopColor: col("cabin") }} />
         <stop offset="1" style={{ stopColor: col("cabin-dark") }} />
