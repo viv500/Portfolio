@@ -84,6 +84,60 @@ const AllocatorWindow = () => (
   </svg>
 );
 
+/**
+ * The ECG project's window: "where each model looks". The same heartbeat three times, with a
+ * gold glow where each model's explanation focuses. Accuracy rises down the stack while the focus
+ * drifts off the QRS spike (inside the dashed bracket). Inline SVG on the pass's cream paper.
+ */
+const ECG_X = 14; // left edge of each beat
+const ECG_QRS = ECG_X + 85; // the R peak
+// One beat, baseline at 0: flat, P wave, PR segment, QRS spike, ST segment, T wave, flat.
+const ECG_BEAT = "M0 0 H38 C42 0 44 -9 50 -9 C56 -9 58 0 62 0 H74 L78 5 L85 -42 L91 11 L95 0 H108 C114 0 118 -14 126 -14 C134 -14 138 0 144 0 H172";
+const ECG_ROWS = [
+  { label: "TREE", fig: "0.87", y: 112, glow: { cx: ECG_QRS, rx: 15 } },
+  { label: "MLP", fig: "0.50", y: 182, glow: { cx: 118, rx: 46 } },
+  { label: "ATTN", fig: "0.29", y: 252, glow: { cx: 40, rx: 62 } },
+];
+const EcgWindow = () => (
+  <svg
+    viewBox="0 0 200 310"
+    preserveAspectRatio="xMidYMid slice"
+    className="absolute inset-0 h-full w-full"
+    role="img"
+    aria-label="The same heartbeat explained by three models. The tree model focuses on the QRS spike; the MLP spreads toward the T wave; the attention model looks mostly at the flat baseline."
+  >
+    <defs>
+      <radialGradient id="ecg-glow">
+        <stop offset="0" stopColor="rgb(245 178 58)" stopOpacity="1" />
+        <stop offset="0.6" stopColor="rgb(245 178 58)" stopOpacity="0.75" />
+        <stop offset="1" stopColor="rgb(245 178 58)" stopOpacity="0" />
+      </radialGradient>
+      {/* ECG paper: a fine grid, every fourth line a little stronger. */}
+      <pattern id="ecg-grid" width="50" height="50" patternUnits="userSpaceOnUse">
+        <path d="M0 0 H50 M0 12.5 H50 M0 25 H50 M0 37.5 H50 M0 0 V50 M12.5 0 V50 M25 0 V50 M37.5 0 V50" stroke="rgb(110 70 30)" strokeOpacity="0.06" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+        <path d="M0 0 H50 M0 0 V50" stroke="rgb(110 70 30)" strokeOpacity="0.06" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+      </pattern>
+    </defs>
+    <rect width="200" height="310" style={{ fill: "rgb(var(--pass))" }} />
+    <rect width="200" height="310" fill="url(#ecg-grid)" />
+    {/* The QRS bracket, across all three rows. */}
+    <g stroke="rgb(74 55 38)" strokeOpacity="0.5" strokeWidth="1" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" fill="none">
+      <path d={`M${ECG_QRS - 13} 64 V262 M${ECG_QRS + 13} 64 V262`} vectorEffect="non-scaling-stroke" />
+    </g>
+    <g fontFamily="var(--font-mono), ui-monospace, monospace" fontWeight="600">
+      <text x={ECG_QRS} y="56" textAnchor="middle" fontSize="17" letterSpacing="1" fill="rgb(74 55 38)" fillOpacity="0.75">QRS</text>
+      {ECG_ROWS.map((r) => (
+        <g key={r.label}>
+          <ellipse cx={r.glow.cx} cy={r.y - 12} rx={r.glow.rx} ry="30" fill="url(#ecg-glow)" opacity="0.55" />
+          <path d={ECG_BEAT} transform={`translate(${ECG_X} ${r.y})`} fill="none" stroke="rgb(74 55 38)" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+          <text x={ECG_X} y={r.y - 28} fontSize="17" fill="rgb(107 90 69)">{r.label}</text>
+          <text x={186} y={r.y - 28} fontSize="17" textAnchor="end" fill="rgb(107 90 69)">{r.fig}</text>
+        </g>
+      ))}
+    </g>
+  </svg>
+);
+
 const PassWindow = ({ src, alt, art = false, focus, children }: { src?: string; alt: string; art?: boolean; focus?: string; children?: React.ReactNode }) => (
   <div className="relative h-32 w-[5.4rem] shrink-0 rounded-[2.3rem] bg-gradient-to-b from-[#e9e4d8] to-[#cfc8b8] p-[5px] shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_1px_2px_rgba(0,0,0,0.25)] sm:h-[8.5rem] sm:w-[5.6rem]">
     <div className="relative h-full w-full overflow-hidden rounded-[2rem] bg-[linear-gradient(180deg,rgb(var(--sky-1)),rgb(var(--sky-2))_60%,rgb(var(--sky-3)))] shadow-[inset_0_3px_8px_rgba(0,0,0,0.55)]">
@@ -127,8 +181,8 @@ const Field = ({ k, v, className = "" }: { k: string; v: React.ReactNode; classN
   </div>
 );
 
-/** Where to centre a window's crop (the ECG's QRS spike sits right of centre). */
-const FOCUS: Record<string, string> = { ecg: "62% 50%", wat2eat: "50% 40%" };
+/** Where to centre a window's crop. */
+const FOCUS: Record<string, string> = { wat2eat: "50% 40%" };
 
 /** Short CLASS labels where the badge is too long for the field. */
 const CLASS: Record<string, string> = { allocator: "3+ teams" };
@@ -188,7 +242,7 @@ const BoardingPass = ({ pass, index }: { pass: Pass; index: number }) => {
           </div>
           <div className="hidden shrink-0 self-center sm:block">
             <PassWindow src={previews[pass.slug]} alt={pass.title} art={pass.slug === "internship-bot"} focus={FOCUS[pass.slug]}>
-              {pass.slug === "allocator" ? <AllocatorWindow /> : null}
+              {pass.slug === "allocator" ? <AllocatorWindow /> : pass.slug === "ecg" ? <EcgWindow /> : null}
             </PassWindow>
           </div>
         </div>

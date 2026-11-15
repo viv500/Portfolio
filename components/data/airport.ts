@@ -52,7 +52,6 @@ export const passCodes: Record<string, { from: string; fromCap: string; to: stri
 // tucked behind each hackathon stamp. Items without one show sky instead.
 export const previews: Record<string, string> = {
   "internship-bot": "/media/internship-bot/window.jpg",
-  ecg: "/media/ecg/window.jpg",
   wat2eat: "/media/wat2eat/window.jpg",
   canify: "/media/thumbs/canify.jpg",
   datafest: "/media/thumbs/datafest.jpg",
