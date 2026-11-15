@@ -675,8 +675,9 @@ const sceneAt = (ms: number, pace?: Pacing, rollPow = ROLL_POW) =>
 /**
  * The take-off: a one-time autoplay intro, as a fixed overlay above the page (which sits at the
  * top, underneath, its content hidden until the overlay is gone). See the timeline above. Never
- * fades the screen to a colour and never scrolls the page. Any wheel, touch, key or click (or
- * Skip) jumps to the end of the dusk climb and dollies through in 300 ms. Plays on every load
+ * fades the screen to a colour and never scrolls the page. A deliberate scroll, a navigation key
+ * or Skip (the only option on touch screens) jumps to the end of the dusk climb and dollies
+ * through in 300 ms. Plays on every load
  * (never with reduced motion); "Replay take-off" plays it again.
  */
 export const Takeoff = () => {
@@ -843,8 +844,10 @@ export const Takeoff = () => {
       raf = requestAnimationFrame(tick);
     };
     // ── What skips, and what doesn't ──────────────────────────────────────
-    // Skips: a deliberate scroll (wheel/trackpad ≥30px accumulated), a swipe ≥30px or a tap on
-    // touch, navigation keys without modifiers, or the Skip button. Doesn't: mouse clicks or
+    // Skips: a deliberate scroll (wheel/trackpad ≥30px accumulated), navigation keys without
+    // modifiers, or the Skip button. Doesn't: anything on a touch screen except the Skip button
+    // (people tap or swipe by instinct when a page opens, and the button is large on phones), so
+    // swipes are held while it plays and the page underneath stays at the top; mouse clicks or
     // movement, modifier keys or shortcuts, focus changes, or anything in the first 300 ms
     // (momentum from the previous page). After a skip, downward scrolling is swallowed until it
     // has paused for 400 ms (capped at 1.2 s after the intro ends), so a hard flick's momentum
@@ -877,27 +880,10 @@ export const Takeoff = () => {
       wheelSum += Math.abs(e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? window.innerHeight : 1));
       if (wheelSum > 30) userSkip();
     };
-    let touch: { x: number; y: number; t: number; moved: boolean } | null = null;
-    const onTouchStart = (e: TouchEvent) => {
-      const p0 = e.touches[0];
-      if (p0) touch = { x: p0.clientX, y: p0.clientY, t: performance.now(), moved: false };
-    };
+    // Touch never skips: while the intro plays, swipes are held so the page doesn't scroll
+    // underneath it.
     const onTouchMove = (e: TouchEvent) => {
-      const p0 = e.touches[0];
-      if (!p0 || !touch) return;
-      const dy = touch.y - p0.clientY;
-      if (skippedByInput && dy > 0 && (running || (performance.now() < swallowUntil && performance.now() < swallowCap))) {
-        e.preventDefault();
-        return;
-      }
-      if (Math.hypot(p0.clientX - touch.x, dy) > 30) {
-        touch.moved = true;
-        userSkip();
-      }
-    };
-    const onTouchEnd = (e: TouchEvent) => {
-      if (touch && !touch.moved && performance.now() - touch.t < 500 && !(e.target as HTMLElement)?.closest?.("a, button")) userSkip();
-      touch = null;
+      if (running && e.cancelable) e.preventDefault();
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || !SKIP_KEYS.has(e.key)) return;
@@ -919,9 +905,7 @@ export const Takeoff = () => {
       }
     };
     window.addEventListener("wheel", onWheel, { passive: false });
-    window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchmove", onTouchMove, { passive: false });
-    window.addEventListener("touchend", onTouchEnd, { passive: true });
     window.addEventListener("keydown", onKey);
     window.addEventListener("takeoff:replay", onReplay);
     window.addEventListener("takeoff:finished", onDone);
@@ -931,9 +915,7 @@ export const Takeoff = () => {
       running = false;
       cancelAnimationFrame(raf);
       window.removeEventListener("wheel", onWheel);
-      window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchmove", onTouchMove);
-      window.removeEventListener("touchend", onTouchEnd);
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("takeoff:replay", onReplay);
       window.removeEventListener("takeoff:finished", onDone);
