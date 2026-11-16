@@ -24,6 +24,14 @@ export const PostHogAnalytics = () => {
     if (!POSTHOG_KEY) return;
 
     const params = new URLSearchParams(window.location.search);
+    // A tagged link (?via=…, from a redirect like /portfolio): remember the tag, then take it out
+    // of the address bar so the visitor sees the plain URL and a copied link doesn't carry it.
+    const via = params.get("via")?.slice(0, 40) || null;
+    if (via) {
+      // Drop only the via parameter; leave any others exactly as written.
+      const rest = window.location.search.slice(1).split("&").filter((kv) => kv && !kv.startsWith("via=")).join("&");
+      window.history.replaceState(window.history.state, "", window.location.pathname + (rest ? `?${rest}` : "") + window.location.hash);
+    }
     try {
       if (params.has("notrack")) localStorage.setItem(OPT_OUT_KEY, "1");
       if (params.has("track")) localStorage.removeItem(OPT_OUT_KEY);
@@ -39,7 +47,12 @@ export const PostHogAnalytics = () => {
       capture_pageview: { path: true, hash: true },
       person_profiles: "identified_only",
       session_recording: { maskAllInputs: true },
+      // Tag before the first pageview, so the whole visit (and later visits from this browser) carries it.
+      loaded: (ph) => {
+        if (via) ph.register({ via });
+      },
     });
+    if (via) track("tracked_link_opened", `Arrived through the /${via} link`, { via, referrer: document.referrer || null });
 
     // Sent with every event, for filtering and breakdowns.
     const landing = route();

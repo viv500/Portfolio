@@ -19,6 +19,7 @@ export const EVENTS = {
   palette_changed: "The visitor switched between golden hour and day.",
   passport_page_turned: "The visitor opened, closed or paged through the About passport.",
   media_played: "A project video was played or unmuted.",
+  tracked_link_opened: "The visitor arrived through a tagged link (e.g. /portfolio) that's used in one place only; via names it.",
 } as const;
 
 export type EventName = keyof typeof EVENTS;

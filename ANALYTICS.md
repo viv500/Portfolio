@@ -35,6 +35,7 @@ Older data stays under the old names in PostHog.
 | `palette_changed` | The golden hour / day switch was used. | `to` (`golden` / `day`) |
 | `passport_page_turned` | The About passport was opened, closed or paged by the visitor (not the automatic opening). | `page`, `page_name` (Identity, Interests, Moments, Cover), `direction` (`open` / `forward` / `back` / `close`) |
 | `media_played` | A project video was played or unmuted. | `project` (the open panel), `video`, `action` (`play` / `unmute`) |
+| `tracked_link_opened` | The visitor arrived through a tagged link (see below). | `via` (which link), `referrer` (if the browser passes one) |
 
 PostHog's own events are on as well:
 - `$pageview` and `$pageleave`, including one per panel, since panels are `#routes`;
@@ -49,6 +50,19 @@ PostHog's own events are on as well:
 | `palette` | `golden` or `day`, updated when switched |
 | `entry_section` | where the visit landed: `Check-in`, a section name, or a panel title for a direct link |
 | `takeoff_seen` | `true` once the intro has finished or been skipped |
+| `via` | set only for visitors who came through a tagged link, e.g. `portfolio`. It stays on every later visit from that browser. |
+
+## Tagged links
+
+`vivekjudemanoj.com/portfolio` is the normal site, reached through a link that's used in one place only. It redirects to `/?via=portfolio`, which tags the visit. The tag is then removed from the address bar, so the visitor just sees `vivekjudemanoj.com`, and a copied URL doesn't carry it. Each visit through it sends `tracked_link_opened`, and `via` is attached to every event from that browser from then on, including return visits.
+
+To add another tagged link, add a redirect in `next.config.mjs` (`/<path>` → `/?via=<name>`) and use that path in one place only. Keep a note of where each one is used outside the repo, for example in the PostHog event description, since the repo is public.
+
+**Set up once in PostHog:**
+
+1. **Filter:** in any insight, add the event-property filter `via` is set to look at just those visitors, or `via` is not set to keep them out of the public numbers. Save it as a filter group, or pin an insight with it, so it's one click away. (Not a cohort: the site doesn't create person profiles for anonymous visitors, so cohorts on `via` would be empty.)
+2. **Saved activity view:** Activity → filter on `via` is set → add the `summary` column → save it. That gives you a timeline of what they did. Their session replays are under Replay with the same filter.
+3. **Notification (optional):** Data pipelines → Destinations → Slack, Discord or email, triggered on `tracked_link_opened`. You get pinged each time the link is opened.
 
 ## Paste into PostHog
 
@@ -85,6 +99,9 @@ To add these descriptions, go to Data management → Events, open an event and c
 - `device_class`: phone, tablet or desktop, by window width.
 - `entry_section`: Where the visit landed.
 - `takeoff_seen`: The intro has finished or been skipped this visit.
+- `via`: Arrived through a tagged link (used in one place only); the value names the link.
+
+Event description for `tracked_link_opened`: Arrived through a tagged link used in one place only; via names which link.
 
 ## Starter insights
 
