@@ -58,6 +58,7 @@ export const previews: Record<string, string> = {
   watchdog: "/media/thumbs/watchdog.jpg",
   sofia: "/media/sofia/dashboard.jpg",
   "finance-cats": "/media/finance-cats/home.png",
+  watan: "/media/watan/board.jpg",
   leaselinker: "/media/leaselinker/home.jpg",
 };
 

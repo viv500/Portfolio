@@ -59,7 +59,7 @@ const CornerStamp = ({ project, size }: { project: Project; size: "lg" | "sm" })
 };
 
 /** How each card image sits in its frame: "contain" shows a chart whole; otherwise a crop focus. */
-const FIT: Record<string, string> = { datafest: "contain", canify: "50% 70%" };
+const FIT: Record<string, string> = { datafest: "contain", canify: "50% 70%", watan: "50% 42%" };
 
 /** Winners' pin: small metallic gold pilot wings, top-left of the image. */
 const WingsPin = () => (
