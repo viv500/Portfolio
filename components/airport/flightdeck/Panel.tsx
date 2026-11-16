@@ -271,6 +271,14 @@ const Mcp = memo(function Mcp() {
   );
 });
 
+// Where each screen sits on the panel (fixed, so worked out once).
+const pfdL = affine(wingL(0.88, -0.35), wingL(0.52, -0.35), wingL(0.88, -0.54), SCREEN_W, SCREEN_H);
+const ndL = affine(wingL(0.44, -0.35), wingL(0.08, -0.35), wingL(0.44, -0.54), SCREEN_W, SCREEN_H);
+const ndR = affine(wingR(0.08, -0.35), wingR(0.44, -0.35), wingR(0.08, -0.54), SCREEN_W, SCREEN_H);
+const pfdR = affine(wingR(0.52, -0.35), wingR(0.88, -0.35), wingR(0.52, -0.54), SCREEN_W, SCREEN_H);
+const eicas = affine([-0.13, -0.34, PANEL_Z], [0.13, -0.34, PANEL_Z], [-0.13, -0.545, PANEL_Z], SCREEN_W, SCREEN_H);
+const isfd = affine([0.15, -0.37, PANEL_Z], [0.255, -0.37, PANEL_Z], [0.15, -0.475, PANEL_Z], SCREEN_W, SCREEN_H);
+
 export const Panel = ({
   ias,
   alt,
@@ -301,12 +309,6 @@ export const Panel = ({
   /** Thrust lever position, 0 idle → 1 take-off thrust (a motion value: the levers move by transform). */
   lever: MotionValue<number>;
 }) => {
-  const pfdL = affine(wingL(0.88, -0.35), wingL(0.52, -0.35), wingL(0.88, -0.54), SCREEN_W, SCREEN_H);
-  const ndL = affine(wingL(0.44, -0.35), wingL(0.08, -0.35), wingL(0.44, -0.54), SCREEN_W, SCREEN_H);
-  const ndR = affine(wingR(0.08, -0.35), wingR(0.44, -0.35), wingR(0.08, -0.54), SCREEN_W, SCREEN_H);
-  const pfdR = affine(wingR(0.52, -0.35), wingR(0.88, -0.35), wingR(0.52, -0.54), SCREEN_W, SCREEN_H);
-  const eicas = affine([-0.13, -0.34, PANEL_Z], [0.13, -0.34, PANEL_Z], [-0.13, -0.545, PANEL_Z], SCREEN_W, SCREEN_H);
-  const isfd = affine([0.15, -0.37, PANEL_Z], [0.255, -0.37, PANEL_Z], [0.15, -0.475, PANEL_Z], SCREEN_W, SCREEN_H);
   const gs = Math.round(ias);
   const nm = 6153 - Math.round(alt / 600);
   return (

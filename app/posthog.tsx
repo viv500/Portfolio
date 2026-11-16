@@ -9,6 +9,8 @@ const POSTHOG_HOST = "https://us.i.posthog.com";
 // Visiting any page with ?notrack stops this browser from being counted (your own visits);
 // ?track turns it back on.
 const OPT_OUT_KEY = "ph-notrack";
+// Session recording starts this long after the take-off ends (once the page has appeared), when idle.
+const RECORD_AFTER_MS = 1500;
 
 // The custom events are listed and described in lib/analytics.ts and ANALYTICS.md.
 
@@ -46,13 +48,19 @@ export const PostHogAnalytics = () => {
     // (lib/analytics.ts) and sent with their original times.
     let alive = true;
     const html = document.documentElement;
-    // Session recording waits until the take-off is over: recording the take-off would snapshot
-    // the whole cockpit and log hundreds of changes a frame while it plays.
+    // Session recording waits until the take-off is over and the page has finished appearing:
+    // recording the take-off would log hundreds of changes a frame, and the recording's first
+    // snapshot of the page (cockpit included) would stutter the page's reveal.
     let recordingStarted = false;
+    let recordTimer = 0;
     const startRecording = () => {
       if (recordingStarted) return;
       recordingStarted = true;
-      void import("posthog-js").then(({ default: posthog }) => posthog.__loaded && posthog.startSessionRecording());
+      recordTimer = window.setTimeout(() => {
+        const begin = () => void import("posthog-js").then(({ default: posthog }) => posthog.__loaded && posthog.startSessionRecording());
+        if ("requestIdleCallback" in window) window.requestIdleCallback(begin, { timeout: 2000 });
+        else begin();
+      }, RECORD_AFTER_MS);
     };
     void import("posthog-js").then(({ default: posthog }) => {
       if (!alive || posthog.__loaded) return;
@@ -65,6 +73,9 @@ export const PostHogAnalytics = () => {
         session_recording: { maskAllInputs: true },
         disable_session_recording: true, // started after the take-off (startRecording)
         disable_surveys: true, // not used; saves loading the surveys script
+        capture_dead_clicks: false, // not used
+        enable_heatmaps: false, // not used; with dead clicks off, saves loading the dead-clicks script
+        capture_performance: { web_vitals: false }, // not used; saves loading its script
         // Tag before the first pageview, so the whole visit (and later visits from this browser) carries it.
         loaded: (ph) => {
           if (via) {
@@ -200,6 +211,7 @@ export const PostHogAnalytics = () => {
 
     return () => {
       alive = false;
+      window.clearTimeout(recordTimer);
       window.removeEventListener("takeoff:finished", startRecording);
       document.removeEventListener("click", onClick, true);
       window.removeEventListener("popstate", onPop, true);

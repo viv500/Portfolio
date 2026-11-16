@@ -41,7 +41,7 @@ PostHog's own events are on as well:
 - `$pageview` and `$pageleave`, including one per panel, since panels are `#routes`;
 - `$autocapture` clicks. The Skip, Replay take-off and take-off Résumé buttons carry a readable `name` attribute.
 
-PostHog loads separately, just after the page starts, so it isn't part of the first download. Events from before it's ready are queued and sent with their original times. Session recordings start once the take-off has finished or been skipped, so replays begin at the check-in board.
+PostHog loads separately, just after the page starts, so it isn't part of the first download. Events from before it's ready are queued and sent with their original times. Session recordings start about 1.5 s after the take-off has finished or been skipped, once the page has appeared, so replays begin at the check-in board. Heatmaps, dead-click events and web-vitals events are off.
 
 ### Sent with every event (super properties)
 

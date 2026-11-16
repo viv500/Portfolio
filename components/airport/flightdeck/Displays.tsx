@@ -1,8 +1,9 @@
-import React from "react";
+import React, { memo } from "react";
 import { r1 } from "./geometry";
 
 // Stylised Airbus-style glass cockpit displays. Each is drawn in its own w×h box and mapped
-// onto the panel by the caller. Values come in as props so they move with the take-off.
+// onto the panel by the caller. Values come in as props so they move with the take-off; each is
+// memoized, so it redraws only when its own values change (EICAS settles early in the roll).
 
 export const SCREEN_W = 120;
 export const SCREEN_H = 100;
@@ -15,7 +16,7 @@ const WHITE = "#e8edf2";
 const font = { fontFamily: "var(--font-mono), monospace" } as const;
 
 /** Primary flight display: FMA, attitude with pitch ladder and bank arc, speed and altitude tapes, heading. */
-export const Pfd = ({ ias, alt, pitch, fma }: { ias: number; alt: number; pitch: number; fma: [string, string, string] }) => {
+export const Pfd = memo(function Pfd({ ias, alt, pitch, fma }: { ias: number; alt: number; pitch: number; fma: [string, string, string] }) {
   const id = React.useId().replace(/:/g, "");
   const cx = 60;
   const cy = 52;
@@ -136,10 +137,10 @@ export const Pfd = ({ ias, alt, pitch, fma }: { ias: number; alt: number; pitch:
       <line x1="60" x2="60" y1="86" y2="94" stroke="#ffcc33" strokeWidth="1" />
     </g>
   );
-};
+});
 
 /** Navigation display: arc rose, range rings, heading bug and the route to Waterloo. */
-export const Nd = ({ gs, nm }: { gs: number; nm: number }) => {
+export const Nd = memo(function Nd({ gs, nm }: { gs: number; nm: number }) {
   const cx = 60;
   const cy = 92;
   const ticks = Array.from({ length: 21 }, (_, i) => -50 + i * 5);
@@ -189,10 +190,10 @@ export const Nd = ({ gs, nm }: { gs: number; nm: number }) => {
       <path d={`M${cx} ${cy - 6} l-4 7 h8 z`} fill="none" stroke="#ffcc33" strokeWidth="1" />
     </g>
   );
-};
+});
 
 /** Boeing EICAS: N1 and EGT dials for both engines, total fuel, and short status messages. */
-export const Eicas = ({ n1, egt, ff, airborne }: { n1: number; egt: number; ff: number; airborne: boolean }) => {
+export const Eicas = memo(function Eicas({ n1, egt, ff, airborne }: { n1: number; egt: number; ff: number; airborne: boolean }) {
   const dial = (cx: number, cy: number, r: number, frac: number, value: string, big: boolean) => {
     const a0 = -215;
     const a1 = 35;
@@ -254,10 +255,10 @@ export const Eicas = ({ n1, egt, ff, airborne }: { n1: number; egt: number; ff: 
       ))}
     </g>
   );
-};
+});
 
 /** Integrated standby flight display: a small attitude ball with speed and altitude. */
-export const Isfd = ({ ias, alt, pitch }: { ias: number; alt: number; pitch: number }) => {
+export const Isfd = memo(function Isfd({ ias, alt, pitch }: { ias: number; alt: number; pitch: number }) {
   const id = React.useId().replace(/:/g, "");
   return (
     <g style={font}>
@@ -287,4 +288,4 @@ export const Isfd = ({ ias, alt, pitch }: { ias: number; alt: number; pitch: num
       </text>
     </g>
   );
-};
+});

@@ -602,6 +602,9 @@ export const PACING = {
 } satisfies Record<string, Pacing>;
 export type PacingName = keyof typeof PACING;
 type SkipMethod = "button" | "scroll" | "key";
+// Flight mode annunciations, as fixed arrays so the displays showing them only redraw when they change.
+const FMA_TAKEOFF: [string, string, string] = ["THR REF", "TO/GA", "TO/GA"];
+const FMA_CLIMB: [string, string, string] = ["THR REF", "LNAV", "VNAV SPD"];
 /** Master-timeline ms at `real` ms of playback under a pacing. */
 const timelineAt = (real: number, pace: Pacing) => {
   const edges = [0, T.hold, T.roll, T.climb, Infinity];
@@ -1059,7 +1062,7 @@ export const Takeoff = () => {
 
   const airborne = s.t > 0.56;
   const climbing = s.t >= 0.66; // POSITIVE RATE
-  const fma: [string, string, string] = climbing ? ["THR REF", "LNAV", "VNAV SPD"] : ["THR REF", "TO/GA", "TO/GA"];
+  const fma = climbing ? FMA_CLIMB : FMA_TAKEOFF;
   // Yokes: pulled back at ROTATE, easing to a gentle climb position after POSITIVE RATE.
   const pull = s.t < 0.5 ? 0 : s.t < 0.58 ? ease((s.t - 0.5) / 0.08) : 1 - 0.08 * ease(Math.min(1, (s.t - 0.58) / 0.42));
   const jitter = s.t > 0 && s.t < 0.5 ? Math.sin(s.t * 1300) * 0.8 * (s.t / 0.5) : 0;

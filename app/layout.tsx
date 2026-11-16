@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Caveat, Inter, Inter_Tight, JetBrains_Mono } from "next/font/google";
+import { Inter, Inter_Tight, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { Analytics } from "@vercel/analytics/next";
 import { PostHogAnalytics } from "./posthog";
 import "./globals.css";
@@ -8,8 +9,10 @@ import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const inter = Inter({ subsets: ["latin"] });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
-// Handwriting, used only for the logbook signature.
-const hand = Caveat({ subsets: ["latin"], weight: ["600"], variable: "--font-hand" });
+// Handwriting, used only for the logbook signature ("V. J. Manoj"): Caveat (SIL Open Font
+// License) at weight 600, cut down to just those letters (6 KB instead of ~45 KB). Its licence and
+// copyright are kept in the file. Changing the signature's text needs a new cut of the font.
+const hand = localFont({ src: "./fonts/caveat-signature.woff", weight: "600", variable: "--font-hand", fallback: ["cursive"] });
 const sign = Inter_Tight({ subsets: ["latin"], weight: ["500", "600", "700", "800"], variable: "--font-sign" });
 
 export const metadata: Metadata = {
