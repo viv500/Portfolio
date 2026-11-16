@@ -35,7 +35,7 @@ export const stamps: Record<string, Stamp> = {
   watchdog: { ink: "green", shape: "oval", rotate: -1 },
   sofia: { ink: "violet", shape: "rect", rotate: 7 },
   "finance-cats": { ink: "teal", shape: "round", rotate: -11 },
-  pixelperfect: { ink: "blue", shape: "oval", rotate: 9 },
+  watan: { ink: "blue", shape: "oval", rotate: 9 },
   leaselinker: { ink: "red", shape: "rect", rotate: -6 },
 };
 

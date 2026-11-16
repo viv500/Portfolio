@@ -18,7 +18,7 @@ export type Media = {
 export type Stat = { value: number; prefix?: string; suffix?: string; label: string; detail: string; route: string };
 
 /** A figure inside a write-up section: an image with a one-line caption, shown above or below it. */
-export type Figure = { src: string; alt: string; caption: string; captionAbove?: boolean };
+export type Figure = { src: string; alt: string; caption: string; captionAbove?: boolean; /** Link the image to its full-size file (for dense diagrams). */ zoom?: boolean };
 export type Section = { heading: string; body?: string; bullets?: string[]; figure?: Figure };
 
 export type DiagramName = "allocator" | "bazel" | "migration" | "mcp" | "bot" | "macnode" | "ecg" | "datafest";
@@ -243,8 +243,8 @@ export const roles: Role[] = [
     title: "Software Engineer Intern, Backend",
     dates: "Summer 2024",
     location: "Remote",
-    summary: "Backend work during the team's migration off a legacy monolith: Java microservices on AWS, Kubernetes and a C++ gRPC service.",
-    stack: ["Java", "AWS (ECS, Lambda, SQS)", "Kubernetes (EKS)", "Docker", "C++", "gRPC/Protobuf"],
+    summary: "Backend work during the team's migration off a legacy monolith: Java microservices on AWS, Kubernetes, a C++ gRPC service and a move from C++14 to C++17/20.",
+    stack: ["Java", "AWS (ECS, Lambda, SQS)", "Kubernetes (EKS)", "Docker", "C++17/20", "gRPC/Protobuf"],
     stories: [
       {
         title: "Java microservices on AWS",
@@ -259,6 +259,11 @@ export const roles: Role[] = [
         title: "C++ gRPC service",
         stat: "35% less serialization overhead",
         body: "Built a C++ gRPC service with Protocol Buffers, cutting cross-service serialization overhead by 35%.",
+      },
+      {
+        title: "C++17/20 migration",
+        stat: "90% fewer leak reports",
+        body: "Migrated a legacy C++14 codebase to C++17/20, replacing manual memory management with RAII and smart pointers, which cut memory leak reports by 90%.",
       },
     ],
   },
@@ -542,17 +547,32 @@ export const hackathons: Project[] = [
     ],
   },
   {
-    slug: "pixelperfect",
-    title: "PixelPerfect",
-    tagline: "Picks your best photos by checking blur, faces and smiles.",
-    context: "NewHacks 2023",
-    stack: ["Python", "OpenCV", "dlib", "Streamlit", "AWS EC2"],
-    links: [repo("viv500/PixelPerfectAI")],
+    slug: "watan",
+    title: "Watan",
+    tagline: "A four-player, command-line strategy game inspired by Catan, in object-oriented C++14.",
+    context: "CS 246 2024",
+    stack: ["C++14", "MVC", "Observer pattern", "Templates", "Make"],
+    links: [repo("viv500/Watan-PlayerInput")],
     media: [],
     sections: [
       {
-        heading: "How it works",
-        body: "Uses OpenCV and dlib for facial recognition and a Laplacian filter on grayscale images to measure blur, then returns the highest quality shots. Deployed on AWS EC2. Built with Lakshit Luhadia and Sunil Mamu.",
+        heading: "What it is",
+        body: "A group project for CS 246 (Object-Oriented Software Development): four students take turns collecting resources, trading, and building criteria and goals on a 19-tile board, racing to 10 points. Boards are random (a seed makes one reproducible) or loaded from a file, and a game can be saved and resumed.",
+      },
+      {
+        heading: "How it's built",
+        bullets: [
+          "Model-view-controller: the game state, the text display and the input handling are kept separate, with input behind its own interface.",
+          "A templated Subject/Observer pattern: the board, tiles, criteria, goals and dice publish typed state changes, and the display observes them to stay in sync.",
+          "Dice are polymorphic: FairDice rolls at random and LoadedDice lets a player enter the roll, behind one Dice interface.",
+          "Save and resume: a game's full state is written to a file and loaded back with -load.",
+        ],
+        figure: {
+          src: "/media/watan/uml.jpg",
+          alt: "Watan class diagram: Watan, Student, Board, Tile, Criterion and Goal as subjects with typed state, observed by the TextDisplay; Dice with FairDice and LoadedDice; WatanInput for commands",
+          caption: "The class diagram: game objects publish typed state, the text display observes it, and dice and input sit behind interfaces.",
+          zoom: true,
+        },
       },
     ],
   },
@@ -592,7 +612,7 @@ export const impact: Stat[] = [
 export const techGroups: { name: string; note: string; items: string[] }[] = [
   { name: "Cloud & infrastructure", note: "EC2 Dedicated Hosts, AMIs, EKS, SSO", items: ["AWS", "Azure", "Docker", "Kubernetes", "Terraform", "Linux"] },
   { name: "CI/CD & observability", note: "Pipelines, build caches, CI metrics", items: ["GitHub Actions", "Jenkins", "Bazel", "OpenTelemetry", "Prometheus"] },
-  { name: "Languages", note: "Go and Python for tooling", items: ["Go", "Python", "Java", "C/C++", "TypeScript", "Rust", "SQL"] },
+  { name: "Languages", note: "Go and Python for tooling", items: ["C/C++", "Python", "Go", "Java", "TypeScript/JavaScript", "Kotlin", "SQL", "Rust"] },
   { name: "Web & APIs", note: "Frontend and API work", items: ["gRPC/Protobuf", "GraphQL", "React", "Next.js", "Flask"] },
   { name: "Data & ML", note: "Databases, caching, ML and LLM agents", items: ["PostgreSQL", "Redis", "PyTorch", "scikit-learn", "LLM agents (MCP)"] },
 ];

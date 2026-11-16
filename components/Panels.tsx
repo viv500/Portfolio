@@ -65,8 +65,26 @@ const Sections = ({ sections }: { sections?: Section[] }) => (
           <figure className="mt-4">
             {section.figure.captionAbove && <figcaption className="mb-2 text-sm font-medium text-white-100">{section.figure.caption}</figcaption>}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={section.figure.src} alt={section.figure.alt} loading="lazy" className="w-full rounded-xl border border-white/10 bg-white" />
-            {!section.figure.captionAbove && <figcaption className="mt-2 text-sm text-white-100">{section.figure.caption}</figcaption>}
+            {section.figure.zoom ? (
+              <a href={section.figure.src} target="_blank" rel="noopener" className="block" aria-label={`${section.figure.alt} (opens full size)`}>
+                <img src={section.figure.src} alt={section.figure.alt} loading="lazy" className="w-full rounded-xl border border-white/10 bg-white" />
+              </a>
+            ) : (
+              <img src={section.figure.src} alt={section.figure.alt} loading="lazy" className="w-full rounded-xl border border-white/10 bg-white" />
+            )}
+            {!section.figure.captionAbove && (
+              <figcaption className="mt-2 text-sm text-white-100">
+                {section.figure.caption}
+                {section.figure.zoom && (
+                  <>
+                    {" "}
+                    <a href={section.figure.src} target="_blank" rel="noopener" className="underline underline-offset-2">
+                      Open full size
+                    </a>
+                  </>
+                )}
+              </figcaption>
+            )}
           </figure>
         )}
       </section>
@@ -318,7 +336,7 @@ const HackathonsList = () => {
   const rest = hackathons.filter((h) => !wins.includes(h.slug));
   return (
     <>
-      <Heading title="Hackathons" intro="Three wins across seven hackathons." />
+      <Heading title="Hackathons" intro="Three wins across six hackathons, plus a C++ course project." />
       <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-purple">Wins</h3>
       <div className="mb-8 grid gap-4 md:grid-cols-3">
         {winners.map((project, i) => (

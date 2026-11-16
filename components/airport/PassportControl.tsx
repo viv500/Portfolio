@@ -143,7 +143,7 @@ export const PassportControl = () => {
     <section id="hackathons" className="amb-desk scroll-mt-14 px-4 py-10 md:px-6 md:py-12">
       <InkFilter />
       <div className="mx-auto max-w-6xl">
-        <GateHeader letter="D" en="Passport Control" label="Hackathons" intro="Seven hackathons, three wins, $3,500 in prizes." hint="Each card opens the project" />
+        <GateHeader letter="D" en="Passport Control" label="Hackathons" intro="Six hackathons and a C++ course project. Three wins, $3,500 in prizes." hint="Each card opens the project" />
         <ul className="grid gap-5 md:grid-cols-3">
           {winners.map((p) => (
             <li key={p.slug}>
