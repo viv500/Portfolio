@@ -175,8 +175,9 @@ export const CheckIn = () => {
           <div className="reveal-item md:col-start-1 md:row-start-1">
             <h1 className="max-w-2xl font-sign text-[28px] font-bold leading-tight text-flap md:text-[44px]">{profile.hero}</h1>
             <p className="mt-3 max-w-2xl text-base leading-relaxed text-flap/65">
-              I’m a fourth-year Computer Science and AI student at the <span className="font-medium text-flap/90">University of Waterloo</span>, working on
-              backend and infrastructure: cloud, CI/build systems and AI developer tooling. Three SWE internships so far, with Shopify up next.
+              I’m a fourth-year Computer Science and AI student at the <span className="font-medium text-flap/90">University of Waterloo</span>. I like
+              building the systems behind products: backend services, cloud infrastructure, CI/build pipelines and AI developer tooling.
+              I’ve also shipped the parts users see, in web and mobile apps. Three SWE internships so far, with Shopify up next.
             </p>
             <dl className="mt-5 grid max-w-xs grid-cols-2 gap-px overflow-hidden rounded-[3px] border border-white/10 bg-white/10 font-mono text-[9px] uppercase sm:text-[10px]">
               {[

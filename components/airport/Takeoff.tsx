@@ -1082,7 +1082,7 @@ export const Takeoff = () => {
           <div className="sign-housing inline-flex">
             <div className="lightbox rounded-[3px] px-4 py-2.5 font-sign text-[#1a1206]">
               <p className="text-lg font-extrabold leading-tight md:text-2xl">Vivek Jude Manoj</p>
-              <p className="text-xs font-semibold text-[#2a1d0a] md:text-sm">Backend &amp; Infrastructure Engineer</p>
+              <p className="text-xs font-semibold text-[#2a1d0a] md:text-sm">Software Engineer · Backend &amp; Infra</p>
             </div>
           </div>
           {/* Résumé is the primary action (filled gold); Skip is secondary (gold outline). */}
