@@ -18,6 +18,14 @@ const ground = (X: number, z: number, h: number) => P(X, -h, z);
 const quadBase = (X1: number, X2: number, z1: number, z2: number, h: number) =>
   `M${[ground(X1, z1, h), ground(X2, z1, h), ground(X2, z2, h), ground(X1, z2, h)].map((p) => p.join(" ")).join(" L")} Z`;
 const quad = quadBase;
+/** Many dots as one path (a circle each), so a frame updates one attribute, not hundreds of elements. */
+const dotsPath = (dots: [number, number, number][]) =>
+  dots
+    .map(([x, y, rr]) => {
+      const r = r1(rr);
+      return `M${r1(x - r)} ${r1(y)}a${r} ${r} 0 1 0 ${r1(2 * r)} 0a${r} ${r} 0 1 0 ${r1(-2 * r)} 0`;
+    })
+    .join("");
 const face = (pts: [number, number, number][], h: number) => `M${pts.map(([X, Y, z]) => P(X, Y - h, z).join(" ")).join(" L")} Z`;
 
 // ── Outside ─────────────────────────────────────────────────────────────
@@ -86,9 +94,7 @@ const RapidExits = ({ d, h }: { d: number; h: number }) => {
     <g>
       <path d={parts.join(" ")} style={{ fill: col("taxiway") }} />
       <g style={{ opacity: "calc(var(--lights) * 0.6 + 0.4)" }}>
-        {dots.map(([x, y, rr], i) => (
-          <circle key={i} cx={r1(x)} cy={r1(y)} r={r1(rr)} fill="#3dff8c" />
-        ))}
+        <path d={dotsPath(dots)} fill="#3dff8c" />
       </g>
     </g>
   );
@@ -135,20 +141,11 @@ const GroundMarkings = ({ d, h, lite }: { d: number; h: number; lite: boolean })
       {!lite && <path d={dash(TWY_C, 0.08, 1.6, 3, 1.2, 300)} fill="rgba(255,205,60,0.85)" />}
       {!lite && <path d={dash((PRW_L + PRW_R) / 2, 0.15, 3.4, 6, 1.2, 300)} fill="rgba(245,245,240,0.7)" />}
       <g style={{ opacity: "calc(var(--lights) * 0.5 + 0.5)" }}>
-        {edgeLights.map(([x, y, rr], i) => (
-          <circle key={`e${i}`} cx={r1(x)} cy={r1(y)} r={r1(rr)} fill="#fff6dc" />
-        ))}
-        {prwLights.map(([x, y, rr], i) => (
-          <circle key={`p${i}`} cx={r1(x)} cy={r1(y)} r={r1(rr)} fill="#fff6dc" />
-        ))}
+        <path d={dotsPath([...edgeLights, ...prwLights])} fill="#fff6dc" />
       </g>
       <g style={{ opacity: "calc(var(--lights) * 0.6 + 0.4)" }}>
-        {twyGreen.map(([x, y, rr], i) => (
-          <circle key={`g${i}`} cx={r1(x)} cy={r1(y)} r={r1(rr)} fill="#3dff8c" />
-        ))}
-        {twyBlue.map(([x, y, rr], i) => (
-          <circle key={`b${i}`} cx={r1(x)} cy={r1(y)} r={r1(rr)} fill="#4f8cff" />
-        ))}
+        <path d={dotsPath(twyGreen)} fill="#3dff8c" />
+        <path d={dotsPath(twyBlue)} fill="#4f8cff" />
       </g>
     </g>
   );
@@ -596,7 +593,7 @@ const T = { hold: 400, roll: 4000, climb: 6000, duskFrom: 4700, dusk: 6450, doll
 // so the runway streams by as speed builds; `rollDist` is how far down the runway rotation comes.
 export type Pacing = { hold: number; roll: number; climb: number; tail: number; shake: number; shakeCurve: number; rollPow: number; rollLin: number; rollDist: number };
 export const PACING = {
-  /** Every page load: about 4.5 s to the page. */
+  /** Every page load: about 5 s to the page. */
   standard: { hold: 2, roll: 1.33, climb: 1.5, tail: 1.7, shake: 1, shakeCurve: 1, rollPow: 1.7, rollLin: 0.06, rollDist: 130 },
   /** "Replay take-off": for the fans. A long roll down the runway (about 8 s) with a slow creep
    *  that builds to a strong surge, heavier progressive shake, and a gentle, gradual rotation and
@@ -621,6 +618,12 @@ const timelineAt = (real: number, pace: Pacing) => {
 const ROLL_POW = 1.7;
 const HANDOFF_MS = 350; // the overlay (pure page colour by then) clearing as the page content appears
 const SKIP_DOLLY_MS = 550;
+// A frame that arrives late (the browser was busy) moves the take-off on by at most this much, so
+// a stall pauses it instead of skipping part of it.
+const MAX_FRAME_MS = 50;
+// Before starting: wait for two frames in a row under SMOOTH_FRAME_MS, for at most SETTLE_CAP_MS.
+const SMOOTH_FRAME_MS = 40;
+const SETTLE_CAP_MS = 1500;
 // The camera move, as a real forward move: each layer scales by its depth, 1 / (1 − travel / depth),
 // about the vanishing point in the middle of the windscreen. The panel and yokes are closest and rush past
 // first; the window frame next; outside is effectively at infinity and doesn't move.
@@ -725,7 +728,9 @@ export const Takeoff = () => {
   useEffect(() => {
     const html = document.documentElement;
     let raf = 0;
-    let start = 0;
+    let start = 0; // real start, for analytics
+    let played = 0; // playback clock (ms): real time, but a stalled frame only counts as MAX_FRAME_MS
+    let lastFrame = 0;
     let pace: Pacing = PACING.standard; // page load: standard; a replay picks its own
     let lastMs = 0; // master-timeline position of the last frame
     let skipAt = 0;
@@ -783,7 +788,9 @@ export const Takeoff = () => {
       } else {
         // Dev-only test hook: window.__takeoffAt freezes the timeline at that many ms.
         const frozen = process.env.NODE_ENV !== "production" ? (window as unknown as { __takeoffAt?: number }).__takeoffAt : undefined;
-        const ms = frozen ?? timelineAt(now - start, pace);
+        played += Math.min(Math.max(0, now - lastFrame), MAX_FRAME_MS);
+        lastFrame = now;
+        const ms = frozen ?? timelineAt(played, pace);
         lastMs = ms;
         // Distance down the runway (set before the scene time, which triggers the redraw).
         const ru = clamp01((ms - T.hold) / (T.roll - T.hold));
@@ -792,7 +799,7 @@ export const Takeoff = () => {
         // Runway rumble, in real time (so a slower pacing doesn't slow the vibration itself):
         // builds with speed through the roll, gone at lift-off.
         const roll = clamp01((ms - T.hold) / (T.roll - T.hold));
-        rumble.set(ms < T.roll ? Math.sin(now * 0.125) * 1.6 * pace.shake * roll ** pace.shakeCurve : 0);
+        rumble.set(frozen === undefined && ms < T.roll ? Math.sin(now * 0.125) * 1.6 * pace.shake * roll ** pace.shakeCurve : 0);
         // THRUST SET: the levers slide forward over 0.5 s (ease-out) and stay there.
         lever.set(1 - (1 - clamp01((ms - 80) / 500)) ** 3);
         takeoffClimb.set(clamp01((ms - T.roll) / (T.dusk - T.roll)));
@@ -847,9 +854,27 @@ export const Takeoff = () => {
       // Start after first paint, once the fonts are in (capped, so a slow font never stalls it).
       await Promise.race([document.fonts?.ready, new Promise((r) => setTimeout(r, 1200))]);
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      // The first frames of the cockpit are slow (first draw of the SVG, the rest of the page
+      // starting up). Hold on the brakes until two frames in a row are smooth (capped), so the
+      // roll starts from a standstill instead of jumping ahead.
+      await new Promise<void>((resolve) => {
+        const until = performance.now() + SETTLE_CAP_MS;
+        let prev = performance.now();
+        let smooth = 0;
+        const check = (t: number) => {
+          smooth = t - prev < SMOOTH_FRAME_MS ? smooth + 1 : 0;
+          prev = t;
+          if (smooth >= 2 || t > until || !alive) resolve();
+          else requestAnimationFrame(check);
+        };
+        requestAnimationFrame(check);
+      });
       waiting = false;
       if (!alive) return;
       start = performance.now();
+      played = 0;
+      lastFrame = start;
+      window.dispatchEvent(new CustomEvent("takeoff:rolling")); // brakes off: the timeline starts
       running = true;
       if (skipQueued) skip(skipMethod);
       raf = requestAnimationFrame(tick);
@@ -1001,7 +1026,7 @@ export const Takeoff = () => {
   const camX = useTransform(dolly, (v) => -drift(v) * 0.03 * unit.w);
   // As the camera moves and turns, the glare on the glass slides off its angle and is gone well
   // before the pane fills the screen.
-  const glare = useTransform(dolly, (v) => String(1 - ease(clamp01((drift(v) - 0.2) / 0.5))));
+  const glare = useTransform(dolly, (v) => 1 - ease(clamp01((drift(v) - 0.2) / 0.5)));
   const pitchRot = useTransform(p, [0.5, 0.66, SCENE_END, 1], [0, -1.2, -0.6, -0.4]);
   const shake = rumble;
 
@@ -1061,9 +1086,9 @@ export const Takeoff = () => {
               <motion.div aria-hidden="true" className="dusk-sweep absolute inset-x-0 top-0 h-[300%] will-change-transform" style={{ y: duskY }} />
             </div>
             {/* The cockpit: fully lit throughout. */}
-            <motion.div className="absolute inset-0 will-change-transform" style={{ scale: shellScale, opacity: frame, transformOrigin: camOrigin, x: camX, ["--glare" as string]: glare }}>
+            <motion.div className="absolute inset-0 will-change-transform" style={{ scale: shellScale, opacity: frame, transformOrigin: camOrigin, x: camX }}>
               <Layer>
-                <Shell compact={compact} fma={fma} call={s.call} kt={s.kt} alt={s.alt} horizon={s.horizon} climb={Math.min(1, Math.max(0, (s.t - 0.55) / 0.1)) * 8} />
+                <Shell compact={compact} glare={glare} fma={fma} call={s.call} kt={s.kt} alt={s.alt} horizon={s.horizon} climb={Math.min(1, Math.max(0, (s.t - 0.55) / 0.1)) * 8} />
               </Layer>
             </motion.div>
             <motion.div className="absolute inset-0 will-change-transform" style={{ scale: panelScale, opacity: panelFade, transformOrigin: camOrigin, x: camX }}>

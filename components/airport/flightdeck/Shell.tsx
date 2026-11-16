@@ -1,4 +1,5 @@
 import React, { memo } from "react";
+import { motion, type MotionValue } from "framer-motion";
 import { CEILING_Y, F, P, VIEW_H, VIEW_W, WS_APILLAR_L, WS_FRONT_L, WS_MIDPILLAR_L, WS_POST, WS_SIDE1_L, WS_SIDE2_L, col, mx, poly, ps, r1, sp, type V2 } from "./geometry";
 
 // The cockpit shell: ceiling with the overhead panel, windscreen frame, pillars, side windows,
@@ -139,24 +140,25 @@ const Frame = memo(function Frame() {
   );
 });
 
-const Glass = memo(function Glass() {
+const Glass = memo(function Glass({ glare }: { glare?: MotionValue<number> }) {
   return (
     <g pointerEvents="none">
       <path d={`${sp(WS_FRONT_L)} ${sp(mx(WS_FRONT_L))}`} fill="url(#glass-front)" />
       <path d={`${sp(WS_SIDE1_L)} ${sp(WS_SIDE2_L)}`} fill="url(#glass-side-l)" />
       <path d={`${sp(mx(WS_SIDE1_L))} ${sp(mx(WS_SIDE2_L))}`} fill="url(#glass-side-r)" />
-      {/* A soft streak of glare across each front pane (--glare lets the take-off's camera move
-          change the reflection as its angle to the glass changes). */}
-      <g style={{ opacity: "var(--glare, 1)" }}>
+      {/* A soft streak of glare across each front pane. The take-off's camera move fades it as its
+          angle to the glass changes; set on this group alone, so only it is restyled each frame. */}
+      <motion.g style={{ opacity: glare ?? 1 }}>
         <path d="M300 131 L338 131 L364 244 L328 242 Z" fill="rgba(255,255,255,0.045)" />
         <path d="M612 129 L640 129 L662 244 L640 246 Z" fill="rgba(255,255,255,0.035)" />
-      </g>
+      </motion.g>
     </g>
   );
 });
 
-/** Gradients and filters for the shell. */
-export const ShellDefs = () => (
+/** Gradients and filters for the shell. Static, so it never re-renders. */
+export const ShellDefs = memo(function ShellDefs() {
+  return (
   <defs>
     <linearGradient id="wall" x1="0" x2="0" y1="0" y2="1">
       <stop offset="0" style={{ stopColor: col("cabin-dark") }} />
@@ -241,7 +243,8 @@ export const ShellDefs = () => (
       </feMerge>
     </filter>
   </defs>
-);
+  );
+});
 
 /**
  * Head-up display combiner, after an Airbus HUD: a wide rounded glass hanging from a dark
@@ -342,12 +345,12 @@ const Hud = ({ call, kt, alt, horizon, climb, dx, fma }: { call: string; kt: num
   );
 };
 
-export const Shell = ({ compact, fma, call, kt, alt, horizon, climb }: { compact: boolean; fma: [string, string, string]; call: string; kt: number; alt: number; horizon: number; climb: number }) => (
+export const Shell = ({ compact, fma, call, kt, alt, horizon, climb, glare }: { compact: boolean; fma: [string, string, string]; call: string; kt: number; alt: number; horizon: number; climb: number; glare?: MotionValue<number> }) => (
   <>
     <ShellDefs />
     <Frame />
     <Overhead compact={compact} />
-    <Glass />
+    <Glass glare={glare} />
     <Hud call={call} kt={kt} alt={alt} horizon={horizon} climb={climb} dx={compact ? 64 : 0} fma={fma} />
   </>
 );
