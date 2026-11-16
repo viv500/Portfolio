@@ -1,7 +1,6 @@
 "use client";
 import { useEffect } from "react";
-import posthog from "posthog-js";
-import { SECTION_NAMES, destinationOf, deviceClass, panelOf, sectionOf, setContext, track } from "@/lib/analytics";
+import { SECTION_NAMES, attachPostHog, destinationOf, deviceClass, disableTracking, panelOf, sectionOf, setContext, track } from "@/lib/analytics";
 
 // Project API key from PostHog (Settings → Project). It's a public, write-only key, safe in client code.
 const POSTHOG_KEY = "phc_A7JaAEPSy7Pi7bcPeF4Qa2cbMHpEr9zXMXzypv4yUpsK";
@@ -34,27 +33,52 @@ export const PostHogAnalytics = () => {
     try {
       if (params.has("notrack")) localStorage.setItem(OPT_OUT_KEY, "1");
       if (params.has("track")) localStorage.removeItem(OPT_OUT_KEY);
-      if (localStorage.getItem(OPT_OUT_KEY)) return;
+      if (localStorage.getItem(OPT_OUT_KEY)) {
+        disableTracking();
+        return;
+      }
     } catch {
       // Storage blocked: track as normal.
     }
 
-    posthog.init(POSTHOG_KEY, {
-      api_host: POSTHOG_HOST,
-      defaults: "2026-08-30",
-      // Panels open as #routes, so count each one as a pageview, with time spent via pageleave.
-      capture_pageview: { path: true, hash: true },
-      person_profiles: "identified_only",
-      session_recording: { maskAllInputs: true },
-      // Tag before the first pageview, so the whole visit (and later visits from this browser) carries it.
-      loaded: (ph) => {
-        if (!via) return;
-        ph.register({ via });
-        // Tagged visitors (only) get a person profile, so they're listed in People and can be
-        // grouped into a cohort. Everyone else stays anonymous (person_profiles above).
-        ph.setPersonProperties({ via, last_via_visit: new Date().toISOString() }, { first_via: via, first_via_visit: new Date().toISOString() });
-      },
+    // PostHog is loaded separately, after the page has started, so it isn't part of the first
+    // download and never holds up the take-off. Events from before it's ready are queued
+    // (lib/analytics.ts) and sent with their original times.
+    let alive = true;
+    const html = document.documentElement;
+    // Session recording waits until the take-off is over: recording the take-off would snapshot
+    // the whole cockpit and log hundreds of changes a frame while it plays.
+    let recordingStarted = false;
+    const startRecording = () => {
+      if (recordingStarted) return;
+      recordingStarted = true;
+      void import("posthog-js").then(({ default: posthog }) => posthog.__loaded && posthog.startSessionRecording());
+    };
+    void import("posthog-js").then(({ default: posthog }) => {
+      if (!alive || posthog.__loaded) return;
+      posthog.init(POSTHOG_KEY, {
+        api_host: POSTHOG_HOST,
+        defaults: "2026-08-30",
+        // Panels open as #routes, so count each one as a pageview, with time spent via pageleave.
+        capture_pageview: { path: true, hash: true },
+        person_profiles: "identified_only",
+        session_recording: { maskAllInputs: true },
+        disable_session_recording: true, // started after the take-off (startRecording)
+        disable_surveys: true, // not used; saves loading the surveys script
+        // Tag before the first pageview, so the whole visit (and later visits from this browser) carries it.
+        loaded: (ph) => {
+          if (via) {
+            ph.register({ via });
+            // Tagged visitors (only) get a person profile, so they're listed in People and can be
+            // grouped into a cohort. Everyone else stays anonymous (person_profiles above).
+            ph.setPersonProperties({ via, last_via_visit: new Date().toISOString() }, { first_via: via, first_via_visit: new Date().toISOString() });
+          }
+          attachPostHog(ph);
+          if (!html.dataset.takeoff) startRecording();
+        },
+      });
     });
+    window.addEventListener("takeoff:finished", startRecording);
     if (via && !taggedReported) {
       taggedReported = true;
       track("tracked_link_opened", `Arrived through the /${via} link`, { via, referrer: document.referrer || null });
@@ -175,6 +199,8 @@ export const PostHogAnalytics = () => {
     window.addEventListener("scroll", onScroll, { passive: true });
 
     return () => {
+      alive = false;
+      window.removeEventListener("takeoff:finished", startRecording);
       document.removeEventListener("click", onClick, true);
       window.removeEventListener("popstate", onPop, true);
       window.removeEventListener("hashchange", onChange);

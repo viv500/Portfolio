@@ -1,4 +1,7 @@
-import posthog from "posthog-js";
+import type { PostHog as PostHogFull } from "posthog-js";
+
+/** The two calls this file makes. */
+type PostHog = Pick<PostHogFull, "capture" | "register">;
 import { hackathons, projects, roles } from "@/components/data";
 
 // Every custom PostHog event the site sends, in one place. Names are snake_case object_action.
@@ -25,19 +28,39 @@ export const EVENTS = {
 export type EventName = keyof typeof EVENTS;
 type Props = Record<string, string | number | boolean | null | undefined>;
 
-/** Sends a named event with a readable summary. No-op when tracking is off (?notrack) or not loaded. */
+// PostHog loads on its own after the page has started (app/posthog.tsx), so it never holds up the
+// first render or the take-off. Anything tracked before then waits here, in order, and is sent
+// with the time it happened once PostHog is ready. With tracking off (?notrack) it's dropped.
+let ph: PostHog | null = null;
+let off = false;
+const queue: ((ph: PostHog) => void)[] = [];
+const run = (f: (ph: PostHog) => void) => {
+  if (typeof window === "undefined" || off) return;
+  if (ph) f(ph);
+  else if (queue.length < 200) queue.push(f);
+};
+/** Called once PostHog is ready: sends everything queued so far. */
+export const attachPostHog = (instance: PostHog) => {
+  ph = instance;
+  for (const f of queue.splice(0)) f(instance);
+};
+/** Tracking is off in this browser (?notrack): drop the queue and ignore everything from now on. */
+export const disableTracking = () => {
+  off = true;
+  queue.length = 0;
+};
+
+/** Sends a named event with a readable summary. No-op when tracking is off (?notrack). */
 export const track = (event: EventName, summary: string, props: Props = {}) => {
-  if (typeof window === "undefined" || !(posthog as unknown as { __loaded?: boolean }).__loaded) return;
-  posthog.capture(event, { summary, ...props });
+  if (typeof window === "undefined" || off) return;
+  const at = new Date();
+  run((p) => p.capture(event, { summary, ...props }, { timestamp: at }));
   // Dev-only test hook: a record of what was sent.
   if (process.env.NODE_ENV !== "production") ((window as unknown as { __events?: unknown[] }).__events ??= []).push({ event, summary, ...props });
 };
 
 /** Sets properties sent with every later event (PostHog super properties). */
-export const setContext = (props: Props) => {
-  if (typeof window === "undefined" || !(posthog as unknown as { __loaded?: boolean }).__loaded) return;
-  posthog.register(props);
-};
+export const setContext = (props: Props) => run((p) => p.register(props));
 
 /** Readable names for the page's sections, by element id. */
 export const SECTION_NAMES: Record<string, string> = {

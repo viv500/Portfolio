@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-/** Which of these image URLs actually load. `checked` is false until every one has answered. */
+/** Which of these image URLs exist. `checked` is false until every one has answered. Asks with
+ *  HEAD requests, so nothing is downloaded: the images load later, resized, where they're shown. */
 export function useAvailableImages(srcs: string[]) {
   const [state, setState] = useState<{ checked: boolean; available: string[] }>({ checked: false, available: [] });
   const key = srcs.join("|");
@@ -11,12 +12,9 @@ export function useAvailableImages(srcs: string[]) {
     Promise.all(
       srcs.map(
         (src) =>
-          new Promise<string | null>((resolve) => {
-            const img = new window.Image();
-            img.onload = () => resolve(src);
-            img.onerror = () => resolve(null);
-            img.src = src;
-          })
+          fetch(src, { method: "HEAD" })
+            .then((res) => (res.ok ? src : null))
+            .catch(() => null)
       )
     ).then((results) => {
       if (!cancelled) setState({ checked: true, available: results.filter((r): r is string => r !== null) });
