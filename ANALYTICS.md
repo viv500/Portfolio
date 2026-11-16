@@ -54,13 +54,14 @@ PostHog's own events are on as well:
 
 ## Tagged links
 
-`vivekjudemanoj.com/portfolio` is the normal site, reached through a link that's used in one place only. It redirects to `/?via=portfolio`, which tags the visit. The tag is then removed from the address bar, so the visitor just sees `vivekjudemanoj.com`, and a copied URL doesn't carry it. Each visit through it sends `tracked_link_opened`, and `via` is attached to every event from that browser from then on, including return visits.
+`vivekjudemanoj.com/portfolio` serves the normal site, at a path that's used in one place only. The address stays `/portfolio`; nothing redirects or changes. The page is marked `noindex` with its canonical set to `/`, so it never shows up in search. Each page load there sends `tracked_link_opened`, and `via: portfolio` is attached to every event from that browser from then on, including later visits to plain `/`. Every event on that page also has `/portfolio` in Current URL and Pathname.
 
-To add another tagged link, add a redirect in `next.config.mjs` (`/<path>` → `/?via=<name>`) and use that path in one place only. Keep a note of where each one is used outside the repo, for example in the PostHog event description, since the repo is public.
+To add another tagged path, copy `app/portfolio/page.tsx` to `app/<path>/page.tsx`, add `"/<path>": "<name>"` to `TAGGED_PATHS` in `app/posthog.tsx`, and add `"/<path>"` next to `"/portfolio"` in the take-off check in `app/layout.tsx`. Use the path in one place only. Note where each one is used in PostHog (for example in the event description), not in the repo, since the repo is public.
 
 **Set up once in PostHog:**
 
 1. **Cohort:** tagged visitors (and only they) get a person profile with `first_via`, `via`, `first_via_visit` and `last_via_visit`. In People → Cohorts → New, use "Person property `first_via` equals `portfolio`" and name it after where the link is used. Each visitor is listed under People. Use the cohort in any insight, or filter on the event property `via` (`is set` / `is not set`) to include or exclude them.
+   Or, without waiting for `via` to appear in PostHog's lists: filter on Pathname (or Current URL) contains `/portfolio`.
 2. **Saved activity view:** Activity → filter on `via` is set → add the `summary` column → save it. That gives you a timeline of what they did. Their session replays are under Replay with the same filter.
 3. **Notification (optional):** Data pipelines → Destinations → Slack, Discord or email, triggered on `tracked_link_opened`. You get pinged each time the link is opened.
 

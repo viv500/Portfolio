@@ -18,20 +18,19 @@ const labelOf = (a: HTMLAnchorElement) =>
 const route = () => decodeURIComponent(window.location.hash.slice(1));
 // The landing route is reported once per page load (dev mode mounts effects twice).
 let landingReported = false;
+let taggedReported = false;
+
+// Paths that serve the normal site but are used in one place only, so those visits are tagged
+// (`via`) in analytics. Each has its own page file under app/. What each one is for is noted in
+// PostHog, not here.
+const TAGGED_PATHS: Record<string, string> = { "/portfolio": "portfolio" };
 
 export const PostHogAnalytics = () => {
   useEffect(() => {
     if (!POSTHOG_KEY) return;
 
     const params = new URLSearchParams(window.location.search);
-    // A tagged link (?via=…, from a redirect like /portfolio): remember the tag, then take it out
-    // of the address bar so the visitor sees the plain URL and a copied link doesn't carry it.
-    const via = params.get("via")?.slice(0, 40) || null;
-    if (via) {
-      // Drop only the via parameter; leave any others exactly as written.
-      const rest = window.location.search.slice(1).split("&").filter((kv) => kv && !kv.startsWith("via=")).join("&");
-      window.history.replaceState(window.history.state, "", window.location.pathname + (rest ? `?${rest}` : "") + window.location.hash);
-    }
+    const via = TAGGED_PATHS[window.location.pathname.replace(/\/$/, "") || "/"] ?? null;
     try {
       if (params.has("notrack")) localStorage.setItem(OPT_OUT_KEY, "1");
       if (params.has("track")) localStorage.removeItem(OPT_OUT_KEY);
@@ -56,7 +55,10 @@ export const PostHogAnalytics = () => {
         ph.setPersonProperties({ via, last_via_visit: new Date().toISOString() }, { first_via: via, first_via_visit: new Date().toISOString() });
       },
     });
-    if (via) track("tracked_link_opened", `Arrived through the /${via} link`, { via, referrer: document.referrer || null });
+    if (via && !taggedReported) {
+      taggedReported = true;
+      track("tracked_link_opened", `Arrived through the /${via} link`, { via, referrer: document.referrer || null });
+    }
 
     // Sent with every event, for filtering and breakdowns.
     const landing = route();
