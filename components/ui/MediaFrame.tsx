@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { panelOf, track } from "@/lib/analytics";
 import { useInView, useReducedMotion } from "framer-motion";
 import type { Media } from "@/components/data";
 
@@ -14,6 +15,12 @@ const Placeholder = ({ item }: { item: Media }) => (
     {item.spec && <span className="text-xs text-white/50">{item.spec}</span>}
   </div>
 );
+
+/** Analytics: which video, in which panel. */
+const mediaPlayed = (item: Media, action: "play" | "unmute") => {
+  const project = panelOf(decodeURIComponent(window.location.hash.slice(1)))?.title ?? null;
+  track("media_played", `${action === "play" ? "Played" : "Unmuted"} video "${item.alt}"${project ? ` in ${project}` : ""}`, { project, video: item.alt, action });
+};
 
 /** Click-to-load, so visitors don't load YouTube unless they want to watch. */
 const YouTube = ({ item }: { item: Media }) => {
@@ -32,7 +39,10 @@ const YouTube = ({ item }: { item: Media }) => {
   return (
     <button
       type="button"
-      onClick={() => setPlaying(true)}
+      onClick={() => {
+        mediaPlayed(item, "play");
+        setPlaying(true);
+      }}
       className="group relative block aspect-video w-full overflow-hidden rounded-2xl"
       aria-label={`Play ${item.alt}`}
     >
@@ -74,6 +84,7 @@ const LoopingVideo = ({ item, onMissing }: { item: Media; onMissing: () => void 
   const unmute = () => {
     const video = ref.current;
     if (!video) return;
+    mediaPlayed(item, "unmute");
     video.muted = false;
     video.play().catch(() => {});
   };

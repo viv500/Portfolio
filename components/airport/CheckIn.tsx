@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import posthog from "posthog-js";
+import { track } from "@/lib/analytics";
 import { profile } from "@/components/data";
 import { CrewBadge } from "./CrewBadge";
 import { takeoffPlaying } from "./takeoffBus";
@@ -65,7 +65,8 @@ export const CheckIn = () => {
       if (sky.current) sky.current.style.opacity = String(Math.max(0, 1 - window.scrollY / (0.4 * window.innerHeight)));
       if (!scrolled && window.scrollY > 0 && !takeoffPlaying()) {
         scrolled = true;
-        posthog.capture("time_to_first_scroll", { ms: Math.round(performance.now() - revealedAt) });
+        const after_s = Math.round((performance.now() - revealedAt) / 100) / 10;
+        track("first_scroll", `First scroll, ${after_s} s after the page appeared`, { after_s });
       }
     };
     window.addEventListener("takeoff:start", onStart);
@@ -122,7 +123,11 @@ export const CheckIn = () => {
             {/* Replays use the immersive pacing: anyone pressing this wants to watch it again. */}
             <button
               type="button"
-              onClick={() => window.dispatchEvent(new CustomEvent("takeoff:replay", { detail: { pacing: "immersive" } }))}
+              onClick={() => {
+                track("takeoff_replayed", "Clicked Replay take-off");
+                window.dispatchEvent(new CustomEvent("takeoff:replay", { detail: { pacing: "immersive" } }));
+              }}
+              data-ph-capture-attribute-name="Replay take-off"
               className="replay-btn rounded-[3px] border border-sign/40 bg-sign/20 px-2.5 py-1 text-[11px] font-semibold text-flap transition hover:border-sign/70 hover:bg-sign/30"
             >
               ↻ Replay take-off

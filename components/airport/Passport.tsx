@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { track } from "@/lib/analytics";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { contactLinks, education, moments, profile } from "@/components/data";
@@ -255,6 +256,12 @@ const SPREADS: [React.ReactNode, React.ReactNode][] = [
 const PAGES = SPREADS.flat();
 /** What the next spread holds, for the "Next: …" label. */
 const NEXT_LABEL = ["Interests", "Moments"];
+/** Each spread's name, for analytics. */
+const SPREAD_NAME = ["Identity", "Interests", "Moments"];
+const turnTo = (spread: number, direction: "forward" | "back") =>
+  track("passport_page_turned", `Turned the passport ${direction} to ${SPREAD_NAME[spread]}`, { page: spread + 1, page_name: SPREAD_NAME[spread], direction });
+const opened_ = () => track("passport_page_turned", "Opened the passport", { page: 1, page_name: SPREAD_NAME[0], direction: "open" });
+const closed_ = () => track("passport_page_turned", "Closed the passport", { page: 0, page_name: "Cover", direction: "close" });
 
 
 /**
@@ -401,12 +408,37 @@ export const Passport = () => {
   const back = useCallback(() => {
     if (turning) return;
     if (!open) return;
-    if (spread === 0) closeCover();
-    else go(-1);
-  }, [spread, turning, open, go, closeCover]);
-  const forward = useCallback(() => (open ? go(1) : openCover()), [open, go, openCover]);
-  const pageBack = () => (page === 0 ? closeCover() : setPage((p) => p - 1));
-  const pageNext = () => (open ? setPage((p) => Math.min(PAGES.length - 1, p + 1)) : openCover());
+    if (spread === 0) {
+      closed_();
+      closeCover();
+    } else {
+      if (settled) turnTo(spread - 1, "back");
+      go(-1);
+    }
+  }, [spread, turning, open, settled, go, closeCover]);
+  const userOpen = useCallback(() => {
+    opened_();
+    openCover();
+  }, [openCover]);
+  const forward = useCallback(() => {
+    if (!open) return userOpen();
+    if (settled && !turning && spread + 1 < SPREADS.length) turnTo(spread + 1, "forward");
+    go(1);
+  }, [open, settled, turning, spread, go, userOpen]);
+  const pageBack = () => {
+    if (page === 0) {
+      closed_();
+      return closeCover();
+    }
+    if (Math.floor((page - 1) / 2) !== Math.floor(page / 2)) turnTo(Math.floor((page - 1) / 2), "back");
+    setPage((p) => p - 1);
+  };
+  const pageNext = () => {
+    if (!open) return userOpen();
+    const to = Math.min(PAGES.length - 1, page + 1);
+    if (Math.floor(to / 2) !== Math.floor(page / 2)) turnTo(Math.floor(to / 2), "forward");
+    setPage(to);
+  };
   const lastSpread = spread === SPREADS.length - 1;
 
   /** Clicking empty space on a page turns it; links and buttons inside the page don't. */
@@ -516,7 +548,7 @@ export const Passport = () => {
                   className="absolute inset-y-0 left-1/2 z-20 w-1/2"
                   style={{ transformStyle: "preserve-3d", transformOrigin: "left center" }}
                 >
-                  <button type="button" aria-label="Open passport" onClick={openCover} className="absolute inset-0 rounded-r-xl shadow-[0_40px_80px_-30px_rgba(0,0,0,0.95)] [backface-visibility:hidden] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sign">
+                  <button type="button" aria-label="Open passport" onClick={userOpen} className="absolute inset-0 rounded-r-xl shadow-[0_40px_80px_-30px_rgba(0,0,0,0.95)] [backface-visibility:hidden] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sign">
                     <CoverFace />
                   </button>
                   <div className="absolute inset-0 rounded-l-lg bg-cover p-2 pr-0 [backface-visibility:hidden] [transform:rotateY(180deg)]">{SPREADS[0][0]}</div>
@@ -572,7 +604,7 @@ export const Passport = () => {
                 className="absolute inset-1.5 z-20"
                 style={{ transformOrigin: "left center" }}
               >
-                <button type="button" aria-label="Open passport" onClick={openCover} className="absolute inset-0">
+                <button type="button" aria-label="Open passport" onClick={userOpen} className="absolute inset-0">
                   <CoverFace />
                 </button>
               </motion.div>

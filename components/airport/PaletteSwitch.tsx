@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { setContext, track } from "@/lib/analytics";
 
 // Golden hour is the main theme; "day" is the light theme (clear morning, baby blue and silver).
 // The stored choice is applied before first paint by the script in app/layout.tsx.
@@ -40,6 +41,8 @@ export const PaletteSwitch = () => {
       localStorage.setItem(PALETTE_KEY, next);
     } catch {}
     setPalette(next);
+    setContext({ palette: next });
+    track("palette_changed", `Switched to ${next === "day" ? "day" : "golden hour"}`, { to: next });
   };
 
   // The new theme spreads out from the switch as a growing circle.

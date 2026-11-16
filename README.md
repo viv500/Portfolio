@@ -71,3 +71,4 @@ public/
 
 - With `prefers-reduced-motion` on, the take-off never plays and the page opens directly.
 - Add `?notrack` to any URL to stop your own browser from being counted in analytics. `?track` turns counting back on.
+- Every analytics event, its properties and suggested PostHog insights are listed in [ANALYTICS.md](ANALYTICS.md).

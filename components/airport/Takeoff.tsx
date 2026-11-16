@@ -2,7 +2,7 @@
 
 import React, { memo, useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useMotionValueEvent, useTransform } from "framer-motion";
-import posthog from "posthog-js";
+import { setContext, track } from "@/lib/analytics";
 import { TAKEOFF_SEEN_KEY, takeoffClimb } from "./takeoffBus";
 import { HZ, P, VIEW_H, VIEW_W, VP, col, r1 } from "./flightdeck/geometry";
 import { Shell } from "./flightdeck/Shell";
@@ -604,6 +604,7 @@ export const PACING = {
   immersive: { hold: 1.4, roll: 0.42, climb: 0.55, tail: 1.7, shake: 1.8, shakeCurve: 1.5, rollPow: 2.3, rollLin: 0.2, rollDist: 200 },
 } satisfies Record<string, Pacing>;
 export type PacingName = keyof typeof PACING;
+type SkipMethod = "button" | "scroll" | "key";
 /** Master-timeline ms at `real` ms of playback under a pacing. */
 const timelineAt = (real: number, pace: Pacing) => {
   const edges = [0, T.hold, T.roll, T.climb, Infinity];
@@ -718,7 +719,7 @@ export const Takeoff = () => {
   const frame = useTransform(shellScale, [HANDOFF_SCALE, HANDOFF_SCALE + 3.5], [1, 0]);
   const clear = useMotionValue(1); // the overlay's opacity during the hand-off (it's page colour by then)
   const cardFade = useTransform(dolly, [0, 0.35], [1, 0]);
-  const skipRef = useRef<() => void>(() => {});
+  const skipRef = useRef<(method?: SkipMethod) => void>(() => {});
 
   // ── The controller ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -732,6 +733,8 @@ export const Takeoff = () => {
     let running = false;
     let waiting = false; // overlay up, timeline not started yet (fonts loading)
     let skipQueued = false;
+    let skipMethod: SkipMethod = "button";
+    let isReplay = false; // for analytics: a Replay take-off, not the page-load intro
     let alive = true;
     let handedAt = 0;
     // The frame has passed the camera; the screen is flat page colour. Show the page content and
@@ -743,7 +746,7 @@ export const Takeoff = () => {
       html.dataset.takeoff = "out";
       window.dispatchEvent(new CustomEvent("takeoff:done"));
     };
-    const finish = (skipped: boolean, elapsed: number) => {
+    const finish = (skipped: boolean) => {
       running = false;
       try {
         sessionStorage.setItem(TAKEOFF_SEEN_KEY, "1");
@@ -753,14 +756,19 @@ export const Takeoff = () => {
       delete html.dataset.takeoff;
       setActive(false);
       window.dispatchEvent(new CustomEvent("takeoff:finished"));
-      if (!skipped) posthog.capture("takeoff_completed", { ms: Math.round(elapsed) });
+      const pacing = pace === PACING.immersive ? "immersive" : "standard";
+      setContext({ takeoff_seen: true });
+      if (!skipped) {
+        const duration_s = Math.round((performance.now() - start) / 100) / 10; // real seconds, not timeline
+        track("takeoff_completed", `Watched the ${isReplay ? "replayed " : ""}take-off to the end (${duration_s} s)`, { duration_s, pacing, is_replay: isReplay });
+      }
     };
     // Once handed off: clear the overlay, then remove it.
-    const clearing = (now: number, skipped: boolean, elapsed: number) => {
+    const clearing = (now: number, skipped: boolean) => {
       const k = clamp01((now - handedAt) / HANDOFF_MS);
       clear.set(1 - k);
       if (k >= 1) {
-        finish(skipped, elapsed);
+        finish(skipped);
         return true;
       }
       return false;
@@ -771,7 +779,7 @@ export const Takeoff = () => {
         const k = clamp01((now - skipAt) / SKIP_DOLLY_MS);
         dolly.set(skipFrom + (1 - skipFrom) * k);
         if (shellScale.get() >= HANDOFF_SCALE || k >= 1) handOff(now);
-        if (handedAt && clearing(now, true, skipAt - start)) return;
+        if (handedAt && clearing(now, true)) return;
       } else {
         // Dev-only test hook: window.__takeoffAt freezes the timeline at that many ms.
         const frozen = process.env.NODE_ENV !== "production" ? (window as unknown as { __takeoffAt?: number }).__takeoffAt : undefined;
@@ -795,13 +803,14 @@ export const Takeoff = () => {
         dolly.set(dollyAt(ms - T.dollyFrom, T.end - T.dollyFrom));
         // Hand off once the pane fills the screen and the dusk is complete (flat page colour).
         if ((shellScale.get() >= HANDOFF_SCALE && dusk.get() >= 0.999) || ms >= T.end) handOff(now);
-        if (handedAt && clearing(now, false, ms)) return;
+        if (handedAt && clearing(now, false)) return;
       }
       raf = requestAnimationFrame(tick);
     };
     // Skip: straight to the end of the dusk climb (windows all page colour), then the dolly in
     // 300 ms. Never blocks input.
-    const skip = () => {
+    const skip = (method: SkipMethod = "button") => {
+      skipMethod = method;
       if (waiting) {
         skipQueued = true;
         return;
@@ -811,7 +820,9 @@ export const Takeoff = () => {
       if (handedAt || lastMs >= T.dusk) return; // already moving through
       skipAt = now;
       skipFrom = dolly.get();
-      posthog.capture("takeoff_skipped", { ms: Math.round(now - start) });
+      const at_s = Math.round((now - start) / 100) / 10;
+      const how = { button: "the Skip button", scroll: "a scroll", key: "a key press" }[skipMethod];
+      track("takeoff_skipped", `Skipped the ${isReplay ? "replayed " : ""}take-off with ${how} at ${at_s} s`, { at_s, method: skipMethod, pacing: pace === PACING.immersive ? "immersive" : "standard", is_replay: isReplay });
       p.set(1);
       dusk.set(1);
       lever.set(1);
@@ -840,7 +851,7 @@ export const Takeoff = () => {
       if (!alive) return;
       start = performance.now();
       running = true;
-      if (skipQueued) skip();
+      if (skipQueued) skip(skipMethod);
       raf = requestAnimationFrame(tick);
     };
     // ── What skips, and what doesn't ──────────────────────────────────────
@@ -862,10 +873,10 @@ export const Takeoff = () => {
     let skippedByInput = false;
     let swallowUntil = 0;
     const settling = () => performance.now() - start < IGNORE_MS;
-    const userSkip = () => {
+    const userSkip = (method: SkipMethod) => {
       if (!running || waiting || settling()) return;
       skippedByInput = true;
-      skip();
+      skip(method);
     };
     const onWheel = (e: WheelEvent) => {
       const now = performance.now();
@@ -878,7 +889,7 @@ export const Takeoff = () => {
       if (now - wheelAt > 300) wheelSum = 0;
       wheelAt = now;
       wheelSum += Math.abs(e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? window.innerHeight : 1));
-      if (wheelSum > 30) userSkip();
+      if (wheelSum > 30) userSkip("scroll");
     };
     // Touch never skips: while the intro plays, swipes are held so the page doesn't scroll
     // underneath it.
@@ -888,7 +899,7 @@ export const Takeoff = () => {
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || !SKIP_KEYS.has(e.key)) return;
       if ((e.target as HTMLElement)?.closest?.("a, button, input, textarea, [contenteditable]")) return;
-      userSkip();
+      userSkip("key");
     };
     const onDone = () => {
       if (skippedByInput) {
@@ -901,6 +912,7 @@ export const Takeoff = () => {
         const name = (e as CustomEvent<{ pacing?: PacingName }>).detail?.pacing;
         pace = name && name in PACING ? PACING[name] : PACING.immersive;
         skippedByInput = false;
+        isReplay = true;
         play();
       }
     };
@@ -1075,12 +1087,13 @@ export const Takeoff = () => {
           </div>
           {/* Résumé is the primary action (filled gold); Skip is secondary (gold outline). */}
           <div className="flex shrink-0 items-start gap-2 pb-1 md:gap-2.5">
-            <a href={resumePath} target="_blank" rel="noopener noreferrer" className="btn-gold whitespace-nowrap rounded-[4px] px-3 py-1.5 font-mono text-[11px] font-bold md:px-4 md:py-2 md:text-[14px]">
+            <a href={resumePath} target="_blank" rel="noopener noreferrer" className="btn-gold whitespace-nowrap rounded-[4px] px-3 py-1.5 font-mono text-[11px] font-bold md:px-4 md:py-2 md:text-[14px]" data-ph-capture-attribute-name="Résumé (take-off)">
               Résumé ↗
             </a>
             <button
               type="button"
-              onClick={() => skipRef.current()}
+              onClick={() => skipRef.current("button")}
+              data-ph-capture-attribute-name="Skip take-off"
               className="device inline-flex h-[31px] items-center whitespace-nowrap rounded-[4px] border-2 border-sign bg-black/60 px-3 font-mono text-[11px] font-semibold text-[rgb(var(--sign))] shadow-[0_4px_12px_-6px_rgba(0,0,0,0.8)] transition-colors hover:bg-sign hover:text-[#1a1206] focus-visible:bg-sign focus-visible:text-[#1a1206] focus-visible:outline-none md:h-[39px] md:px-4 md:text-[14px]"
             >
               Skip →
