@@ -50,7 +50,7 @@ PostHog's own events are on as well:
 | `palette` | `golden` or `day`, updated when switched |
 | `entry_section` | where the visit landed: `Check-in`, a section name, or a panel title for a direct link |
 | `takeoff_seen` | `true` once the intro has finished or been skipped |
-| `via` | set only for visitors who came through a tagged link, e.g. `portfolio`. It stays on every later visit from that browser. |
+| `via` | set only for visitors who came through a tagged link, e.g. `portfolio`. It stays on every later visit from that browser, and those visitors also get a person profile (other visitors stay anonymous). |
 
 ## Tagged links
 
@@ -60,7 +60,7 @@ To add another tagged link, add a redirect in `next.config.mjs` (`/<path>` → `
 
 **Set up once in PostHog:**
 
-1. **Filter:** in any insight, add the event-property filter `via` is set to look at just those visitors, or `via` is not set to keep them out of the public numbers. Save it as a filter group, or pin an insight with it, so it's one click away. (Not a cohort: the site doesn't create person profiles for anonymous visitors, so cohorts on `via` would be empty.)
+1. **Cohort:** tagged visitors (and only they) get a person profile with `first_via`, `via`, `first_via_visit` and `last_via_visit`. In People → Cohorts → New, use "Person property `first_via` equals `portfolio`" and name it after where the link is used. Each visitor is listed under People. Use the cohort in any insight, or filter on the event property `via` (`is set` / `is not set`) to include or exclude them.
 2. **Saved activity view:** Activity → filter on `via` is set → add the `summary` column → save it. That gives you a timeline of what they did. Their session replays are under Replay with the same filter.
 3. **Notification (optional):** Data pipelines → Destinations → Slack, Discord or email, triggered on `tracked_link_opened`. You get pinged each time the link is opened.
 

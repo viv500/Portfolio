@@ -49,7 +49,11 @@ export const PostHogAnalytics = () => {
       session_recording: { maskAllInputs: true },
       // Tag before the first pageview, so the whole visit (and later visits from this browser) carries it.
       loaded: (ph) => {
-        if (via) ph.register({ via });
+        if (!via) return;
+        ph.register({ via });
+        // Tagged visitors (only) get a person profile, so they're listed in People and can be
+        // grouped into a cohort. Everyone else stays anonymous (person_profiles above).
+        ph.setPersonProperties({ via, last_via_visit: new Date().toISOString() }, { first_via: via, first_via_visit: new Date().toISOString() });
       },
     });
     if (via) track("tracked_link_opened", `Arrived through the /${via} link`, { via, referrer: document.referrer || null });
