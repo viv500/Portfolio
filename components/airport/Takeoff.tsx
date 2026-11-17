@@ -543,7 +543,7 @@ const CALLOUTS: [number, string][] = [
   [0.267, "80 KNOTS"],
   [0.42, "V1"], // a beat before ROTATE, so both read even in the quicker standard pacing
   [0.5, "ROTATE"],
-  [0.56, "V2"],
+  [0.61, "V2"], // just after lift-off (LIFTOFF)
   [0.66, "POSITIVE RATE"],
   [0.71, "GEAR UP"],
 ];
@@ -567,8 +567,10 @@ export const TAKEOFF_TOTAL_MS = 7400;
 //  - roll (400–4000): after thrust-up the plane creeps, then the speed builds hard (speed grows
 //    as time^ROLL_POW), so the runway lights barely move at first and then stream past: 80 KNOTS
 //    late in the roll, V1 just before rotation.
-//  - rotation and climb (4000–6000): ROTATE, a gradual nose-up to 15° over about 2 s, lift-off, V2,
-//    POSITIVE RATE, GEAR UP.
+//  - rotation and climb (4000–6000): ROTATE, a gradual nose-up to 15° over about 2 s. The nose
+//    wheel comes up first; the main wheels keep rolling (the rumble fading as the wings take the
+//    weight) until lift-off at about 7° (LIFTOFF), and only then does the ground fall away. Then V2,
+//    POSITIVE RATE, GEAR UP. The camera move starts at ROTATE but barely moves until after lift-off.
 //  - dusk (4700–6450): runs into the camera's final rush, so the last of the glow sweeps away as
 //    the pane fills the screen; it completes just before the hand-off (never delays it): the plane keeps climbing; the sky darkens from the zenith down (golden
 //    amber → deep amber → warm dark brown → the page colour) until every window shows flat page
@@ -587,18 +589,20 @@ const T = { hold: 400, roll: 4000, climb: 6000, duskFrom: 4700, dusk: 6450, doll
 //  - climb: rotation, lift-off and the climb-out; the payoff, a little quicker.
 //  - tail: the last of the dusk and the camera rushing into the window; a transition, so always quick.
 // `shake` scales the runway rumble; it builds with speed (`shakeCurve` > 1 makes it build later and harder).
+// `shakeFreq` is how quickly it shakes (radians per ms: 0.125 is about 20 shakes a second).
 // The roll's speed curve: speed = rollLin·u + (1 − rollLin)·u^rollPow over the roll (u: 0 → 1).
 // `rollLin` gives an immediate, gentle but visible roll from brake release; `rollPow` (higher)
 // holds the speed down longer, then surges. Distance down the runway is the integral of speed,
 // so the runway streams by as speed builds; `rollDist` is how far down the runway rotation comes.
-export type Pacing = { hold: number; roll: number; climb: number; tail: number; shake: number; shakeCurve: number; rollPow: number; rollLin: number; rollDist: number };
+export type Pacing = { hold: number; roll: number; climb: number; tail: number; shake: number; shakeCurve: number; rollPow: number; rollLin: number; rollDist: number; shakeFreq: number };
 export const PACING = {
-  /** Every page load: about 5 s to the page. */
-  standard: { hold: 2, roll: 1.33, climb: 1.5, tail: 1.7, shake: 1, shakeCurve: 1, rollPow: 1.7, rollLin: 0.06, rollDist: 130 },
+  /** Every page load: about 4.2 s to the page. A short roll (about 1.9 s): rollDist is scaled
+   *  with the roll's length, so the runway streams by just as fast at rotation. */
+  standard: { hold: 2, roll: 1.9, climb: 1.5, tail: 1.7, shake: 1, shakeCurve: 1, rollPow: 1.7, rollLin: 0.06, rollDist: 91, shakeFreq: 0.08 },
   /** "Replay take-off": for the fans. A long roll down the runway (about 8 s) with a slow creep
    *  that builds to a strong surge, heavier progressive shake, and a gentle, gradual rotation and
    *  lift-off (about 3.6 s); about 13 s in all. The zoom at the end stays quick. */
-  immersive: { hold: 1.4, roll: 0.42, climb: 0.55, tail: 1.7, shake: 1.8, shakeCurve: 1.5, rollPow: 2.3, rollLin: 0.2, rollDist: 200 },
+  immersive: { hold: 1.4, roll: 0.42, climb: 0.55, tail: 1.7, shake: 1.8, shakeCurve: 1.5, rollPow: 2.3, rollLin: 0.2, rollDist: 200, shakeFreq: 0.08 },
 } satisfies Record<string, Pacing>;
 export type PacingName = keyof typeof PACING;
 type SkipMethod = "button" | "scroll" | "key";
@@ -649,6 +653,10 @@ const dollyAt = (ms: number, dur: number) => {
   return v <= PANEL_GONE_V ? Math.max(0, v) : Math.min(1, PANEL_GONE_V + (v - PANEL_GONE_V) * AFTER_PANEL_SPEED);
 };
 const SCENE_END = 0.76; // scene time at GEAR UP; the dusk climb carries it on to 1
+/** Scene time when the main wheels leave the runway (rotation starts at 0.5). */
+const LIFTOFF = 0.6;
+/** The same moment on the master timeline (ms). */
+const LIFTOFF_MS = T.roll + ((LIFTOFF - 0.5) / (SCENE_END - 0.5)) * (T.climb - T.roll);
 /** By this scale the first officer's pane covers the whole screen (desktop and phone): the hand-off point. */
 const HANDOFF_SCALE = 8.5;
 /** The camera's aim drifts from the centre post to the middle of the first officer's front pane,
@@ -800,9 +808,11 @@ export const Takeoff = () => {
         travel.current = { d: pace.rollDist * rollTravel(ru, pace), atRotate: pace.rollDist };
         p.set(sceneAt(ms, pace));
         // Runway rumble, in real time (so a slower pacing doesn't slow the vibration itself):
-        // builds with speed through the roll, gone at lift-off.
+        // builds with speed through the roll, carries on (fading) while the main wheels are still on
+        // the runway during rotation, and is gone at lift-off.
         const roll = clamp01((ms - T.hold) / (T.roll - T.hold));
-        rumble.set(frozen === undefined && ms < T.roll ? Math.sin(now * 0.125) * 1.6 * pace.shake * roll ** pace.shakeCurve : 0);
+        const onWheels = 1 - ease((ms - T.roll) / (LIFTOFF_MS - T.roll));
+        rumble.set(frozen === undefined && ms < LIFTOFF_MS ? Math.sin(now * pace.shakeFreq) * 1.6 * pace.shake * roll ** pace.shakeCurve * onWheels : 0);
         // THRUST SET: the levers slide forward over 0.5 s (ease-out) and stay there.
         lever.set(1 - (1 - clamp01((ms - 80) / 500)) ** 3);
         takeoffClimb.set(clamp01((ms - T.roll) / (T.dusk - T.roll)));
@@ -983,7 +993,7 @@ export const Takeoff = () => {
   const update = (t: number) => {
     const { d: rolled, atRotate } = travel.current;
     const d = t < 0.5 ? rolled : atRotate + (t - 0.5) * 2 * 190;
-    const climb = Math.max(0, (t - 0.52) / 0.48);
+    const climb = Math.max(0, (t - LIFTOFF) / (1 - LIFTOFF));
     setS({
       t,
       d,
@@ -1060,7 +1070,7 @@ export const Takeoff = () => {
     };
   }, [active, compact]);
 
-  const airborne = s.t > 0.56;
+  const airborne = s.t > LIFTOFF;
   const climbing = s.t >= 0.66; // POSITIVE RATE
   const fma = climbing ? FMA_CLIMB : FMA_TAKEOFF;
   // Yokes: pulled back at ROTATE, easing to a gentle climb position after POSITIVE RATE.
@@ -1091,7 +1101,7 @@ export const Takeoff = () => {
             {/* The cockpit: fully lit throughout. */}
             <motion.div className="absolute inset-0 will-change-transform" style={{ scale: shellScale, opacity: frame, transformOrigin: camOrigin, x: camX }}>
               <Layer>
-                <Shell compact={compact} glare={glare} fma={fma} call={s.call} kt={s.kt} alt={s.alt} horizon={s.horizon} climb={Math.min(1, Math.max(0, (s.t - 0.55) / 0.1)) * 8} />
+                <Shell compact={compact} glare={glare} fma={fma} call={s.call} kt={s.kt} alt={s.alt} horizon={s.horizon} climb={Math.min(1, Math.max(0, (s.t - LIFTOFF) / 0.1)) * 8} />
               </Layer>
             </motion.div>
             <motion.div className="absolute inset-0 will-change-transform" style={{ scale: panelScale, opacity: panelFade, transformOrigin: camOrigin, x: camX }}>

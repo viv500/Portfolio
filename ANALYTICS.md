@@ -90,7 +90,7 @@ To add these descriptions, go to Data management → Events, open an event and c
 **Properties**
 
 - `summary`: One-line, human-readable description of the event.
-- `pacing`: Take-off version: standard (page load, ~5 s) or immersive (replay, ~13 s).
+- `pacing`: Take-off version: standard (page load, ~4 s) or immersive (replay, ~13 s).
 - `is_replay`: True when the take-off was started from Replay take-off.
 - `method`: How the take-off was skipped: button, scroll or key.
 - `kind`: Panel type: experience, project, hackathon or resume.
